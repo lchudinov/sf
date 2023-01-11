@@ -18,8 +18,8 @@ Definition next_weekday (d: day) : day :=
   | tuesday => wednesday
   | wednesday => thursday
   | thursday => friday
-  | friday => saturday
-  | saturday => sunday
+  | friday => monday
+  | saturday => monday
   | sunday => monday
   end.
 
@@ -27,7 +27,7 @@ Compute (next_weekday friday).
 Compute (next_weekday (next_weekday saturday)).
 
 Example test_next_weekday:
-  (next_weekday (next_weekday saturday)) = monday.
+  (next_weekday (next_weekday saturday)) = thursday.
 Proof. simpl. reflexivity. Qed.
 
 Extraction next_weekday.
@@ -36,7 +36,7 @@ Inductive bool : Type :=
   | true
   | false.
 
-Definition negb (b : bool) : bool := 
+Definition negb (b:bool) : bool := 
 match b with
 | true => false
 | false => true 
@@ -52,7 +52,7 @@ Definition orb (a: bool) (b: bool) : bool :=
 match a with
 | true => true
 | false => b
-end .
+end.
 
 Example test_orb1: (orb true false) = true.
 Proof. simpl. reflexivity. Qed.
@@ -84,26 +84,26 @@ if a then true
 else b.
 
 Definition nandb (b1:bool) (b2:bool) : bool :=
-  (negb (andb b1 b2)).
+  negb (andb b1 b2).
 Example test_nandb1: (nandb true false) = true.
-Proof. simpl. reflexivity. Qed.
+Proof. reflexivity. Qed.
 Example test_nandb2: (nandb false false) = true.
-Proof. simpl. reflexivity. Qed.
+Proof. reflexivity. Qed.
 Example test_nandb3: (nandb false true) = true.
-Proof. simpl. reflexivity. Qed.
+Proof. reflexivity. Qed.
 Example test_nandb4: (nandb true true) = false.
-Proof. simpl. reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Definition andb3 (b1:bool) (b2:bool) (b3:bool) : bool :=
   (andb b1 (andb b2 b3)).
 Example test_andb31: (andb3 true true true) = true.
-Proof. simpl. reflexivity. Qed.
+Proof. reflexivity. Qed.
 Example test_andb32: (andb3 false true true) = false.
-Proof. simpl. reflexivity. Qed.
+Proof. reflexivity. Qed.
 Example test_andb33: (andb3 true false true) = false.
-Proof. simpl. reflexivity. Qed.
+Proof. reflexivity. Qed.
 Example test_andb34: (andb3 true true false) = false.
-Proof. simpl. reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Check true.
 Check (negb true).
