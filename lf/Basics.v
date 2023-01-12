@@ -106,6 +106,80 @@ Example test_andb34: (andb3 true true false) = false.
 Proof. reflexivity. Qed.
 
 Check true.
-Check (negb true).
-Check negb.
+Check true : bool.
+Check (negb true) : bool.
+Check negb : bool -> bool.
 Check andb.
+
+
+Inductive rgb : Type :=
+  | red
+  | green
+  | blue.
+
+Inductive color : Type :=
+  | black
+  | white
+  | primary (p : rgb).
+  
+Definition monochrome (c: color) : bool :=
+  match c with
+  | black => true
+  | white => true
+  | primary _ => false
+end.
+
+Definition isred (c: color) : bool :=
+  match c with
+  | black => false
+  | white => false
+  | primary red => true
+  | primary _ => false
+end.
+
+Module Playground.
+  Definition b : rgb := blue.
+End Playground.
+
+Definition b : bool := true.
+
+Check Playground.b : rgb.
+Check b : bool.
+
+Module TuplePlayground.
+Inductive bit : Type :=
+  | B0
+  | B1.
+
+Inductive nybble : Type :=
+  | bits (b0 b1 b2 b3: bit).
+
+Check (bits B1 B0 B1 B0).
+
+Definition all_zero (nb: nybble) : bool :=
+  match nb with
+  | (bits B0 B0 B0 B0) => true
+  | (bits _ _ _ _) => false
+  end.
+
+Check (all_zero (bits B1 B0 B1 B0)).
+ 
+End TuplePlayground.
+
+Module NatPlayground.
+
+Inductive nat : Type :=
+  | O
+  | S (n : nat).
+  
+Inductive nat' : Type :=
+  | stop
+  | tick (n : nat').
+
+Definition pred (n : nat) : nat :=
+  match n with
+  | O => O
+  | S n' => n'
+  end.
+
+End NatPlayground.
