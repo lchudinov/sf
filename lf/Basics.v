@@ -183,3 +183,75 @@ Definition pred (n : nat) : nat :=
   end.
 
 End NatPlayground.
+
+Check (S (S (S (S O)))).
+
+Definition minustwo (n : nat) : nat :=
+  match n with
+  | O => O
+  | S O => O
+  | S (S n') => n'
+  end.
+
+Compute (minustwo 4).
+
+Fixpoint even (n : nat) : bool :=
+  match n with
+  | O => true
+  | S O => false
+  | S (S n') => even n'
+  end.
+
+Definition odd (n : nat) : bool :=
+  negb (even n).
+
+Example test_odd1: odd 1 = true.
+Proof. simpl. reflexivity. Qed.
+Example test_odd2: odd 4 = false.
+Proof. simpl. reflexivity. Qed.
+
+Module NatPlayground2.
+
+Fixpoint plus (n : nat) (m : nat) : nat :=
+  match n with
+  | O => m
+  | S n' => S (plus n' m)
+  end.
+
+Compute (plus 3 2).
+
+Fixpoint mult (n m: nat) : nat :=
+  match n with
+  | O => O
+  | S n' => plus m (mult n' m)
+  end.
+
+Example test_mul5by5: mult 5 5 = 25.
+Proof. simpl. reflexivity. Qed.
+
+Fixpoint minus (n m: nat): nat :=
+  match n, m with
+  | O, _ => O
+  | S _, O => n
+  | S n', S m' => minus n' m'
+  end.
+
+End NatPlayground2.
+
+Notation "x + y" := (plus x y) (at level 50, left associativity) : nat_scope.
+Notation "x - y" := (minus x y) (at level 50, left associativity) : nat_scope.
+Notation "x * y" := (mult x y) (at level 40, left associativity) : nat_scope.
+
+Check ((0 + 1) + 1) : nat.
+
+Fixpoint factorial (n: nat) : nat :=
+  match n with
+  | O => 1
+  | S O => 1
+  | S n' => mult n (factorial n')
+  end.
+
+Example test_factorial1: (factorial 3) = 6.
+Proof. simpl. reflexivity. Qed.
+Example test_factorial2: (factorial 5) = (mult 10 12).
+Proof. simpl. reflexivity. Qed.
