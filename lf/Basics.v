@@ -334,3 +334,46 @@ Proof.
   intros n.
   reflexivity.
 Qed.
+
+Theorem plus_id_example : forall n m : nat,
+  n = m -> n + n = m + m.
+Proof.
+  intros n m.
+  intros H.
+  rewrite -> H.
+  reflexivity.
+Qed.
+
+Check mult_n_O.
+
+Check mult_n_Sm.
+
+Theorem mult_n_0_m_0 : forall p q : nat,
+  (p * 0) + (q * 0) = 0.
+Proof.
+  intros p q.
+  rewrite <- mult_n_O.
+  rewrite <- mult_n_O.
+  reflexivity.
+Qed.
+
+Theorem plus_id_exercise : forall n m o : nat,
+  n = m -> m = o -> n + m = m + o.
+Proof.
+  intros m n o.
+  intros H.
+  rewrite -> H.
+  intros I.
+  rewrite -> I.
+  reflexivity.
+Qed.
+
+Theorem mult_n_1 : forall p : nat,
+  p * 1 = p.
+Proof.
+  intros p.
+  rewrite <- mult_n_Sm.
+  rewrite <- mult_n_O.
+  simpl.
+  reflexivity.
+Qed.
