@@ -377,3 +377,83 @@ Proof.
   simpl.
   reflexivity.
 Qed.
+
+Theorem plus_1_neg_0_firsttry : forall n : nat,
+  ((n + 1) =? 0) = false.
+Proof.
+  intros n.
+  simpl.
+Abort.
+
+Theorem plus_1_neg_0 : forall n : nat,
+  ((n + 1) =? 0) = false.
+Proof.
+  intros n. destruct n as [| n'] eqn:E.
+  - reflexivity.
+  - reflexivity.
+Qed.
+
+Theorem negb_involutive : forall b : bool,
+  negb (negb b) = b.
+Proof.
+  intros b. destruct b eqn:E.
+  - simpl. reflexivity.
+  - simpl. reflexivity.
+Qed.
+
+Theorem andb_commutative : forall b c, andb b c = andb c b.
+Proof.
+  intros b c. destruct b eqn:Eb.
+  - destruct c eqn:Ec.
+    + simpl. reflexivity.
+    + reflexivity.
+  - destruct c eqn:Ec.
+    + simpl. reflexivity.
+    + reflexivity.
+Qed.
+
+Theorem andb_commutative' : forall b c, andb b c = andb c b.
+Proof.
+  intros b c. destruct b eqn:Eb.
+  { destruct c eqn:Ec.
+    { simpl. reflexivity. }
+    { reflexivity. } }
+  { destruct c eqn:Ec.
+    { simpl. reflexivity. }
+    { reflexivity. } }
+Qed.
+
+Theorem plus_1_neg_0' : forall n : nat,
+  ((n + 1) =? 0) = false.
+Proof.
+  intros [| n].
+  - reflexivity.
+  - reflexivity.
+Qed.
+
+Theorem andb_commutative'' : forall b c, andb b c = andb c b.
+Proof.
+  intros [] [].
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+Qed.
+
+Theorem andb_true_elim2 : forall b c : bool,
+  andb b c = true -> c = true.
+Proof.
+  intros [] [].
+  - reflexivity.
+  - intros H. rewrite <- H. reflexivity.
+  - reflexivity.
+  - intros H. rewrite <- H. reflexivity.
+Qed.
+
+Theorem zero_nbeq_plus_1 : forall n : nat,
+  0 =? (n + 1) = false.
+Proof.
+  intros [].
+  - reflexivity.
+  - reflexivity.
+Qed.
