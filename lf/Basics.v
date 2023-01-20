@@ -495,3 +495,82 @@ Proof.
   - simpl. intros H. rewrite -> H. reflexivity.
   - reflexivity.
 Qed.
+
+Inductive bin : Type :=
+  | Z
+  | B_0 (n : bin)
+  | B_1 (n : bin).
+
+Fixpoint incr_with_carry (m: bin) (carry: bool) : bin :=
+  match m, carry with
+  | Z, _ => B_1 Z 
+  | B_1 m', true => B_0 (incr_with_carry m' true)  
+  | B_1 m', false => B_0 (incr_with_carry m' false)
+  | B_0 m', _ => B_1 m'
+  end.
+  
+Definition incr (m: bin) : bin :=
+  incr_with_carry m false.
+  
+Compute (incr Z).
+Compute (incr(incr Z)).
+Compute (incr(incr(incr Z))).
+Compute (incr(incr(incr(incr Z)))).
+Compute (incr(incr(incr(incr(incr Z))))).
+Compute (incr(incr(incr(incr(incr(incr Z)))))).
+
+Example test_bin_incr1 : (incr (B_1 Z)) = B_0 (B_1 Z).
+Proof. reflexivity. Qed.
+
+Example test_bin_incr2 : (incr (B_0 (B_1 Z))) = B_1 (B_1 Z).
+Proof. reflexivity. Qed.
+ 
+Example test_bin_incr3 : (incr (B_1 (B_1 Z))) = B_0 (B_0 (B_1 Z)).
+Proof. reflexivity. Qed.
+
+Fixpoint bin_to_nat_rec (m:bin) (pos multiplier:nat) : nat :=
+  match m, pos, multiplier with
+  | Z, _, _ => 0
+  | B_1 Z, _, _ => multiplier 
+  | B_1 m', 0, 1 => 1 + (bin_to_nat_rec m' 1 2)
+  | B_1 m', _, _ => multiplier + (bin_to_nat_rec m' (pos + 1) (multiplier * 2))
+  | B_0 m', 0, 1 => (bin_to_nat_rec m' 1 2)
+  | B_0 m', _, _ => (bin_to_nat_rec m' (pos + 1) (multiplier * 2))
+  end.
+
+Definition bin_to_nat (m:bin) := (bin_to_nat_rec m 0 1).
+
+Definition one_bin := (B_1 Z).
+Definition two_bin := (B_0 (B_1 Z)).
+Definition three_bin := (B_1 (B_1 Z)).
+Definition four_bin := (B_0 (B_0 (B_1 Z))).
+Definition five_bin := (B_1 (B_0 (B_1 Z))).
+Definition six_bin := (B_0 (B_1 (B_1 Z))).
+Definition seven_bin := (B_1 (B_1 (B_1 Z))).
+Definition eight_bin := (B_0 (B_0 (B_0 (B_1 Z)))).
+
+Compute (bin_to_nat one_bin).
+Compute (bin_to_nat two_bin).
+Compute (bin_to_nat three_bin).
+Compute (bin_to_nat four_bin).
+Compute (bin_to_nat five_bin).
+Compute (bin_to_nat six_bin).
+Compute (bin_to_nat seven_bin).
+Compute (bin_to_nat eight_bin).
+
+Example test_bin_incr5 :
+  bin_to_nat (incr (B_1 Z)) = 1 + bin_to_nat (B_1 Z).
+Proof. cbn. reflexivity. Qed.
+
+Example test_bin_incr6 :
+  bin_to_nat (incr (incr (B_1 Z))) = 2 + bin_to_nat (B_1 Z).
+Proof. cbv. reflexivity. Qed.
+
+Example incr_seven: incr seven_bin = eight_bin.
+Proof. reflexivity. Qed.
+
+Example incr_seven_nat: bin_to_nat(incr seven_bin) = 8.
+Proof. reflexivity. Qed.
+
+Example incr_seven_twice_nat: bin_to_nat(incr (incr seven_bin)) = 9.
+Proof. reflexivity. Qed.
