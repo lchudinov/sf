@@ -244,4 +244,46 @@ Proof.
     simpl.
     reflexivity.
 Qed.
-    
+
+Check leb.
+
+Lemma leb_a : forall a,
+  leb a a = true.
+Proof.
+  intros [].
+  - reflexivity.
+  - induction n.
+    -- simpl. reflexivity.
+    -- simpl. rewrite <- IHn. simpl. reflexivity.
+Qed.
+
+Lemma leb_a_S_a : forall a,
+  leb a (S a) = true.
+Proof.
+  intros a.
+  induction a.
+  - simpl. reflexivity.
+  - simpl. rewrite <- IHa. reflexivity.
+Qed.
+
+Lemma leb_a_b : forall a b,
+  leb a (a + b) = true.
+Proof.
+  intros a b.
+  induction b.
+  - rewrite add_comm. simpl. rewrite leb_a. reflexivity.
+  - rewrite <- plus_n_Sm.
+    destruct b.
+    -- rewrite add_comm. simpl. rewrite leb_a_S_a. reflexivity.
+    -- rewrite <- IHb.
+Abort.
+
+Theorem plus_leb_compat_l : forall n m p : nat,
+  n <=? m = true -> (p + n) <=? (p + m) = true.
+Proof.
+  intros n m p.
+  intros H.
+  induction p as [|p' IHp'].
+  - simpl. rewrite H. reflexivity.
+  - simpl. rewrite IHp'. reflexivity.
+Qed.
