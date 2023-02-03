@@ -287,3 +287,111 @@ Proof.
   - simpl. rewrite H. reflexivity.
   - simpl. rewrite IHp'. reflexivity.
 Qed.
+
+
+(* guess: destruction *)
+(* reality: induction *)
+Theorem leb_refl : forall n:nat,
+  (n <=? n) = true.
+Proof.
+  intros [].
+  - reflexivity.
+  - induction n.
+    -- reflexivity.
+    -- rewrite <- IHn.
+       simpl. reflexivity.
+Qed. 
+
+(* guess: destruction *)
+(* reality: induction *)
+Theorem zero_neqb_S : forall n:nat,
+  0 =? (S n) = false.
+Proof.
+  induction n as [|n' IHn'].
+  - reflexivity.
+  - rewrite <- IHn'. simpl. reflexivity.
+Qed.
+(* guess: destruction *)
+(* reality: destruction *)
+Theorem andb_false_r : forall b : bool,
+  andb b false = false.
+Proof.
+  intros [].
+  - reflexivity.
+  - reflexivity.
+Qed.
+
+(* guess: destruction *)
+(* reality: destruction *)
+Theorem S_neqb_0 : forall n:nat,
+(S n) =? 0 = false.
+Proof.
+  intros [].
+  - reflexivity.
+  - reflexivity.
+  Qed.
+  
+(* guess: induction *)
+Theorem mult_1_l : forall n:nat, 1 * n = n.
+Proof.
+  induction n as [|n' IHn'].
+  - reflexivity.
+  - simpl. rewrite <- add_comm. simpl. reflexivity.
+Qed.
+
+Theorem all3_spec : forall b c : bool,
+  orb
+    (andb b c)
+    (orb (negb b)
+         (negb c))
+  = true.
+Proof.
+  intros [] [].
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+Qed.
+
+Theorem mult_plus_distr_r : forall n m p : nat,
+  (n + m) * p = (n * p) + (m * p).
+Proof.
+  intros n m p.
+  induction p as [|p' IHp'].
+  - rewrite mul_0_r. rewrite mul_0_r. rewrite mul_0_r. reflexivity.
+  - assert (Hs1: n * S p' = n * p' + n).
+    { rewrite mul_comm. simpl. rewrite mul_comm. rewrite add_comm. reflexivity. }
+    assert (Hs2: m * S p' = m * p' + m).
+    { rewrite mul_comm. simpl. rewrite mul_comm. rewrite add_comm. reflexivity. }
+    assert (Hs3: (n + m) * S p' = (n + m) * p' + (n + m)).
+    { rewrite mul_comm. simpl. rewrite mul_comm. rewrite add_comm. reflexivity. }
+    rewrite Hs1. rewrite Hs2. rewrite Hs3.
+    rewrite IHp'. rewrite add_assoc. rewrite add_assoc.
+    assert (Ha: (m * p') + (n * p') = (n * p') + (m * p')).
+    { rewrite add_comm. reflexivity. }
+    assert (Hf: ((n * p') + n) + (m * p') = (n * p') + (m * p') + n).
+    { rewrite add_comm. rewrite add_assoc. rewrite Ha. reflexivity. }
+    rewrite Hf.
+    reflexivity.
+Qed.
+
+Theorem mult_assoc : forall n m p : nat,
+  n * (m * p) = (n * m) * p.
+Proof.
+  intros n m p.
+  induction n as [|n' IHn'].
+  - simpl. reflexivity.
+  - simpl. rewrite IHn'.
+    rewrite mult_plus_distr_r.
+    reflexivity.
+Qed.
+
+Theorem add_shuffle3' : forall n m p : nat,
+  n + (m + p) = m + (n + p).
+Proof.
+  intros n m p.
+  rewrite add_assoc.
+  replace (n + m) with (m + n).
+  - rewrite add_assoc. reflexivity.
+  - rewrite add_comm. reflexivity.
+Qed.
