@@ -509,8 +509,15 @@ Fixpoint incr_with_carry (m: bin) (carry: bool) : bin :=
   | B_0 m', _ => B_1 m'
   end.
   
-Definition incr (m: bin) : bin :=
+Definition incr' (m: bin) : bin :=
   incr_with_carry m false.
+  
+Fixpoint incr (m:bin) : bin :=
+match m with
+  | Z    => B_1 Z
+  | B_0 n => B_1 n
+  | B_1 n => B_0 (incr n)
+  end.
   
 Compute (incr Z).
 Compute (incr(incr Z)).
@@ -538,7 +545,14 @@ Fixpoint bin_to_nat_rec (m:bin) (pos multiplier:nat) : nat :=
   | B_0 m', _, _ => (bin_to_nat_rec m' (pos + 1) (multiplier * 2))
   end.
 
-Definition bin_to_nat (m:bin) := (bin_to_nat_rec m 0 1).
+Definition bin_to_nat' (m:bin) := (bin_to_nat_rec m 0 1).
+
+Fixpoint bin_to_nat (m:bin) : nat :=
+  match m with
+    | Z    => O
+    | B_0 n => (bin_to_nat n) + (bin_to_nat n)
+    | B_1 n => S ((bin_to_nat n) + (bin_to_nat n))
+  end.
 
 Definition one_bin := (B_1 Z).
 Definition two_bin := (B_0 (B_1 Z)).
