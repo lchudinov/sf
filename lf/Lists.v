@@ -272,3 +272,36 @@ Proof.
   reflexivity.
 Qed.
 
+Theorem nil_app : forall lst : natlist,
+  [] ++ lst = lst.
+Proof. simpl. reflexivity. Qed.
+
+Theorem tl_length_pred : forall l:natlist,
+  pred (length l) = length (tl l).
+Proof.
+  intros l.
+  destruct l as [|h t].
+  - simpl. reflexivity.
+  - simpl. reflexivity. 
+Qed.
+
+Theorem appassoc : forall lst1 lst2 lst3 : natlist,
+  (lst1 ++ lst2) ++ lst3 = lst1 ++ (lst2 ++ lst3).
+Proof.
+  intros lst1 lst2 lst3.
+  induction lst1 as [| h1 t1].
+  - (* Set Printing Parentheses. Set Printing All. *) simpl. reflexivity. 
+  - simpl. rewrite IHt1. reflexivity.
+Qed.
+
+Fixpoint rev (l:natlist) : natlist :=
+  match l with
+  | nil => nil
+  | h :: t => rev t ++ [h]
+  end.
+
+Example test_rev1: rev [1;2;3] = [3;2;1].
+Proof. reflexivity. Qed.
+Example test_rev2: rev nil = nil.
+Proof. reflexivity. Qed.
+
