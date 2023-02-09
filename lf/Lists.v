@@ -285,7 +285,7 @@ Proof.
   - simpl. reflexivity. 
 Qed.
 
-Theorem appassoc : forall lst1 lst2 lst3 : natlist,
+Theorem app_assoc : forall lst1 lst2 lst3 : natlist,
   (lst1 ++ lst2) ++ lst3 = lst1 ++ (lst2 ++ lst3).
 Proof.
   intros lst1 lst2 lst3.
@@ -348,7 +348,7 @@ Theorem rev_app_distr: forall l1 l2 : natlist,
 Proof.
   intros l1 l2. induction l1 as [| h1 t1].
   - simpl. rewrite app_nil_r. reflexivity.
-  - simpl. rewrite IHt1. rewrite appassoc. reflexivity.
+  - simpl. rewrite IHt1. rewrite app_assoc. reflexivity.
 Qed.
 
 Theorem rev_involutive : forall l : natlist,
@@ -364,10 +364,46 @@ Theorem app_assoc4 : forall l1 l2 l3 l4 : natlist,
 Proof.
   intros l1 l2 l3 l4.
   Set Printing Parentheses.
-  induction l1 as [| h1 t1].
-  - simpl.
-  Abort.
+  rewrite app_assoc.
+  rewrite <- app_assoc.
+  reflexivity.
+Qed.
+
+Lemma nonzeros_app : forall l1 l2 : natlist,
+  nonzeros (l1 ++ l2) = (nonzeros l1) ++ (nonzeros l2).
+Proof.
+  intros l1 l2.
+  induction l1 as [|h1 t1].
+  - simpl. reflexivity.
+  - simpl. destruct h1.
+    -- rewrite IHt1. reflexivity.
+    -- rewrite IHt1. reflexivity.
+Qed.
   
-  
-  
-  
+Fixpoint eqblist (l1 l2 : natlist) : bool :=
+  match l1, l2 with
+  | [], [] => true
+  | [], _ => false
+  | _, [] => false
+  | h1 :: t1, h2 :: t2 => if h1 =? h2 then eqblist t1 t2 else false
+  end.
+
+Example test_eqblist1 :
+  (eqblist nil nil = true).
+Proof. reflexivity. Qed.
+Example test_eqblist2 :
+  eqblist [1;2;3] [1;2;3] = true.
+Proof. simpl. reflexivity. Qed.
+Example test_eqblist3 :
+  eqblist [1;2;3] [1;2;4] = false.
+Proof. simpl.  reflexivity. Qed.
+
+Theorem eqblist_refl : forall l:natlist,
+  true = eqblist l l.
+Proof.
+  intros l.
+  induction l as [|h1 t1].
+  - simpl. reflexivity.
+  - simpl. rewrite <- IHt1. rewrite eqb_refl. reflexivity.
+Qed.
+
