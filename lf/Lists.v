@@ -407,3 +407,29 @@ Proof.
   - simpl. rewrite <- IHt1. rewrite eqb_refl. reflexivity.
 Qed.
 
+Theorem count_member_nonzero : forall (s : bag),
+  1 <=? (count 1 (1 :: s)) = true.
+Proof. simpl. reflexivity. Qed.
+
+Theorem leb_n_Sn : forall n : nat,
+  n <=? (S n) = true.
+Proof.
+  intros n. induction n as [| n' IHn'].
+  - (* 0 *)
+    simpl. reflexivity.
+  - (* S n' *)
+    simpl. rewrite IHn'. reflexivity.
+Qed. 
+
+Theorem remove_does_not_increase_count: forall (s : bag),
+  (count 0 (remove_one 0 s)) <=? (count 0 s) = true.
+Proof.
+  intros s. induction s as [|h t].
+  - simpl. reflexivity.
+  - destruct h.
+    -- simpl. rewrite leb_n_Sn. reflexivity.
+    -- simpl. rewrite IHt. reflexivity.
+Qed.
+
+
+
