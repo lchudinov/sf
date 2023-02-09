@@ -294,14 +294,39 @@ Proof.
   - simpl. rewrite IHt1. reflexivity.
 Qed.
 
-Fixpoint rev (l:natlist) : natlist :=
-  match l with
+Fixpoint rev (lst:natlist) : natlist :=
+  match lst with
   | nil => nil
   | h :: t => rev t ++ [h]
   end.
 
 Example test_rev1: rev [1;2;3] = [3;2;1].
 Proof. reflexivity. Qed.
-Example test_rev2: rev nil = nil.
+Example test_rev2: rev [] = [].
 Proof. reflexivity. Qed.
+
+Theorem rev_length_firsttry : forall (lst : natlist),
+  length (rev lst) = length lst.
+Proof.
+  intros lst. induction lst as [| h t].
+  -  reflexivity.
+  - simpl. rewrite <- IHt. (* Set Printing All. *)
+Abort.
+
+Theorem app_length : forall (lst1 lst2 : natlist),
+  length (lst1 ++ lst2) = length lst1 + length lst2.
+Proof.
+  intros lst1 lst2. induction lst1 as [| h1 t1].
+  - simpl. reflexivity.
+  - simpl. rewrite IHt1. reflexivity.
+Qed.
+
+Theorem rev_length : forall (lst : natlist),
+  length (rev lst) = length lst.
+Proof.
+  intros lst. induction lst as [| h t].
+  -  reflexivity.
+  - simpl. rewrite app_length.
+    simpl. rewrite IHt. rewrite add_comm. simpl. reflexivity.
+Qed.
 
