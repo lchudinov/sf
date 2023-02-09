@@ -329,4 +329,45 @@ Proof.
   - simpl. rewrite app_length.
     simpl. rewrite IHt. rewrite add_comm. simpl. reflexivity.
 Qed.
+Search rev.
 
+Search ( _ + _ = _ + _ ).
+Search ( _ + _ = _ + _ ) inside Induction.
+Search ( ?x + ?y = ?x + ?y ) inside Induction.
+
+Theorem app_nil_r : forall l : natlist,
+  l ++ [] = l.
+Proof.
+  intros l. induction l as [| h t].
+  - simpl. reflexivity.
+  - simpl. rewrite IHt. reflexivity.
+Qed.
+  
+Theorem rev_app_distr: forall l1 l2 : natlist,
+  rev (l1 ++ l2) = rev l2 ++ rev l1.
+Proof.
+  intros l1 l2. induction l1 as [| h1 t1].
+  - simpl. rewrite app_nil_r. reflexivity.
+  - simpl. rewrite IHt1. rewrite appassoc. reflexivity.
+Qed.
+
+Theorem rev_involutive : forall l : natlist,
+  rev (rev l) = l.
+Proof.
+  intros l. induction l as [|h t].
+  - simpl. reflexivity.
+  - simpl. rewrite rev_app_distr. rewrite IHt. simpl. reflexivity.
+Qed.
+
+Theorem app_assoc4 : forall l1 l2 l3 l4 : natlist,
+  l1 ++ (l2 ++ (l3 ++ l4)) = ((l1 ++ l2) ++ l3) ++ l4.
+Proof.
+  intros l1 l2 l3 l4.
+  Set Printing Parentheses.
+  induction l1 as [| h1 t1].
+  - simpl.
+  Abort.
+  
+  
+  
+  
