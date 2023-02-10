@@ -431,5 +431,78 @@ Proof.
     -- simpl. rewrite IHt. reflexivity.
 Qed.
 
+Lemma sum_with_empty1 : forall (a : bag),
+  sum a [] = a.
+Proof.
+  intros a. induction a.
+  - reflexivity.
+  - simpl. reflexivity.
+Qed.
 
+Lemma sum_with_empty2 : forall (a : bag),
+  sum [] a = a.
+Proof.
+  intros a. induction a.
+  - reflexivity.
+  - simpl. reflexivity.
+Qed.
 
+Lemma count_in_empty : forall (n : nat),
+  count n [] = 0.
+Proof. reflexivity. Qed.
+
+Lemma count_hd : forall (n m: nat) (s : bag),
+  count n (m :: s) = if n =? m then S (count n s) else count n s.
+Proof.
+  intros n m s. simpl. reflexivity.
+Qed.
+
+Theorem bag_count_sum : forall (n : nat) (a b : bag),
+  count n (sum a b) = count n a + count n b.
+Proof.
+  intros n a b.
+  induction a as [|ha ta].
+  - rewrite sum_with_empty2. rewrite count_in_empty. reflexivity.
+  - rewrite count_hd.
+    -- 
+    -- rewrite count_in_empty. 
+    -- 
+Admitted.
+
+(** Options *)
+
+Fixpoint nth_bad (lst : natlist) (n : nat) : nat :=
+  match lst with
+  | [] => 42
+  | h :: t => match n with
+             | 0 => h
+             | S k => nth_bad t k
+             end
+  end.
+    
+Inductive natoption : Type :=
+  | Some (n : nat)
+  | None.
+
+Fixpoint nth_error (lst : natlist) (n : nat) : natoption :=
+match lst with
+| [] => None
+| h :: t => match n with
+           | 0 => Some h
+           | S k => nth_error t k
+           end
+end.
+
+Example test_nth_error1 : nth_error [4;5;6;7] 0 = Some 4.
+Proof. reflexivity. Qed.
+Example test_nth_error2 : nth_error [4;5;6;7] 3 = Some 7.
+Proof. reflexivity. Qed.
+Example test_nth_error3 : nth_error [4;5;6;7] 9 = None.
+Proof. reflexivity. Qed.
+
+Fixpoint nth_error' (lst : natlist) (n : nat) : natoption :=
+match lst, n with
+| [], _ => None
+| h :: _, 0 => Some h
+| _ :: t, S k => nth_error' t k
+end.
