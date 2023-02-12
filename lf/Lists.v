@@ -197,7 +197,7 @@ Example test_count2: count 6 [1;2;3;1;4;1] = 0.
 Proof. simpl. reflexivity. Qed.
 
 Definition sum : bag -> bag -> bag :=
-  alternate.
+  app.
 Example test_sum1: count 1 (sum [1;2;3] [1;4;1]) = 3.
 Proof. simpl. reflexivity. Qed.
 
@@ -451,23 +451,37 @@ Lemma count_in_empty : forall (n : nat),
   count n [] = 0.
 Proof. reflexivity. Qed.
 
-Lemma count_hd : forall (n m: nat) (s : bag),
-  count n (m :: s) = if n =? m then S (count n s) else count n s.
-Proof.
-  intros n m s. simpl. reflexivity.
-Qed.
-
 Theorem bag_count_sum : forall (n : nat) (a b : bag),
   count n (sum a b) = count n a + count n b.
 Proof.
   intros n a b.
-  induction a as [|ha ta].
-  - rewrite sum_with_empty2. rewrite count_in_empty. reflexivity.
-  - rewrite count_hd.
-    -- 
-    -- rewrite count_in_empty. 
-    -- 
-Admitted.
+  induction a as [|n' ta].
+  - simpl. reflexivity.
+  - simpl. destruct (n =? n').
+    -- simpl. rewrite <- IHta. reflexivity.
+    -- rewrite <- IHta. reflexivity.
+Qed.
+
+Theorem involution_injective : forall (f : nat -> nat),
+    (forall n : nat, n = f (f n)) -> (forall n1 n2 : nat, f n1 = f n2 -> n1 = n2).
+Proof.
+  intros.
+  rewrite -> H.
+  rewrite <- H0.
+  rewrite <- H.
+  reflexivity.
+Qed.
+
+Theorem rev_injective : forall (l1 l2 : natlist),
+  rev l1 = rev l2 -> l1 = l2.
+Proof.
+  intros l1 l2. intros H.
+  rewrite <- rev_involutive.
+  rewrite <- H.
+  rewrite -> rev_involutive.
+  reflexivity.
+Qed.
+  
 
 (** Options *)
 
