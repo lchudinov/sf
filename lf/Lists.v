@@ -431,26 +431,6 @@ Proof.
     -- simpl. rewrite IHt. reflexivity.
 Qed.
 
-Lemma sum_with_empty1 : forall (a : bag),
-  sum a [] = a.
-Proof.
-  intros a. induction a.
-  - reflexivity.
-  - simpl. reflexivity.
-Qed.
-
-Lemma sum_with_empty2 : forall (a : bag),
-  sum [] a = a.
-Proof.
-  intros a. induction a.
-  - reflexivity.
-  - simpl. reflexivity.
-Qed.
-
-Lemma count_in_empty : forall (n : nat),
-  count n [] = 0.
-Proof. reflexivity. Qed.
-
 Theorem bag_count_sum : forall (n : nat) (a b : bag),
   count n (sum a b) = count n a + count n b.
 Proof.
@@ -520,3 +500,115 @@ match lst, n with
 | h :: _, 0 => Some h
 | _ :: t, S k => nth_error' t k
 end.
+
+Definition option_elim (d : nat) (o : natoption) : nat :=
+  match o with
+  | Some n' => n'
+  | None => d
+  end.
+
+Definition hd_error (l : natlist) : natoption :=
+  match l with
+  | [] => None
+  | hd :: _ => Some hd
+  end.
+Example test_hd_error1 : hd_error [] = None.
+Proof. reflexivity. Qed.
+Example test_hd_error2 : hd_error [1] = Some 1.
+Proof. reflexivity. Qed.
+Example test_hd_error3 : hd_error [5;6] = Some 5.
+Proof. reflexivity. Qed.
+
+Theorem option_elim_hd : forall (l:natlist) (default:nat),
+  hd default l = option_elim default (hd_error l).
+Proof.
+  intros l default.
+  induction l.
+  - simpl. reflexivity.
+  - simpl. reflexivity.
+Qed.
+End NatList.
+
+Module PartialMap.
+Export NatList.
+
+Inductive partial_map : Type :=
+| Empty
+| Binding (k : nat) (v : nat) (m : partial_map).
+
+(** The [update]  function records a binding for a key. If the key
+    was already present, that shadows the old binding. *)
+Definition update (k : nat) (v : nat) (m : partial_map) := 
+  Binding k v m.
+
+Fixpoint find (k : nat) (m : partial_map) : natoption :=
+  match m with
+  | Empty => None
+  | Binding k_2 v m' =>
+    if k =? k_2 then Some v else find k m'
+  end.
+
+Theorem find_update: forall (m : partial_map) (k v : nat),
+  find k (update k v m) = Some v.
+Proof.
+  intros m k v. simpl. rewrite eqb_refl. reflexivity.
+Qed.
+End PartialMap.
+
+Module PartialMap'.
+Export NatList.
+
+Inductive id : Type :=
+  | Id (n : nat).
+
+Definition eqb_id (x1 x2 : id) :=
+  match x1, x2 with
+  | Id n1, Id n2 => n1 =? n2
+  end.
+
+Inductive partial_map : Type :=
+| empty
+| record (i : id) (v : nat) (m : partial_map).
+
+Theorem eqb_id_refl : forall x, eqb_id x x = true.
+Proof. 
+  intros x.
+  induction x.
+  simpl. rewrite eqb_refl. reflexivity.
+Qed.
+
+Definition update (d : partial_map)
+                  (x : id) (value : nat)
+                  : partial_map :=
+  record x value d.
+
+Fixpoint find (x : id) (d : partial_map) : natoption :=
+  match d with
+  | empty => None
+  | record y v d' => if eqb_id x y
+                     then Some v
+                     else find x d'
+  end.
+  
+Theorem update_eq : forall (d : partial_map) (x : id) (v: nat),
+  find x (update d x v) = Some v.
+Proof.
+  intros d x v.
+  simpl. rewrite eqb_id_refl. reflexivity.
+Qed.
+
+Theorem update_neq :
+  forall (d : partial_map) (x y : id) (o: nat),
+    eqb_id x y = false -> find x (update d y o) = find x d.
+Proof.
+  intros x y d o.
+  simpl. intros H. rewrite H. reflexivity.
+Qed.
+
+Inductive baz : Type :=
+  | Baz1 (x : baz)
+  | Baz2 (y : baz) (b : bool).
+
+(* How many elements does the type baz have? (Explain in words, in a comment.) *)
+(* zero *)
+End PartialMap'.
