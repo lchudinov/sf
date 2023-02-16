@@ -162,3 +162,22 @@ Proof.
   - simpl. reflexivity.
   - simpl. rewrite IHt1. reflexivity.
 Qed.
+
+Theorem rev_app_distr: forall X (l1 l2 : list X),
+  rev (l1 ++ l2) = rev l2 ++ rev l1.
+Proof.
+  intros X l1 l2.
+  induction l1 as [|h1 t1].
+  - simpl. rewrite app_nil_r. reflexivity.
+  - simpl. rewrite <- app_assoc. rewrite <- IHt1. reflexivity.
+Qed.
+
+Theorem rev_involutive : forall X : Type, forall l : list X,
+  rev (rev l) = l.
+Proof.
+  intros X l.
+  induction l as [|h t].
+  - simpl. reflexivity.
+  - simpl. rewrite rev_app_distr. rewrite IHt. simpl. reflexivity.
+Qed.
+
