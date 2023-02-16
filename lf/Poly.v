@@ -181,3 +181,96 @@ Proof.
   - simpl. rewrite rev_app_distr. rewrite IHt. simpl. reflexivity.
 Qed.
 
+(* Polymorphic pairs *)
+
+Inductive prod (X Y : Type) : Type :=
+| pair (x : X) (y : Y).
+
+Arguments pair {X} {Y}.
+
+Notation "( x , y )" := (pair x y).
+
+Notation "X * Y" := (prod X Y) : type_scope.
+
+Definition fst (X Y : Type) (p : X * Y) : X :=
+  match p with
+  | (x, y) => x
+  end.
+
+Definition snd (X Y : Type) (p : X * Y) : Y :=
+  match p with
+  | (x, y) => y
+  end.
+
+Fixpoint combine {X Y : Type} (lx : list X) (ly : list Y) : list (X * Y) :=
+  match lx, ly with
+  | [], _ => []
+  | _, [] => []
+  | x :: tx, y :: ty => (x, y) :: (combine tx ty)
+  end.
+
+Example combine_ex : combine [1;2] [3;4] = [(1,3); (2,4)].
+Proof. reflexivity. Qed.
+
+(* Polymorphic Options *)
+
+Module OptionPlayGround.
+
+Inductive option (X : Type) :=
+| Some (x : X)
+| None.
+
+Arguments Some {X}.
+Arguments None {X}.
+
+End OptionPlayGround.
+
+Fixpoint nth_error {X : Type} (l : list X) (n : nat) : option X :=
+  match l with
+  | [] => None
+  | a :: l' => match n with
+              | 0 => Some a
+              | S n' => nth_error l' n'
+              end
+  end.
+
+Example test_nth_error1 : nth_error [4;5;6;7] 0 = Some 4.
+Proof. reflexivity. Qed.
+Example test_nth_error2 : nth_error [[1];[2]] 1 = Some [2].
+Proof. reflexivity. Qed.
+Example test_nth_error3 : nth_error [true] 2 = None.
+Proof. reflexivity. Qed.
+
+Check @combine : forall X Y : Type, list X -> list Y -> list (X * Y).
+Compute (combine [1;2] [false;false;true;true]).
+
+Fixpoint split {X Y : Type} (l : list (X * Y)) : (list X) * (list Y) :=
+  match l with
+  | [] => ([], [])
+  | (m, n) :: t => match (split t) with
+             | (l1, l2) => (m :: l1, n :: l2)
+             end
+  end.
+  
+Example test_split:
+  split [(1,false);(2,false)] = ([1;2],[false;false]).
+Proof. simpl. reflexivity. Qed.
+
+Theorem split_pair : forall (X Y : Type) (x : X) (y : Y),
+  split [(x, y)] = ([x], [y]).
+Proof. 
+  intros X Y x y.
+  simpl.
+  reflexivity.
+Qed.
+
+Definition hd_error {X : Type} (l : list X) : option X :=
+  match l with
+  | [] => None
+  | h :: _ => Some h
+  end.
+Check @hd_error : forall X : Type, list X -> option X.
+Example test_hd_error1 : hd_error [1;2] = Some 1.
+Proof. simpl. reflexivity. Qed.
+Example test_hd_error2 : hd_error [[1];[2]] = Some [1].
+Proof. simpl. reflexivity. Qed.
