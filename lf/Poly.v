@@ -1,3 +1,5 @@
+Set Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".
+
 From LF Require Export Lists.
 
 Inductive natlist : Type :=
@@ -192,12 +194,12 @@ Notation "( x , y )" := (pair x y).
 
 Notation "X * Y" := (prod X Y) : type_scope.
 
-Definition fst (X Y : Type) (p : X * Y) : X :=
+Definition fst {X Y : Type} (p : X * Y) : X :=
   match p with
   | (x, y) => x
   end.
 
-Definition snd (X Y : Type) (p : X * Y) : Y :=
+Definition snd {X Y : Type} (p : X * Y) : Y :=
   match p with
   | (x, y) => y
   end.
@@ -339,3 +341,174 @@ Proof. reflexivity. Qed.
 Example test_partition2: partition (fun x => false) [5;9;0] = ([], [5;9;0]).
 Proof. reflexivity. Qed.
 
+Fixpoint map {X Y : Type} (f : X->Y) (l : list X) : list Y :=
+  match l with
+  | [] => []
+  | h :: t => (f h) :: (map f t)
+  end.
+
+Example test_map1: map (fun x => plus 3 x) [2;0;2] = [5;3;5].
+Proof. reflexivity. Qed.
+Example test_map2: map odd [2;1;2;5] = [false;true;false;true].
+Proof. reflexivity. Qed.
+Example test_map3: map (fun n => [even n;odd n]) [2;1;2;5] = [[true;false];[false;true];[true;false];[false;true]].
+Proof. reflexivity. Qed. 
+
+Lemma map_app : forall {X Y : Type} (f : X -> Y) (l1 l2 : list X),
+  map f (l1 ++ l2) = (map f l1) ++ (map f l2).
+Proof.
+  intros X Y f l1 l2.
+  induction l1 as [|h1 t1].
+  - simpl. reflexivity.
+  - simpl. rewrite <- IHt1. reflexivity.
+Qed.
+  
+Theorem map_rev : forall (X Y : Type) (f : X -> Y) (l : list X),
+  map f (rev l) = rev (map f l).
+Proof.
+  intros X Y f l.
+  induction l as [|h t].
+  - simpl. reflexivity.
+  - simpl. rewrite <- IHt. rewrite map_app. simpl. reflexivity.
+Qed.
+Fixpoint flat_map {X Y: Type} (f: X -> list Y) (l: list X) : list Y :=
+  match l with
+  | [] => []
+  | h :: t => (f h) ++ (flat_map f t)
+  end.
+
+Example test_flat_map1: flat_map (fun n => [n;n;n]) [1;5;4] = [1; 1; 1; 5; 5; 5; 4; 4; 4].
+Proof. simpl. reflexivity. Qed.
+
+Definition option_map {X Y : Type} (f : X -> Y) (xo : option X) : option Y :=
+  match xo with
+  | None => None
+  | Some x => Some (f x)
+  end.
+  
+Fixpoint fold {X Y : Type} (f : X->Y->Y) (l : list X) (b : Y) : Y :=
+  match l with
+  | [] => b
+  | h :: t => f h (fold f t b)
+  end.
+
+Check (fold andb) : list bool -> bool -> bool.
+Example fold_example1 :
+  fold mult [1;2;3;4] 1 = 24.
+Proof. reflexivity. Qed.
+  
+Example fold_example2 :
+  fold andb [true;true;false;true] true = false.
+Proof. reflexivity. Qed.
+
+Example fold_example3 :
+  fold app [[1];[];[2;3];[4]] [] = [1;2;3;4].
+Proof. reflexivity. Qed.
+
+Definition constfun {X: Type} (x: X) : nat -> X :=
+  fun (k:nat) => x.
+Definition ftrue := constfun true.
+Example constfun_example1 : ftrue 0 = true.
+Proof. reflexivity. Qed.
+
+Example constfun_example2 : (constfun 5) 99 = 5.
+Proof. reflexivity. Qed.
+
+Definition plus3 := plus 3.
+Check plus3 : nat -> nat.
+Example test_plus3 : plus3 4 = 7.
+Proof. reflexivity. Qed.
+Example test_plus3' : doit3times plus3 0 = 9.
+Proof. reflexivity. Qed.
+Example test_plus3'' : doit3times (plus 3) 0 = 9.
+Proof. reflexivity. Qed.
+
+Module Exercises.
+
+Definition fold_length {X : Type} (l : list X) : nat :=
+  fold (fun _ n => S n) l 0.
+Example test_fold_length1 : fold_length [4;7;0] = 3.
+Proof. reflexivity. Qed.
+
+Theorem fold_length_correct : forall X (l : list X),
+  fold_length l = length l.
+Proof.
+  intros X l.
+  induction l as [|h t].
+  - reflexivity.
+  - simpl. rewrite <- IHt. reflexivity.
+Qed.
+
+Definition fold_map {X Y: Type} (f: X -> Y) (l: list X) : list Y :=
+  fold (fun x b => (f x) :: b) l [].
+
+Theorem fold_map_correct : forall (X Y : Type) (f: X -> Y) (l : list X),
+  map f l = fold_map f l.
+Proof.
+  intros X Y f l.
+  induction l as [|h t].
+  - reflexivity.
+  - simpl. rewrite IHt. reflexivity.
+Qed.
+
+Definition prod_curry {X Y Z : Type}
+  (f : X * Y -> Z) (x : X) (y : Y) : Z :=
+f (x, y).
+
+Definition prod_uncurry {X Y Z : Type}
+  (f : X -> Y -> Z) (p : X * Y) : Z :=
+f (fst p) (snd p).
+
+Example test_map1': map (plus 3) [2;0;2] = [5;3;5].
+Proof. reflexivity. Qed.
+
+Check @prod_curry.
+Check @prod_uncurry.
+
+Theorem uncurry_curry : forall (X Y Z : Type) (f : X -> Y -> Z) x y,
+  prod_curry (prod_uncurry f) x y = f x y.
+Proof.
+  intros X Y Z f x y.
+  reflexivity.
+Qed.
+
+Theorem curry_uncurry : forall (X Y Z : Type) (f : (X * Y) -> Z) (p : X * Y),
+  prod_uncurry (prod_curry f) p = f p.
+Proof.
+  intros X Y Z f p.
+  destruct p.
+  reflexivity.
+Qed.
+
+(* Church Numerals (Advanced) *)
+Module Church.
+Definition cnat := forall X : Type, (X -> X) -> X -> X.
+
+Definition one : cnat :=
+  fun (X : Type) (f : X -> X) (x : X) => f x.
+
+Definition two : cnat :=
+  fun (X : Type) (f : X -> X) (x : X) => f (f x).
+
+Definition zero : cnat :=
+  fun (X : Type) (f : X -> X) (x : X) => x.
+
+Definition three : cnat := @doit3times.
+
+Definition zero' : cnat :=
+  fun (X : Type) (succ : X -> X) (zero : X) => zero.
+Definition one' : cnat :=
+  fun (X : Type) (succ : X -> X) (zero : X) => succ zero.
+Definition two' : cnat :=
+  fun (X : Type) (succ : X -> X) (zero : X) => succ (succ zero).
+
+Example zero_church_peano : zero nat S O = 0.
+Proof. reflexivity. Qed.
+Example one_church_peano : one nat S O = 1.
+Proof. reflexivity. Qed.
+Example two_church_peano : two nat S O = 2.
+Proof. reflexivity. Qed.
+
+(* Definition scc (n : cnat) : cnat := *)
+  
+End Exercises.
