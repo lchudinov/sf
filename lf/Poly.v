@@ -509,6 +509,49 @@ Proof. reflexivity. Qed.
 Example two_church_peano : two nat S O = 2.
 Proof. reflexivity. Qed.
 
-(* Definition scc (n : cnat) : cnat := *)
+Definition scc (n : cnat) : cnat :=
+  fun (X : Type) (succ : X -> X) (x : X) => n X succ(succ x).
+
+Example scc_1 : scc zero = one.
+Proof. reflexivity. Qed.
+Example scc_2 : scc one = two.
+Proof. reflexivity. Qed.
+Example scc_3 : scc two = three.
+Proof. reflexivity. Qed.
+
+Definition plus (n m : cnat) : cnat :=
+  fun (X : Type) (succ : X -> X) (x : X) => n X succ (m X succ x).
   
+Compute (plus zero zero).
+
+Example plus_1 : plus zero one = one.
+Proof. reflexivity. Qed.
+Example plus_2 : plus two three = plus three two.
+Proof. reflexivity. Qed.
+Example plus_3 :
+  plus (plus two two) three = plus one (plus three three).
+Proof. reflexivity. Qed.
+
+Definition mult (n m : cnat) : cnat :=
+  fun (X : Type) (succ : X -> X) => n X (m X succ).
+
+Compute (mult zero one).
+  
+Example mult_1 : mult one one = one.
+Proof. reflexivity. Qed.
+Example mult_2 : mult zero (plus three three) = zero.
+Proof. reflexivity. Qed.
+Example mult_3 : mult two three = plus three three.
+Proof. reflexivity. Qed.
+
+Definition exp (n m : cnat) : cnat :=
+  fun (X : Type) => m (X -> X) (n X).
+Example exp_1 : exp two two = plus two two.
+Proof. reflexivity. Qed.
+Example exp_2 : exp three zero = one.
+Proof. reflexivity. Qed.
+Example exp_3 : exp three two = plus (mult two (mult two two)) one.
+Proof. reflexivity. Qed.
+
+End Church.
 End Exercises.
