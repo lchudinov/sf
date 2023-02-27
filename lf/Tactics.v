@@ -137,17 +137,223 @@ Example injection_ex3 : forall (X : Type) (x y z : X) (l j : list X),
   j = z :: l ->
   x = y.
 Proof.
-  intros X x y z l j H1 H2.
-  injection H1 as A B.
-  Abort.
-
-  
-  
-  
-  
+  intros X x y z l j H1.
   injection H1 as H11 H12.
-  rewrite 
-  rewrite H11.
+  rewrite <- H12.
+  intros H2.
+  injection H2 as H21.
+  rewrite -> H11.
+  rewrite -> H21.
+  reflexivity.
+Qed.
+Theorem discriminate_ex1 : forall (n m : nat),
+  false = true -> n = m.
+Proof.
+  intros n m contra. discriminate contra.
+Qed.
+  
+Theorem discriminate_ex2 : forall (n : nat),
+  S n = O -> 2 + 2 = 5.
+Proof.
+  intros n contra. discriminate contra.
+Qed.
 
+Example discriminate_ex3 :
+  forall (X : Type) (x y z : X) (l j : list X),
+    x :: y :: l = [] -> x = z.
+Proof.
+  intros X x y z l j contra. discriminate contra.
+Qed.
+Theorem eqb_0_l : forall n, 0 =? n = true -> n = 0.
+Proof.
+  intros n.
+  destruct n as [|n'] eqn:E.
+  - intros H. reflexivity.
+  - simpl. intros H. discriminate H.
+Qed.
 
+Theorem f_equal : forall (A B : Type) (f: A -> B) (x y: A),
+  x = y -> f x = f y.
+Proof. intros A B f x y eq. rewrite eq. reflexivity. Qed.
+
+Theorem eq_implies_succ_equal : forall (n m : nat),
+  n = m -> S n = S m.
+Proof. intros n m H. apply f_equal. apply H. Qed.
+
+Theorem eq_implies_succ_equal' : forall (n m : nat),
+  n = m -> S n = S m.
+Proof. intros n m H. f_equal. apply H. Qed.
+
+Theorem S_inj : forall (n m : nat) (b : bool),
+  ((S n) =? (S m)) = b -> (n =? m) = b.
+Proof. intros n m b H. simpl in H. apply H. Qed.
+
+Theorem silly4 : forall (n m p q : nat),
+  (n = m -> p = q) ->
+  m = n ->
+  q = p.
+Proof.
+  intros n m p q EQ H.
+  symmetry in H. apply EQ in H. symmetry in H. apply H. Qed.
+
+Theorem double_injective_FAILED : forall n m,
+  double n = double m -> n = m.
+Proof.
+  intros n m. induction n as [| n' IHn'].
+  - (* n = O *) simpl. intros eq. destruct m as [| m'] eqn:E.
+    + (* m = O *) reflexivity.
+    + (* m = S m' *) discriminate eq.
+  - (* n = S n' *) intros eq. destruct m as [| m'] eqn:E.
+    + (* m = O *) discriminate eq.
+    + (* m = S m' *) apply f_equal.
+Abort.
+  
+Theorem double_injective : forall n m,
+  double n = double m -> n = m.
+Proof.
+  intros n. induction n as [| n' IHn'].
+  - (* n = O *) simpl. intros m eq. destruct m as [| m'] eqn:E.
+    + (* m = O *) reflexivity.
+    + (* m = S m' *) discriminate eq.
+  - (* n = S n' *) intros m eq. destruct m as [|m'] eqn:E.
+    + discriminate eq.
+    + apply f_equal. apply IHn'. injection eq as goal. apply goal.
+Qed.
+
+Theorem eqb_true : forall n m, n =? m = true -> n = m.
+Proof.
+  intros n. induction n as [|n' IHn'].
+  - intros m eq. destruct m as [|m'] eqn:E.
+    + reflexivity.
+    + discriminate eq.
+  - intros m eq. destruct m as [|m'] eqn:E.
+    + discriminate eq.
+    + apply f_equal. apply IHn'. simpl in eq. apply eq.
+Qed.
+
+Theorem plus_n_n_injective : forall n m,
+  n + n = m + m -> n = m.
+Proof.
+  intros n. induction n as [|n' IHn'].
+  - simpl. intros m eq. destruct m as [|m'] eqn:E.
+    + reflexivity.
+    + rewrite <- plus_n_Sm in eq. discriminate eq.
+  - simpl. intros m eq. destruct m as [|m'] eqn:E.
+    + simpl in eq. discriminate eq.
+    + simpl in eq.
+      apply f_equal.
+      rewrite <- plus_n_Sm in eq.
+      rewrite <- plus_n_Sm in eq.
+      injection eq as goal.
+      apply IHn' in goal.
+      apply goal.
+Qed.
+
+Theorem double_injective_take2_FAILED : forall n m,
+  double n = double m -> n = m.
+Proof.
+  intros n m. induction m as [| m' IHm'].
+  - (* m = O *) simpl. intros eq. destruct n as [| n'] eqn:E.
+    + (* n = O *) reflexivity.
+    + (* n = S n' *) discriminate eq.
+  - (* m = S m' *) intros eq. destruct n as [| n'] eqn:E.
+    + (* n = O *) discriminate eq.
+    + (* n = S n' *) apply f_equal.
+        (* We are stuck here, just like before. *)
+Abort.
+
+Theorem double_injective_take2 : forall n m,
+  double n = double m -> n = m.
+Proof.
+  intros n m.
+  (* n and m are both in the context *)
+  generalize dependent n.
+  (* Now n is back in the goal and we can do induction on
+     m and get a sufficiently general IH. *)
+  induction m as [| m' IHm'].
+  - (* m = O *) simpl. intros n eq. destruct n as [| n'] eqn:E.
+    + (* n = O *) reflexivity.
+    + (* n = S n' *) discriminate eq.
+  - (* m = S m' *) intros n eq. destruct n as [| n'] eqn:E.
+    + (* n = O *) discriminate eq.
+    + (* n = S n' *) apply f_equal.
+      apply IHm'. injection eq as goal. apply goal. Qed.
+
+Theorem nth_error_after_last: forall (n : nat) (X : Type) (l : list X),
+  length l = n -> nth_error l n = None.
+Proof.
+  intros n X l.
+  generalize dependent l.
+  induction n as [|n' IHn'].
+  - intros l H. destruct l as [|h t].
+    + simpl. reflexivity.
+    + simpl in H. discriminate H.
+  - intros l H. destruct l as [|h t].
+    + simpl in H. discriminate H.
+    + simpl in H. simpl. injection H. apply IHn'.
+Qed.
+
+Theorem nth_error_after_last': forall (n : nat) (X : Type) (l : list X),
+  length l = n -> nth_error l n = None.
+Proof.
+  intros n X l.
+  generalize dependent n.
+  induction l as [|h t].
+  - simpl. reflexivity.
+  - destruct n as [|n'].
+    + simpl. intros contra. discriminate contra.
+    + intros eq. injection eq as eq1. simpl. apply IHt. apply eq1.
+Qed.
+
+Definition square n := n * n.
+
+Lemma square_mult : forall n m, square (n * m) = square n * square m.
+Proof.
+  intros n m.
+  simpl.
+  unfold square.
+  rewrite mult_assoc.
+  assert (H : n * m * n = n * n * m).
+    { rewrite mul_comm. apply mult_assoc. }
+  rewrite H. rewrite mult_assoc. reflexivity.
+Qed.
+
+Definition foo (x: nat) := 5.
+
+Fact silly_fact_1 : forall m, foo m + 1 = foo (m + 1) + 1.
+Proof.
+  intros m.
+  simpl.
+  reflexivity.
+Qed.
+
+Definition bar x :=
+  match x with
+  | O => 5
+  | S _ =>  5
+  end.
+Fact silly_fact_2_FAILED : forall m, bar m + 1 = bar (m + 1) + 1.
+Proof.
+  intros m.
+  simpl. (* Does nothing! *)
+Abort.
+
+Fact silly_fact_2 : forall m, bar m + 1 = bar (m + 1) + 1.
+Proof.
+  intros m. destruct m as [|m'].
+  - simpl. reflexivity.
+  - simpl. reflexivity.
+Qed.
+
+Fact silly_fact_2' : forall m, bar m + 1 = bar (m + 1) + 1.
+Proof.
+  intros m.
+  unfold bar.
+  destruct m eqn:E.
+  - reflexivity.
+  - reflexivity.
+Qed.
+
+  
+  - 
 
