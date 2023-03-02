@@ -354,6 +354,91 @@ Proof.
   - reflexivity.
 Qed.
 
-  
+Definition sillyfun (n : nat) : bool  := 
+  if n =? 3 then false
+  else if n =? 5 then false
+  else false.
+
+Theorem sillyfun_false : forall (n : nat), sillyfun n = false.
+Proof.
+  intros n. unfold sillyfun.
+  destruct (n =? 3) eqn:E1.
+  - reflexivity.
+  - destruct (n =? 5) eqn:E2.
+    + reflexivity.
+    + reflexivity.
+Qed.
+
+Theorem split_tail: forall X Y (l : list (X * Y)) (a : X) (b : Y),
+  split ((a, b) :: l) = (a :: fst (split l), b :: snd (split l)).
+Proof.
+  intros X Y l a b.
+  simpl.
+  destruct (split l) eqn:split.
+  simpl.
+  reflexivity.
+Qed.
+
+Theorem combine_tail: forall X Y (l1: list X) (l2: list Y) (a : X) (b : Y),
+  combine (a::l1) (b::l2) = (a, b) :: combine l1 l2.
+Proof.
+  intros X Y l1 l2 a b.
+  simpl.
+  destruct (combine l1 l2) eqn:combine.
+  - reflexivity.
+  - reflexivity.
+Qed.
+
+
+
+Theorem combine_split: forall X Y (l : list (X * Y)) l1 l2,
+  split l = (l1, l2) -> combine l1 l2 = l.
+Proof.
+  Admitted.
+
+Definition sillyfun1 (n : nat) : bool :=
+  if n =? 3 then true
+  else if n =? 5 then true
+  else false.
+
+Theorem sillyfun1_odd_FAILED : forall (n : nat),
+  sillyfun1 n = true -> odd n = true.
+Proof.
+  intros n eq. unfold sillyfun1 in eq.
+  destruct (n =? 3).
+  (* stuck... *)
+Abort.
+
+Theorem sillyfun1_odd : forall (n : nat),
+  sillyfun1 n = true -> odd n = true.
+Proof.
+  intros n eq. unfold sillyfun1 in eq.
+  destruct (n =? 3) eqn:Heqe3.
+  - apply eqb_true in Heqe3. rewrite Heqe3. reflexivity.
+  - destruct (n =? 5) eqn:Heqe5.
+    + apply eqb_true in Heqe5. rewrite Heqe5. reflexivity.
+    + discriminate eq.
+Qed.
+
+Theorem bool_fn_applied_thrice : forall (f : bool -> bool) (b : bool), 
+  f (f (f b)) = f b.
+Proof.
+  intros f b.
+  destruct b.
+  - destruct (f true) eqn:A.
+    + rewrite A. rewrite A. reflexivity.
+    + destruct (f false) eqn:B.
+      * rewrite A. reflexivity.
+      * rewrite B. reflexivity.
+  - destruct (f false) eqn:A.
+    + destruct (f true) eqn:B.
+      * rewrite B. reflexivity.
+      * rewrite A. reflexivity.
+    + rewrite A. rewrite A. reflexivity.
+Qed.
+
+
+
+
   - 
 
