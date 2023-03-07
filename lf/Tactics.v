@@ -569,4 +569,3 @@ Proof.
 Qed.
   
   
-Qed.
