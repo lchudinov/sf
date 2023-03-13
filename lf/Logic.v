@@ -135,3 +135,226 @@ Qed.
 
 Check @and : Prop -> Prop -> Prop.
 
+Lemma factor_is_O:
+  forall n m : nat, n = 0 \/ m = 0 -> n * m = 0.
+Proof.
+  (* This pattern implicitly does case analysis on
+     n = 0 ∨ m = 0 *)
+  intros n m [Hn | Hm].
+  - (* Here, n = 0 *)
+    rewrite Hn. reflexivity.
+  - (* Here, m = 0 *)
+    rewrite Hm. rewrite <- mult_n_O.
+    reflexivity.
+Qed.
+
+Lemma or_intro_l : forall A B : Prop, A -> A \/ B.
+Proof.
+  intros A B HA.
+  left.
+  apply HA.
+Qed.
+
+Lemma zero_or_succ :
+  forall n : nat, n = 0 \/ n = S (pred n).
+Proof.
+  (* WORKED IN CLASS *)
+  intros [|n'].
+  - left. reflexivity.
+  - right. reflexivity.
+Qed.
+
+Lemma mult_is_O :
+  forall n m, n * m = 0 -> n = 0 \/ m = 0.
+Proof.
+  intros n m H.
+  destruct n as [|n'].
+  - left. reflexivity.
+  - right. destruct m as [|m'].
+    + reflexivity.
+    + discriminate.
+Qed.
+
+Theorem or_commut : forall P Q : Prop,
+  P \/ Q -> Q \/ P.
+Proof.
+  intros P Q [PH | QH].
+  - right. apply PH.
+  - left. apply QH.
+Qed.
+  
+Module NotPlayground.
+Definition not (P:Prop) := P -> False.
+Notation "~ x" := (not x) : type_scope.
+Check not : Prop -> Prop.
+End NotPlayground.
+
+Theorem ex_falso_quodlibet : forall (P:Prop),
+  False -> P.
+Proof.
+  (* WORKED IN CLASS *)
+  intros P contra.
+  destruct contra. Qed.
+
+  Theorem not_implies_our_not : forall (P : Prop),
+  ~ P -> (forall (Q : Prop), P -> Q).
+Proof.
+  intros P HNP Q contra.
+  unfold not in HNP. apply HNP in contra. destruct contra.
+Qed.
+
+Theorem zero_not_one : 0 <> 1.
+Proof.
+  unfold not.
+  intros contra.
+  discriminate contra.
+Qed.
+
+Theorem not_False :
+  ~ False.
+Proof.
+  unfold not. intros H. destruct H.
+Qed.
+
+Theorem contradiction_implies_anything : forall P Q : Prop,
+  (P /\ not P) -> Q.
+Proof.
+  (* WORKED IN CLASS *)
+  intros P Q [HP HNA]. unfold not in HNA.
+  apply HNA in HP. destruct HP.
+Qed.
+
+Theorem double_neg : forall P : Prop,
+  P -> ~~P.
+Proof.
+  (* WORKED IN CLASS *)
+  intros P H. unfold not. intros G. apply G. apply H.
+ Qed.
+
+ Theorem contrapositive : forall (P Q : Prop),
+ (P -> Q) -> (~ Q -> ~P).
+Proof.
+ intros P Q HPQ.
+ unfold not.
+ intros QFH PH.
+ apply QFH in HPQ. destruct HPQ.
+ - apply PH.
+Qed.
+
+Theorem not_both_true_and_false : forall P : Prop,
+  ~ (P /\ ~P).
+Proof.
+  intros P [HA HB].
+  unfold not in HB.
+  apply HB in HA.
+  destruct HA.
+Qed.
+
+Theorem de_morgan_not_or : forall (P Q : Prop),
+    not (P \/ Q) -> not P /\ not Q.
+Proof.
+  intros P Q H.
+  unfold not in H.
+  split.
+  - intros HP. apply or_intro_l  with (B:=Q) in HP. apply H. apply HP.
+  - intros HQ. apply or_intro_l with (B:=P) in HQ. apply or_commut in HQ. apply H. apply HQ.
+Qed.
+
+Theorem not_true_is_false : forall b : bool,
+  b <> true -> b = false.
+Proof.
+  intros b H.
+  destruct b eqn:HE.
+  - (* b = true *)
+    unfold not in H.
+    apply ex_falso_quodlibet.
+    apply H. reflexivity.
+  - (* b = false *)
+    reflexivity.
+Qed.
+
+Theorem not_true_is_false' : forall b : bool,
+  b <> true -> b = false.
+Proof.
+  intros [] H.
+  - unfold not in H.
+    exfalso.
+    apply H. reflexivity.
+  - reflexivity.
+Qed.
+
+Lemma True_is_true : True.
+Proof. apply I. Qed.
+
+Definition disc_fn (n: nat) : Prop :=
+  match n with
+  | O => True
+  | S _ => False
+end.
+
+Theorem disc_example : forall n, not (O = S n).
+Proof.
+  intros n H1.
+  assert (H2 : disc_fn O). { simpl. apply I. }
+  rewrite H1 in H2. simpl in H2. apply H2.
+Qed.
+
+Module IffPlayground.
+Definition iff (P Q : Prop) := (P -> Q) /\ (Q -> P).
+Notation "P <-> Q" := (iff P Q)
+                      (at level 95, no associativity)
+                      : type_scope.
+End IffPlayground.
+
+Theorem iff_sym : forall P Q : Prop,
+  (P <-> Q) -> (Q <-> P).
+Proof.
+  (* WORKED IN CLASS *)
+  intros P Q [HAB HBA].
+  split.
+  - (* -> *) apply HBA.
+  - (* <- *) apply HAB.
+Qed.
+
+Lemma not_true_iff_false : forall b,
+  b <> true <-> b = false.
+Proof.
+  (* WORKED IN CLASS *)
+  intros b. split.
+  - (* -> *) apply not_true_is_false.
+  - (* <- *)
+    intros H. rewrite H. intros H'. discriminate H'.
+Qed.
+
+Lemma apply_iff_example1:
+  forall P Q R : Prop, (P <-> Q) -> (Q -> R) -> (P -> R).
+Proof.
+  intros P Q R Hiff H HP. apply H. apply Hiff. apply HP.
+Qed.
+Lemma apply_iff_example2:
+  forall P Q R : Prop, (P <-> Q) -> (P -> R) -> (Q -> R).
+Proof.
+  intros P Q R Hiff H HQ. apply H. apply Hiff. apply HQ.
+Qed.
+
+Theorem or_distributes_over_and : forall P Q R : Prop,
+  P \/ (Q /\ R) <-> (P \/ Q) /\ (P \/ R).
+Proof.
+  intros P Q R.
+  split.
+  - intros [HP | [HQ HR]].
+    + split.
+      * left. apply HP.
+      * left. apply HP.
+    + split. 
+      * right. apply HQ.
+      * right. apply HR.
+  - intros [[HP1 | HQ] [HP2 | HR]].
+    + left. apply HP1.
+    + left. apply HP1.
+    + left. apply HP2.
+    + right. split.
+      * apply HQ.
+      * apply HR.
+Qed.
+  
