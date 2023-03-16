@@ -357,4 +357,209 @@ Proof.
       * apply HQ.
       * apply HR.
 Qed.
+
+From Coq Require Import Setoids.Setoid.
+
+Lemma mul_eq_0 : forall n m,
+  n * m = 0 <-> n = 0 \/ m = 0.
+Proof.
+  split.
+  - apply mult_is_O.
+  - apply factor_is_O.
+Qed.
+
+Theorem  or_assoc: forall P Q R : Prop,
+  P \/ (Q \/ R) <-> (P \/ Q) \/ R.
+Proof.
+  intros P Q R.
+  split.
+  - intros [HP | [HQ | HR]].
+    + left. left. apply HP.
+    + left. right. apply HQ.
+    + right. apply HR.
+  - intros [[HP | HQ] | HR].
+    + left. apply HP.
+    + right. left. apply HQ.
+    + right. right. apply HR.
+Qed.
+
+Lemma mul_eq_0_ternary : forall n m p,
+  n * m * p = 0 <-> n = 0 \/ m = 0 \/ p = 0.
+Proof.
+  intros n m p.
+  rewrite mul_eq_0.
+  rewrite mul_eq_0.
+  rewrite or_assoc.
+  reflexivity.
+Qed.
+
+Definition Even x := exists n : nat, x = double n.
+
+Lemma four_is_Even : Even 4.
+Proof.
+  unfold Even. exists 2. reflexivity.
+Qed.
+
+Theorem exists_example_2 : forall n,
+  (exists m, n = 4 + m) -> (exists o, n = 2 + o).
+Proof.
+  intros n [m Hm].
+  exists (2 + m).
+  apply Hm.
+Qed.
+
+Theorem dist_not_exists : forall (X : Type) (P : X -> Prop),
+  (forall x, P x) -> ~ (exists x, ~ P x).
+Proof.
+  intros X P.
+  unfold not.
+  intros H [x Hx].
+  apply Hx.
+  apply H.
+Qed.
+
+Theorem dist_exists_or : forall (X : Type) (P Q : X -> Prop),
+  (exists x, P x \/ Q x) <-> (exists x, P x) \/ (exists x, Q x).
+Proof.
+  intros X P Q.
+  split.
+  - intros [x [HP | HQ]].
+    + left. exists x. apply HP.
+    + right. exists x. apply HQ.
+  - intros [[x HP] | [x HQ]].
+    + exists x. left. apply HP.
+    + exists x. right. apply HQ.
+Qed.
+
+Theorem leb_plus_exists : forall n m,
+  n <=? m = true -> exists x, m = n + x.
+Proof.
+  induction n.
+  - intros m H. exists m. reflexivity.
+  - destruct m.
+    + simpl. discriminate.
+    + simpl.
+      intros H.
+      apply IHn in H.
+      destruct H as [x0 H1].
+      exists x0.
+      rewrite H1.
+      reflexivity.
+Qed.
+  
+Theorem plus_exists_leb : forall n m,
+  (exists x, m = n + x) -> n <=? m = true.
+Proof.
+  intros n m H.
+  destruct H as [x0 H].
+  generalize dependent m.
+  induction n as [|n' IHn'].
+  - reflexivity.
+  - intros m H.
+    destruct m as [|m'] eqn:Em.
+    + discriminate H.
+    + rewrite add_comm in H.
+      rewrite <- plus_n_Sm in H.
+      injection H as H.
+      rewrite add_comm in H.
+      apply IHn' in H.
+      simpl.
+      apply H.
+Qed.
+
+Fixpoint In {A : Type} (x : A) (l : list A) : Prop :=
+  match l with
+  | [] => False
+  | x' :: l' => x' = x \/ In x l'
+  end.
+
+Example In_example_1 : In 4 [1; 2; 3; 4; 5].
+Proof.
+  simpl. right. right. right. left. reflexivity.
+Qed.
+
+Example In_example_2 : forall n,
+  In n [2; 4] -> exists n', n = 2 * n'.
+Proof.
+  simpl.
+  intros n [H | [H | []]].
+  - exists 1. rewrite <- H. reflexivity.
+  - exists 2. rewrite <- H. reflexivity.
+Qed.
+
+Theorem In_map : forall (A B : Type) (f : A -> B) (l : list A) (x : A),
+         In x l -> In (f x) (map f l).
+Proof.
+  intros A B f l x.
+  induction l as [|x' l' IHl'].
+  - simpl. intros [].
+  - simpl. intros [H | H].
+    + rewrite H. left. reflexivity.
+    + right. apply IHl'. apply H.
+Qed.
+
+Theorem In_map_iff : forall (A B : Type) (f : A -> B) (l : list A) (y : B),
+  In y (map f l) <-> exists x, f x = y /\ In x l.
+Proof.
+  intros A B f l y. split.
+  - induction l as [|x' l' IHl'].
+    + intros H. simpl in H. exfalso. apply H.
+    + simpl. intros [H1 | H2].
+      * exists x'. split.
+        -- apply H1.
+        -- left. reflexivity.
+      * apply IHl' in H2.
+        destruct H2 as [x0 [H2 H3]].
+        exists x0. split.
+        -- apply H2.
+        -- right. apply H3.
+  - intros [x0 [H1 H2]].
+    rewrite <- H1.
+    apply In_map. apply H2.
+Qed.
+
+Theorem In_app_iff : forall A l l' (a : A),
+  In a (l++l') <-> In a l \/ In a l'.
+Proof.
+  intros A l. induction l as [|a' l' IH].
+  - simpl. 
+    split.
+    + intros H. right. apply H.
+    + intros [H1 | H2].
+      * exfalso. apply H1.
+      * apply H2.
+  - split.
+    + simpl.
+      intros [H1 | H2].
+      * left. left. apply H1.
+      * rewrite <- or_assoc. right. apply IH. apply H2.
+    + intros [H1 | H2].
+      * simpl. simpl in H1. destruct H1 as [H1 | H1].
+        -- left. apply H1.
+        -- right. apply IH. left. apply H1.
+      * simpl. right. apply IH. right. apply H2.
+Qed.
+
+Fixpoint All {T : Type} (P : T -> Prop) (l : list T) : Prop :=
+  match l with
+  | [] => True
+  | h :: t => P h /\ All P t
+  end.
+
+Theorem All_In : forall T (P : T -> Prop) (l : list T),
+    (forall x, In x l -> P x) <-> All P l.
+Proof.
+  intros T P l. split.
+  - induction l as [|h t IHt].
+    + simpl. intros H. apply I.
+    + simpl. intros H. split.
+      * apply H. left. reflexivity.
+      * apply IHt. intros x. intros H1. apply H. right. apply H1.
+  - induction l as [|h t IHt].
+    + simpl. intros H M. apply ex_falso_quodlibet.
+    + simpl. intros [H1 H2]. intros x. intros [H3 | H4].
+      * rewrite <- H3. apply H1.
+      * apply IHt. apply H2. apply H4.
+Qed.
+  
   
