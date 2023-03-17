@@ -561,5 +561,133 @@ Proof.
       * rewrite <- H3. apply H1.
       * apply IHt. apply H2. apply H4.
 Qed.
+
+Definition combine_odd_even (Podd Peven : nat -> Prop) : nat -> Prop :=
+  fun n => if odd n then Podd n else Peven n. 
+
+Theorem combine_odd_even_intro :
+  forall (Podd Peven : nat -> Prop) (n : nat),
+    (odd n = true -> Podd n) ->
+    (odd n = false -> Peven n) ->
+    combine_odd_even Podd Peven n.
+Proof.
+  intros Podd Peven n.
+  intros H1 H2.
+  unfold combine_odd_even.
+  destruct (odd n) as [] eqn:E.
+  - apply H1. reflexivity.
+  - apply H2. reflexivity.
+Qed.
+
+Theorem combine_odd_even_elim_odd : forall (Podd Peven : nat -> Prop) (n : nat),
+  combine_odd_even Podd Peven n -> odd n = true -> Podd n.
+Proof.
+  intros Podd Peven n.
+  unfold combine_odd_even.
+  destruct (odd n) as [] eqn:E.
+  - intros. apply H.
+  - intros. discriminate H0.
+Qed.
+
+Theorem combine_odd_even_elim_even :
+  forall (Podd Peven : nat -> Prop) (n : nat),
+    combine_odd_even Podd Peven n ->
+    odd n = false ->
+    Peven n.
+Proof.
+  intros Podd Peven n.
+  unfold combine_odd_even.
+  destruct (odd n) as [] eqn:E.
+  - intros. discriminate H0.
+  - intros. apply H.
+Qed.
+
+Check plus : nat -> nat -> nat.
+Check add_comm : forall n m : nat, n + m = m + n.
+
+Lemma add_comm3 : forall x y z,
+  x + (y + z) = (z + y) + x.
+Proof.
+  intros x y z.
+  rewrite add_comm.
+  rewrite add_comm.
+Abort.
+
+Lemma add_comm3_take2 :
+  forall x y z, x + (y + z) = (z + y) + x.
+Proof.
+  intros x y z.
+  rewrite add_comm.
+  assert (H : y + z = z + y).
+    { rewrite add_comm. reflexivity. }
+  rewrite H.
+  reflexivity.
+Qed.
+
+Lemma add_comm3_take3 :
+  forall x y z, x + (y + z) = (z + y) + x.
+Proof.
+  intros x y z.
+  rewrite add_comm.
+  rewrite (add_comm y z).
+  reflexivity.
+Qed.
+
+Theorem in_not_nil :
+  forall A (x : A) (l : list A), In x l -> l <> [].
+Proof.
+  intros A x l H.
+  unfold not. intros Hl.
+  rewrite Hl in H. simpl in H.
+  apply H.
+Qed.
+
+Lemma in_not_nil_42 :
+  forall l : list nat, In 42 l -> l <> [].
+Proof.
+  intros l H.
+  Fail apply in_not_nil.
+Abort.
+
+Lemma in_not_nil_42_take2 :
+  forall l : list nat, In 42 l -> l <> [].
+Proof.
+  intros l H.
+  apply in_not_nil with (x := 42).
+  apply H.
+Qed.
+
+Lemma in_not_nil_42_take3 :
+  forall l : list nat, In 42 l -> l <> [].
+Proof.
+  intros l H.
+  apply in_not_nil in H.
+  apply H.
+Qed.
+
+Lemma in_not_nil_42_take4 :
+  forall l : list nat, In 42 l -> l <> [].
+Proof.
+  intros l H.
+  apply (in_not_nil nat 42).
+  apply H.
+Qed.
+
+Lemma in_not_nil_42_take5 :
+  forall l : list nat, In 42 l -> l <> [].
+Proof.
+  intros l H.
+  apply (in_not_nil _ _ _ H).
+Qed.
+
+Example lemma_application_ex : forall {n : nat} {ns : list nat},
+    In n (map (fun m => m * 0) ns) -> n = 0.
+Proof.
+  intros n ns H.
+  destruct (proj1 _ _ (In_map_iff _ _ _ _ _) H)
+           as [m [Hm _]].
+  rewrite mul_0_r in Hm. rewrite <- Hm. reflexivity.
+Qed.
+
   
   
