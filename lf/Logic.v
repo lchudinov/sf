@@ -689,5 +689,55 @@ Proof.
   rewrite mul_0_r in Hm. rewrite <- Hm. reflexivity.
 Qed.
 
+Example function_equality_ex_1 : 
+  (fun x => 3 + x) = (fun x => (pred 4) + x).
+Proof. reflexivity. Qed.
+
+Example function_equality_ex_2_stuck :
+  (fun x => plus x 1) = (fun x => plus 1 x).
+Proof. (* Stuck *) Abort.
+
+Axiom functional_extensionality : forall {X Y : Type} {f g : X -> Y},
+  (forall (x : X), f x = g x) -> f = g.
+
+Example function_equality_ex2 :
+  (fun x => plus x 1) = (fun x => plus 1 x).
+Proof.
+  apply functional_extensionality.
+  intros x.
+  apply add_comm.
+Qed.
+
+Print Assumptions function_equality_ex2.
   
+Fixpoint rev_append {X} (l_1 l_2 : list X) : list X :=
+  match l_1 with
+  | [] => l_2
+  | x :: l_1' => rev_append l_1' (x :: l_2)
+  end.
+
+Definition tr_rev {X} (l : list X) : list X :=
+  rev_append l [].
+
+Lemma rev_append_nil : forall X (l1 l2 : list X), rev_append l1 l2 = rev_append l1 [] ++ l2.
+Proof.
+  intros X l1 l2.
+  generalize dependent l2.
+  induction l1.
+  - reflexivity.
+  - intros l2.
+    simpl.
+    rewrite -> IHl1. rewrite -> (IHl1 [x]). rewrite -> app_assoc. reflexivity.
+  Qed.
   
+Theorem tr_rev_correct : forall X, @tr_rev X = @rev X.
+Proof.
+  intros X.
+  apply functional_extensionality.
+  unfold tr_rev.
+  induction x as [|h t IHx].
+  - reflexivity.
+  - simpl. rewrite <- IHx.
+    apply rev_append_nil.
+Qed.
+
