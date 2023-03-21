@@ -740,4 +740,89 @@ Proof.
   - simpl. rewrite <- IHx.
     apply rev_append_nil.
 Qed.
+Example even_42_bool : even 42 = true.
+Proof. reflexivity. Qed.
 
+Example even_42_prop : Even 42.
+Proof. unfold Even. exists 21. reflexivity. Qed.
+
+Lemma even_double : forall k, even (double k) = true.
+Proof.
+  intros k. induction k as [|k' IHk'].
+  - reflexivity.
+  - simpl. apply IHk'.
+Qed
+.
+Lemma even_double_conv : forall n, exists k,
+  n = if even n then double k else S (double k).
+Proof.
+  intros n. induction n as [|n' IHn'].
+  - simpl. exists 0. simpl. reflexivity.
+  - rewrite even_S.
+    destruct (even n') eqn:E.
+    + simpl. destruct IHn' as [k']. exists k'. rewrite H. reflexivity.
+    + simpl. destruct IHn' as [k']. exists (S k'). rewrite H. reflexivity.
+Qed.
+
+Theorem even_bool_prop : forall n,
+  even n = true <-> Even n.
+Proof.
+  intros n. split.
+  - intros H. destruct (even_double_conv n) as [k Hk].
+    rewrite Hk. rewrite H. unfold Even. exists k. reflexivity.
+  - intros [k Hk]. rewrite Hk. apply even_double.
+Qed.
+
+Theorem eqb_eq : forall n1 n2 : nat,
+  n1 =? n2 = true <-> n1 = n2.
+Proof.
+  intros n1 n2. split.
+  - apply eqb_true.
+  - intros H. rewrite H. rewrite eqb_refl. reflexivity.
+Qed.
+
+Example even_1000 : Even 1000.
+Proof. unfold Even. exists 500. reflexivity. Qed.
+
+Example even_1000' : even 1000 = true.
+Proof. reflexivity. Qed.
+
+Example even_1000'' : Even 1000.
+Proof. apply even_bool_prop. reflexivity. Qed.
+
+Example not_even_1001 : even 1001 = false.
+Proof.
+  (* WORKED IN CLASS *)
+  reflexivity.
+Qed.
+
+Example not_even_1001' : ~(Even 1001).
+Proof.
+  (* WORKED IN CLASS *)
+  rewrite <- even_bool_prop.
+  unfold not.
+  simpl.
+  intro H.
+  discriminate H.
+Qed.
+
+Lemma plus_eqb_example : forall n m p : nat,
+  n =? m = true -> n + p =? m + p = true.
+Proof.
+  (* WORKED IN CLASS *)
+  intros n m p H.
+  rewrite eqb_eq in H.
+  rewrite H.
+  rewrite eqb_eq.
+  reflexivity.
+Qed.
+
+Theorem eqb_neq : forall x y : nat,
+  x =? y = false <-> x <> y.
+Proof.
+  intros x y.
+  rewrite <- not_true_iff_false.
+  split.
+  - destruct (x =? y).
+    + intros H. unfold not in H. reqrite <- eqb_eq in H.
+  
