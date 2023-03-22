@@ -823,6 +823,28 @@ Proof.
   intros x y.
   rewrite <- not_true_iff_false.
   split.
-  - destruct (x =? y).
-    + intros H. unfold not in H. reqrite <- eqb_eq in H.
-  
+  - intros H.
+    destruct (x =? y) eqn:E.
+    + intros H1. unfold not in H. apply H. reflexivity.
+    + intros H1. rewrite H1 in E. rewrite eqb_refl in E. discriminate E.
+  - unfold not.
+    intros H.
+    destruct (x =? y) eqn:E.
+    + intros H1. apply eqb_true in E. rewrite E in H. apply H. reflexivity.
+    + intros H1. discriminate H1.
+Qed.
+
+Fixpoint eqb_list {A : Type} (eqb : A -> A -> bool)
+  (l1 l2 : list A) : bool := 
+  match l1, l2 with
+  | [], [] => true
+  | h1::t1, [] => false
+  | [], h2::t2 => false
+  | h1::t1, h2::t2 => eqb h1 h2  && eqb_list eqb t1 t2
+  end.
+
+Theorem eqb_list_true_iff : forall A (eqb : A -> A -> bool),
+    (forall a1 a2, eqb a1 a2 = true <-> a1 = a2) ->
+    forall l1 l2, eqb_list eqb l1 l2 = true <-> l1 = l2.
+Proof.
+  Abort.
