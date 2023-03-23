@@ -817,6 +817,38 @@ Proof.
   reflexivity.
 Qed.
 
+Theorem andb_true_iff : forall b1 b2:bool,
+  b1 && b2 = true <-> b1 = true /\ b2 = true.
+Proof.
+  intros b1 b2. split.
+  - intros. split.
+    + destruct b1.
+      * reflexivity.
+      * discriminate.
+    + destruct b2.
+      * reflexivity.
+      * destruct b1 in H.
+        -- discriminate H.
+        -- discriminate H.
+  - intros [H1 H2].
+    rewrite H1. rewrite H2. reflexivity.
+Qed.
+
+Theorem orb_true_iff : forall b1 b2,
+  b1 || b2 = true <-> b1 = true \/ b2 = true.
+Proof.
+  intros b1 b2. split.
+  - intros H.
+    destruct (b1) eqn:E in H.
+    + left. apply E.
+    + right. simpl in H. apply H.
+  - intros [H1 | H2].
+    + rewrite H1. simpl. reflexivity.
+    + rewrite H2. destruct b1 eqn:E.
+      * reflexivity.
+      * reflexivity.
+Qed.
+
 Theorem eqb_neq : forall x y : nat,
   x =? y = false <-> x <> y.
 Proof.
@@ -847,4 +879,27 @@ Theorem eqb_list_true_iff : forall A (eqb : A -> A -> bool),
     (forall a1 a2, eqb a1 a2 = true <-> a1 = a2) ->
     forall l1 l2, eqb_list eqb l1 l2 = true <-> l1 = l2.
 Proof.
-  Abort.
+  intros A eqb H. split.
+  - generalize dependent l2.
+    induction l1 as [|h1 t1].
+    + destruct l2 as [|h2 t2] eqn:L2.
+      * simpl. reflexivity.
+      * simpl. discriminate.
+    + destruct l2 as [|h2 t2] eqn:L2.
+      * simpl. discriminate.
+      * simpl. intros H2. rewrite andb_true_iff in H2. destruct H2 as [H21 H22].
+        rewrite H in H21. apply IHt1 in H22. rewrite H21. rewrite H22. reflexivity.
+  - generalize dependent l2.
+    induction l1 as [|h1 t1].
+    + intros l2 H2. rewrite <- H2. reflexivity.
+    + destruct l2 as [|h2 t2] eqn:L2.
+      * discriminate.
+      * simpl. intros H1. injection H1 as H11 H12.
+        rewrite andb_true_iff. split.
+        -- rewrite H11. rewrite H. reflexivity.
+        -- apply IHt1. rewrite H12. reflexivity.
+Qed.
+
+
+
+        
