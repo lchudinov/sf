@@ -900,6 +900,77 @@ Proof.
         -- apply IHt1. rewrite H12. reflexivity.
 Qed.
 
+Fixpoint forallb {X : Type} (test : X -> bool) (l : list X) :=
+  match l with
+  | [] => true
+  | h :: t => if test h then forallb test t else false
+  end.
+
+Theorem forallb_true_iff : forall X test (l : list X),
+  forallb test l = true <-> All (fun x => test x = true) l.
+Proof.
+  intros X test l.
+  split.
+  - induction l as [|h t].
+    + simpl. intros []. apply I.
+    + simpl. destruct (test h) eqn:E.
+      * intros H. split.
+        -- reflexivity.
+        -- apply IHt. apply H.
+      * discriminate.
+  - induction l as [|h t].
+    + simpl. reflexivity.
+    + simpl. destruct (test h) eqn:E.
+      * intros [H1 H2]. apply IHt. apply H2.
+      * intros [H1 H2]. discriminate H1.
+Qed.
+
+Theorem restricted_excluded_middle : forall P b,
+  (P <-> b = true) -> P \/ ~ P.
+Proof.
+  intros P [] H.
+  - left. rewrite H. reflexivity.
+  - right. rewrite H. intros contra. discriminate contra.
+Qed.
+
+Theorem restricted_excluded_middle_eq : forall (n m : nat),
+  n = m \/ n <> m.
+Proof.
+  intros n m.
+  apply (restricted_excluded_middle (n = m) (n =? m)).
+  symmetry.
+  apply eqb_eq.
+Qed.
 
 
-        
+Theorem excluded_middle_irrefutable: forall (P : Prop),
+  ~ ~ (P \/ ~ P).
+Proof.
+  intros. unfold not. intros. apply H. right. intros HP. apply H. left. apply HP.
+Qed.
+
+Definition excluded_middle := forall P : Prop,
+  P \/ not P.
+
+Theorem not_exists_dist :
+  excluded_middle ->
+  forall (X:Type) (P : X -> Prop),
+    ~ (exists x, ~ P x) -> (forall x, P x).
+Proof.
+  unfold excluded_middle.
+  intros H1 X P H2 x.
+  destruct (H1 (P x)) as [Hx | Hy].
+  - apply Hx.
+  - exfalso. apply H2. exists x. apply Hy.
+Qed.
+  
+
+Definition peirce := forall P Q: Prop,
+  ((P -> Q) -> P) -> P.
+Definition double_negation_elimination := forall P:Prop,
+  ~~P -> P.
+Definition de_morgan_not_and_not := forall P Q:Prop,
+  ~(~P /\ not Q) -> P \/ Q.
+Definition implies_to_or := forall P Q:Prop,
+  (P -> Q) -> (not P \/ Q).
+
