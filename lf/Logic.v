@@ -973,4 +973,41 @@ Definition de_morgan_not_and_not := forall P Q:Prop,
   ~(~P /\ not Q) -> P \/ Q.
 Definition implies_to_or := forall P Q:Prop,
   (P -> Q) -> (not P \/ Q).
+  
+Theorem peirce_double_negation_elimination :
+  peirce -> double_negation_elimination.
+Proof.
+  unfold peirce. unfold double_negation_elimination. unfold not.
+  intros H P H1.
+  apply H with (Q:=False).
+  intros H2. exfalso. apply H1. apply H2.
+Qed.
+
+Theorem de_morgan_not_and_not_implies_to_or :
+  de_morgan_not_and_not -> implies_to_or.
+Proof.
+  unfold de_morgan_not_and_not. unfold implies_to_or.
+  intros.
+  apply H.
+  intros H1. unfold not in H1. destruct H1 as [H11 H12].
+  apply H11. intros H2. apply H12. apply H0. apply H2.
+Qed.
+
+Theorem implies_to_or_excluded_middle :
+  implies_to_or -> excluded_middle.
+Proof.
+  unfold implies_to_or. unfold excluded_middle.
+  intros.
+  apply or_commut. apply H. intros HP. apply HP.
+Qed.
+
+Theorem  excluded_middle_peirce :
+  excluded_middle -> peirce.
+Proof.
+  unfold excluded_middle. unfold peirce.
+  intros.
+  destruct (H P) as [H1 | H2].
+  - apply H1.
+  - apply H0. intros H1. exfalso. apply H2. apply H1.
+Qed.
 
