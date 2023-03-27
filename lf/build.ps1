@@ -4,3 +4,4 @@ coqc -Q . LF Lists.v
 coqc -Q . LF Poly.v
 coqc -Q . LF Tactics.v
 coqc -Q . LF Logic.v
+coqc -Q . LF IndProp.v
