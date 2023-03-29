@@ -46,5 +46,74 @@ Inductive Perm3 {X : Type} : list X -> list X -> Prop :=
   | perm3_swap23 (a b c : X) : Perm3 [a;b;c] [a;c;b]
   | perm3_trans (l_1 l_2 l_3 : list X) : Perm3 l_1 l_2 -> Perm3 l_2 l_3 -> Perm3 l_1 l_3.
 
-  
+Inductive ev : nat -> Prop :=
+  | ev_0 : ev 0
+  | ev_SS (n : nat) (H : ev n) : ev (S (S n)).
+
+Fail Inductive wrong_ev (n: nat) : Prop :=
+  | wrong_ev_0 : wrong_ev 0
+  | wrong_ev_SS (H : wrong_ev n) : wrong_ev (S (S n)).
+
+Theorem ev_4 : ev 4.
+  Proof. apply ev_SS. apply ev_SS. apply ev_0. Qed.
+
+Theorem ev_4' : ev 4.
+  Proof. apply (ev_SS 2 (ev_SS 0 ev_0)). Qed.
+
+Theorem ev_plus4: forall n, ev n -> ev (4 + n).
+Proof.
+ intros n. simpl. intros Hn. apply ev_SS. apply ev_SS. apply Hn. 
+Qed.
+
+Theorem ev_double : forall n,
+  ev (double n).
+Proof.
+  intros n. induction n as [|n' IHn'].
+  - simpl. apply ev_0.
+  - simpl. apply ev_SS. apply IHn'.
+Qed.
+
+Theorem ev_inversion : forall (n : nat),
+  ev n -> (n = 0) \/ (exists n', n = S (S n') /\ ev n').
+Proof.
+  intros n E. destruct E as [| n' E'] eqn:EE.
+  - left. reflexivity.
+  - right. exists n'. split.
+    + reflexivity.
+    + apply E'.
+Qed.
+
+Theorem evSS_ev: forall n, ev (S (S n)) -> ev n.
+Proof.
+  intros n H. apply ev_insersion in H. destruct H as [H0|H1].
+  - discriminate H0.
+  - destruct H1 as [n' [Hnm Hev]].
+    injection Hnm as Heq. rewrite Heq. apply Hev.
+Qed.
+
+Theorem evSS_ev': forall n, ev (S (S n)) -> ev n.
+Proof.
+  intros n E. inversion E as [| n' E' Heq]. apply E'.
+Qed.
+
+Theorem one_not_even : ~ ev 1.
+Proof.
+  intros H. apply ev_inversion in H. destruct H as [ | [m [Hm _]]].
+  - discriminate H.
+  - discriminate Hm.
+Qed.
+
+Theorem one_not_even' : ~ ev 1.
+Proof. intros H. inversion H. Qed.
+
+Theorem SSSSev__even : forall n,
+  ev (S (S (S (S n)))) -> ev n.
+Proof.
+  intros n H. inversion H. inversion H1. apply H3.
+Qed.
+
+Theorem ev5_nonsense : ev 5 -> 2 + 2 = 9.
+Proof.
+  intros H. inversion H. inversion H1. inversion H3.
+Qed.
 
