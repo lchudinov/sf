@@ -85,7 +85,7 @@ Qed.
 
 Theorem evSS_ev: forall n, ev (S (S n)) -> ev n.
 Proof.
-  intros n H. apply ev_insersion in H. destruct H as [H0|H1].
+  intros n H. apply ev_inversion in H. destruct H as [H0|H1].
   - discriminate H0.
   - destruct H1 as [n' [Hnm Hev]].
     injection Hnm as Heq. rewrite Heq. apply Hev.
@@ -116,4 +116,95 @@ Theorem ev5_nonsense : ev 5 -> 2 + 2 = 9.
 Proof.
   intros H. inversion H. inversion H1. inversion H3.
 Qed.
+
+Theorem inversion_ex_1 : forall (n m o : nat),
+  [n; m] = [o; o] -> [n] = [m].
+Proof.
+  intros n m o H. inversion H. reflexivity. Qed.
+  
+Theorem inversion_ex_2 : forall (n : nat),
+  S n = O -> 2 + 2 = 5.
+Proof.
+  intros n contra. inversion contra. Qed.
+
+Lemma ev_Even_firsttry : forall n,
+  ev n -> Even n.
+Proof.
+  unfold Even.
+  intros n E. inversion E as [EQ' | n' E' EQ'].
+  - exists 0. reflexivity.
+  - assert (H: (exists k', n' = double k') -> (exists n0, S (S n') = double n0)).
+    { intros [k' EQ'']. exists (S k'). simpl. rewrite EQ''. reflexivity. }
+    apply H.
+    generalize dependent E'.
+    Abort.
+
+Lemma ev_Even : forall n,
+  ev n -> Even n.
+Proof.
+  intros n E.
+  induction E as [|n' E' IH].
+  - unfold Even. exists 0. reflexivity.
+  - unfold Even in IH.
+    destruct IH as [k Hk].
+    rewrite Hk.
+    unfold Even. exists (S k). simpl. reflexivity.
+Qed.
+
+Theorem ev_Even_iff : forall n,
+  ev n <-> Even n.
+Proof.
+  split.
+  - apply ev_Even.
+  - unfold Even. intros [k Hk]. rewrite Hk. apply ev_double.
+Qed.
+
+Theorem ev_sum: forall n m, ev n ->  ev m -> ev (n + m).
+Proof.
+  intros n m.
+  intros H1 H2.
+  induction H1 as [|n' H1' IH1].
+  - simpl. apply H2.
+  - simpl. apply ev_SS. apply IH1.
+Qed.
+
+Inductive ev' : nat -> Prop :=
+  | ev'_0 : ev' 0
+  | ev'_2 : ev' 2
+  | ev'_sum n m (Hn : ev' n) (Hm : ev' m) : ev' (n + m).
+
+Theorem ev'_ev : forall n, ev' n <-> ev n.
+Proof.
+  intros n.
+  split.
+  - intros H. induction H.
+    + apply ev_0.
+    + apply ev_SS. apply ev_0.
+    + apply ev_sum. apply IHev'1. apply IHev'2.
+  - intros H. induction H.
+    + apply ev'_0.
+    + rewrite <- plus_1_n. rewrite <- plus_n_Sm. rewrite <- plus_1_n.
+      rewrite add_assoc. apply ev'_sum.
+      * simpl. apply ev'_2.
+      * apply IHev.
+Qed.
+
+Theorem ev_ev__ev : forall n m, ev (n+m) -> ev n -> ev m.
+  (* Hint: There are two pieces of evidence you could attempt to induct upon
+      here. If one doesn't work, try the other. *)
+Proof.
+  intros n m.
+  intros H1 H2.
+  induction H2.
+  - rewrite plus_O_n in H1. apply H1.
+  - simpl in H1. inversion H1 as [|n' evn' IH'].
+    apply IHev. apply evn'.
+Qed.
+
+Theorem ev_plus_plus : forall n m p,
+  ev (n+m) -> ev (n+p) -> ev (m+p).
+Proof.
+  intros n m p H1 H2.
+  
+  
 
