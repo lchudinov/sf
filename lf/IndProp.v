@@ -201,10 +201,75 @@ Proof.
     apply IHev. apply evn'.
 Qed.
 
+(*
+  add_assoc: n + (m + p) = (n + m) + p.
+*)
+
 Theorem ev_plus_plus : forall n m p,
   ev (n+m) -> ev (n+p) -> ev (m+p).
 Proof.
   intros n m p H1 H2.
+  assert (H: ev ((n+m) + (n+p))).
+  {
+    apply ev_sum. apply H1. apply H2.
+  }
+  Set Printing Parentheses.
+  rewrite add_assoc in H.
+  rewrite add_comm with (n + m) n in H.
+  rewrite add_assoc with n n m in H.
+  rewrite <- double_plus with n in H.
+  rewrite <- add_assoc in H.
+  apply ev_ev__ev with (double n) (m + p) in H.
+  - apply H.
+  - apply ev_double.
+Qed.
+
+Module Playground.
+
+Inductive le : nat -> nat -> Prop :=
+  | le_n (n : nat) : le n n
+  | le_S (n m : nat) (H : le n m) : le n (S m).
+
+Notation "n <= m" := (le n m).
+
+Theorem test_l1_1: 3 <= 3.
+Proof.
+  apply le_n.
+Qed.
+
+Theorem test_le_2: 3 <= 6.
+Proof.
+  apply le_S. apply le_S. apply le_S. apply le_n.
+Qed.
+
+Theorem  test_le_3: (2 <= 1) -> 2 + 2 = 5.
+Proof.
+  intros H. inversion H. inversion H2.
+Qed.
+
+Definition lt (n m : nat) := le (S n) m.
+
+Notation "m < n" := (lt m n).
+
+End Playground.
+
+Inductive total_relation : nat -> nat -> Prop :=
+| total_On (n : nat) : total_relation 0 n
+| total_Om (m : nat) : total_relation m 0
+| total_Sn (n m : nat) (H : total_relation n m) : total_relation (S n) m
+| total_Sm (n m : nat) (H : total_relation n m) : total_relation n (S m).
+
+Theorem total_relation_is_total : forall n m, total_relation n m.
+Proof.
+  intros n m.
+  induction n.
+  - apply total_On.
+  - apply total_Sn. apply IHn.
+Qed.
+
+
+  
+  
   
   
 
