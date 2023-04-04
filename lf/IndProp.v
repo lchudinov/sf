@@ -267,9 +267,49 @@ Proof.
   - apply total_Sn. apply IHn.
 Qed.
 
+Inductive empty_relation : nat -> nat -> Prop := .
 
+Theorem empty_relation_is_empty : forall (n m: nat), ~ (empty_relation n m).
+Proof.
+  intros n m.
+  unfold not.
+  intros H.
+  inversion H.
+Qed.
+
+Lemma le_trans : forall m n o, m <= n -> n <= o -> m <= o.
+Proof.
+  intros m n o H1 H2.
+  induction H2 as [|o1 Ho IHo].
+  - apply H1.
+  - apply le_S. apply IHo.
+Qed.
+
+Theorem O_le_n : forall n, 0 <= n.
+Proof.
+  intros n. induction n.
+  - apply le_n.
+  - apply le_S. apply IHn.
+Qed.
+
+Theorem n_le_m__Sn_le_Sm : forall n m,
+  n <= m -> S n <= S m.
+Proof.
+  intros n m H.
+  induction H as [|n' Hn' IHn'].
+  - apply le_n.
+  - apply le_S. apply IHn'.
+Qed.
+
+Theorem Sn_le_Sm__n_le_m : forall n m,
+  S n <= S m -> n <= m.
+Proof.
+  intros n m H.
+  inversion H.
+  - rewrite <- H1. apply le_n.
+  - 
+  - 
   
-  
-  
-  
+  | le_n (n : nat) : le n n
+  | le_S (n m : nat) : le n m -> le n (S m).
 
