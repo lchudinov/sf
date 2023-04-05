@@ -305,10 +305,30 @@ Theorem Sn_le_Sm__n_le_m : forall n m,
   S n <= S m -> n <= m.
 Proof.
   intros n m H.
-  inversion H.
-  - rewrite <- H1. apply le_n.
-  - 
-  - 
+  induction m.
+  - inversion H as [H0 |n' H' IH'].
+    + apply le_n.
+    + inversion H'.
+  - inversion H as [H0 |n' H' IH'].
+    + apply le_n.
+    + apply le_S in IHm.
+      * apply IHm.
+      * apply H'.
+Qed.
+
+Theorem lt_ge_cases : forall n m,
+  n < m \/ n >= m.
+Proof.
+  intros n m.
+  unfold lt. unfold ge.
+  induction m.
+  - right. apply O_le_n.
+  - destruct IHm as [H1 | H2].
+    + left. apply le_S in H1. apply H1.
+    + destruct n.
+      * 
+      
+
   
   | le_n (n : nat) : le n n
   | le_S (n m : nat) : le n m -> le n (S m).
