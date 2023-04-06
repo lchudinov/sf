@@ -321,14 +321,50 @@ Theorem lt_ge_cases : forall n m,
 Proof.
   intros n m.
   unfold lt. unfold ge.
-  induction m.
+  destruct m.
   - right. apply O_le_n.
-  - destruct IHm as [H1 | H2].
-    + left. apply le_S in H1. apply H1.
-    + destruct n.
-      * 
-      
+  - induction n.
+    + left. apply n_le_m__Sn_le_Sm. apply O_le_n.
+    + destruct IHn as [H1 | H2].
+      * destruct H1.
+        -- right. apply le_n.
+        -- left. apply n_le_m__Sn_le_Sm. apply H1.
+      * right. apply le_S in H2. apply H2.
+Qed.
 
+Theorem le_plus_l : forall a b,
+  a <= a + b.
+Proof.
+  intros a b.
+  induction a.
+  - rewrite plus_O_n. apply O_le_n.
+  - rewrite add_comm. rewrite <- plus_n_Sm. rewrite add_comm.
+    apply n_le_m__Sn_le_Sm. apply IHa.
+Qed. 
+
+Theorem plus_le : forall n1 n2 m,
+  n1 + n2 <= m -> n1 <= m /\ n2 <= m.
+Proof.
+  intros.
+  induction H.
+  - split.
+    + apply le_plus_l.
+    + rewrite add_comm. apply le_plus_l.
+  - destruct IHle as [H1 H2].
+    split.
+    + apply le_S in H1. apply H1.
+    + apply le_S in H2. apply H2.
+Qed.
+
+Theorem add_le_cases : forall n m p q,
+  n + m <= p + q -> n <= p \/ m <= q.
+Proof.
+  intros n m p q.
+  induction n as [|n' IHn'].
+  - intros H. left. apply O_le_n.
+  - intros H. right.
+    apply plus_le in H. destruct H as [H1 H2].
+    
   
   | le_n (n : nat) : le n n
   | le_S (n m : nat) : le n m -> le n (S m).
