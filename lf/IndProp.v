@@ -359,13 +359,62 @@ Qed.
 Theorem add_le_cases : forall n m p q,
   n + m <= p + q -> n <= p \/ m <= q.
 Proof.
-  intros n m p q.
-  induction n as [|n' IHn'].
-  - intros H. left. apply O_le_n.
-  - intros H. right.
-    apply plus_le in H. destruct H as [H1 H2].
+  induction n.
+  - left. apply O_le_n.
+  - intros. destruct p as [|p'] eqn:E.
+    + right. apply plus_le in H. destruct H as [H1 H2].
+      rewrite plus_O_n in H2. apply H2.
+    + simpl in H.
+      rewrite plus_n_Sm in H. rewrite plus_n_Sm in H.
+      apply IHn in H. destruct H as [H | H].
+      * apply n_le_m__Sn_le_Sm in H. left. apply H.
+      * apply Sn_le_Sm__n_le_m in H. right. apply H.
+Qed.
     
-  
-  | le_n (n : nat) : le n n
-  | le_S (n m : nat) : le n m -> le n (S m).
+Theorem plus_le_compat_l : forall n m p, n <= m -> p + n <= p + m.
+Proof.
+  induction p.
+  - rewrite plus_O_n. rewrite plus_O_n. intros H. apply H.
+  - intros.
+    rewrite add_comm with (S p) n.
+    rewrite add_comm with (S p) m.
+    rewrite <- plus_n_Sm with n p.
+    rewrite <- plus_n_Sm with m p.
+    apply n_le_m__Sn_le_Sm.
+    rewrite add_comm with n p.
+    rewrite add_comm with m p.
+    apply IHp. apply H.
+Qed.
 
+Theorem plus_le_compat_r : forall n m p,
+  n <= m -> n + p <= m + p.
+Proof.
+  induction p.
+  - rewrite add_comm with n 0. rewrite add_comm with m 0. simpl.
+    intros H. apply H.
+  - rewrite <- plus_n_Sm with n p. rewrite <- plus_n_Sm with m p.
+    intros H. apply n_le_m__Sn_le_Sm. apply IHp. apply H.
+Qed.
+
+Theorem le_plus_trans : forall n m p,
+  n <= m -> n <= m + p.
+Proof.
+  induction p.
+  - rewrite add_comm with m 0. simpl. intros H. apply H.
+  - rewrite <- plus_n_Sm with m p.
+    intros H. apply IHp in H. apply le_S in H. apply H.
+Qed.
+
+Theorem n_lt_m__n_le_m : forall n m,
+  n < m -> n <= m.
+Proof.
+  unfold lt.
+  intros. apply le_S in H. apply Sn_le_Sm__n_le_m in H. apply H.
+Qed.
+
+Theorem plus_lt : forall n1 n2 m,
+  n1 + n2 < m -> n1 < m /\ n2 < m.
+Proof.
+  unfold lt.
+  split.
+  Admitted.
