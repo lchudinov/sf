@@ -416,5 +416,59 @@ Theorem plus_lt : forall n1 n2 m,
   n1 + n2 < m -> n1 < m /\ n2 < m.
 Proof.
   unfold lt.
+  intros n1 n2 m H.
+  inversion H as [H12 | n H22 Hm].
+  - split.
+    + apply n_le_m__Sn_le_Sm. apply le_plus_l.
+    + apply n_le_m__Sn_le_Sm. rewrite add_comm. apply le_plus_l.
+  - rewrite <- Hm in H. apply Sn_le_Sm__n_le_m in H.
+    apply plus_le in H. destruct H as [H1 H2].
+    split.
+    + apply n_le_m__Sn_le_Sm. apply H1.
+    + apply n_le_m__Sn_le_Sm. apply H2.
+Qed.
+
+Theorem leb_complete : forall n m,
+  n <=? m = true -> n <= m.
+Proof.
+  intros n m.
+  generalize dependent m.
+  induction n.
+  - intros. apply O_le_n.
+  - intros. destruct m.
+    + discriminate.
+    + simpl in H. apply IHn in H. apply n_le_m__Sn_le_Sm. apply H.
+Qed.
+
+Theorem leb_correct : forall n m,
+  n <= m -> n <=? m = true.
+Proof.
+  intros n m.
+  generalize dependent n.
+  induction m.
+  - intros. inversion H. reflexivity.
+  - destruct n.
+    + reflexivity.
+    + intros. apply Sn_le_Sm__n_le_m in H. apply IHm in H.
+      simpl. apply H.
+Qed.
+
+Theorem leb_iff : forall n m,
+  n <=? m = true <-> n <= m.
+Proof.
   split.
-  Admitted.
+  - apply leb_complete.
+  - apply leb_correct.
+Qed.
+
+Theorem leb_true_trans : forall n m o,
+  n <=? m = true -> m <=? o = true -> n <=? o = true.
+Proof.
+    intros n m o H1 H2.
+    apply leb_complete in H1.
+    apply leb_complete in H2.
+    apply leb_correct.
+    apply le_trans with m.
+    - apply H1.
+    - apply H2.
+Qed.
