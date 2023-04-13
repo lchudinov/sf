@@ -472,3 +472,48 @@ Proof.
     - apply H1.
     - apply H2.
 Qed.
+
+Module R.
+Inductive R : nat -> nat -> nat -> Prop :=
+  | c_1 : R 0 0 0
+  | c_2 m n o (H : R m n o ) : R (S m) n (S o)
+  | c_3 m n o (H : R m n o ) : R m (S n) (S o)
+  | c_4 m n o (H : R (S m) (S n) (S (S o))) : R m n o
+  | c_5 m n o (H : R m n o ) : R n m o
+  .
+
+Example r_1_1_2 : R 1 1 2.
+Proof.
+  apply c_3. apply c_2. apply c_1.
+Qed.
+
+Example r_2_2_6 : R 2 2 6.
+Proof. Abort.
+
+Definition fR : nat -> nat -> nat :=
+  plus.
+
+Theorem R_equiv_fR : forall m n o, R m n o <-> fR m n = o.
+Proof.
+  intros n m o.
+  unfold fR.
+  split.
+  - intros H.
+    induction H.
+    + reflexivity.
+    + simpl. f_equal. apply IHR.
+    + rewrite <- plus_n_Sm. apply f_equal. apply IHR.
+    + simpl in IHR. rewrite <- plus_n_Sm in IHR. 
+      injection IHR. intros. apply H0.
+    + rewrite add_comm. apply IHR.
+  - intros H.
+    rewrite <- H.
+    destruct H.
+    induction m.
+    + induction n.
+      * apply c_1.
+      * simpl. apply c_2. apply IHn.
+    + rewrite <- plus_n_Sm. apply c_3. apply IHm.
+Qed.
+End R.
+
