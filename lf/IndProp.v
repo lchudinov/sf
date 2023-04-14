@@ -517,3 +517,45 @@ Proof.
 Qed.
 End R.
 
+Inductive subseq : list nat -> list nat -> Prop :=
+  | subseq_0 (l : list nat): subseq [] l
+  | subseq_1 (x : nat) (l1 l2 : list nat) (H: subseq l1 l2) : subseq (x :: l1) (x :: l2)
+  | subseq_2 (x : nat) (l1 l2 : list nat) (H: subseq l1 l2) : subseq l1 (x :: l2)
+  .
+
+Theorem subseq_refl : forall (l : list nat), subseq l l.
+Proof.
+  intros l.
+  induction l as [|h t IHt].
+  - apply subseq_0.
+  - apply subseq_1. apply IHt.
+Qed.
+
+Theorem subseq_app : forall (l1 l2 l3 : list nat),
+  subseq l1 l2 -> subseq l1 (l2 ++ l3).
+Proof.
+  intros l1 l2 l3.
+  intros H.
+  induction H.
+  - apply subseq_0.
+  - simpl. apply subseq_1. apply IHsubseq.
+  - simpl. apply subseq_2. apply IHsubseq.
+Qed.
+
+Theorem subseq_trans : forall (l1 l2 l3 : list nat),
+  subseq l1 l2 -> subseq l2 l3 -> subseq l1 l3.
+Proof.
+  intros l1 l2 l3 H1 H2.
+  generalize dependent l1.
+  induction H2.
+  - intros.
+    assert (H11: l1 = []).
+    { inversion H1. reflexivity. }
+    rewrite H11. apply subseq_0.
+  - intros. inversion H1.
+    + apply subseq_0.
+    + apply subseq_1. apply IHsubseq. apply H3.
+    + apply subseq_2. rewrite <- H0. apply IHsubseq. rewrite H0. apply H3.
+  - intros. 
+    Abort.
+
