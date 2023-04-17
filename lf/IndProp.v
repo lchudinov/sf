@@ -556,6 +556,114 @@ Proof.
     + apply subseq_0.
     + apply subseq_1. apply IHsubseq. apply H3.
     + apply subseq_2. rewrite <- H0. apply IHsubseq. rewrite H0. apply H3.
-  - intros. 
-    Abort.
+  - intros.
+    apply subseq_2. apply IHsubseq. apply H1.
+Qed.
 
+Inductive R : nat -> list nat -> Prop :=
+| c1                    : R 0     []
+| c2 n l (H: R n     l) : R (S n) (n :: l)
+| c3 n l (H: R (S n) l) : R n     l.
+
+Example r_2_1_0: R 2 [1;0].
+Proof.
+  apply c2. apply c2. apply c1.
+Qed.
+
+Example r_1_2_1_0 : R 1 [1;2;1;0].
+Proof.
+  Abort.
+
+Example r_6_3_2_1_0 : R 6 [3;2;1;0].
+Proof.
+  Abort.
+
+Module bin1.
+Inductive bin : Type :=
+  | Z
+  | B0 (n : bin)
+  | B1 (n : bin).
+End bin1.
+
+Module bin2.
+Inductive bin : Type :=
+  | Z : bin
+  | B0 (n : bin) : bin
+  | B1 (n : bin) : bin.
+End bin2.
+
+Module bin3.
+Inductive bin : Type :=
+  | Z : bin
+  | B0 :  bin -> bin
+  | B1 : bin -> bin.
+End bin3.
+
+Inductive reg_exp (T : Type) : Type :=
+  | EmptySet
+  | EmptyStr
+  | Char (t : T)
+  | App (r_1 r_2 : reg_exp T)
+  | Union (r_1 r_2 : reg_exp T)
+  | Star (r : reg_exp T).
+
+Arguments EmptySet {T}.
+Arguments EmptyStr {T}.
+Arguments Char {T} _.
+Arguments App {T} _ _.
+Arguments Union {T} _ _.
+Arguments Star {T} _.
+
+Reserved Notation "s =~ re" (at level 80).
+
+Inductive exp_match {T} : list T -> reg_exp T -> Prop :=
+  | MEmpty : [] =~ EmptyStr
+  | MChar x : [x] =~ (Char x)
+  | MApp s_1 re_1 s_2 re_2
+              (H_1 : s_1 =~ re_1)
+              (H_2 : s_2 =~ re_2)
+            : (s_1 ++ s_2) =~ (App re_1 re_2)
+  | MUnionL s_1 re_1 re_2
+              (H1 : s_1 =~ re_1)
+            : s_1 =~ (Union re_1 re_2)
+  | MUnionR re_1 s_2 re_2
+              (H2 : s_2 =~ re_2)
+            : s_2 =~ (Union re_1 re_2)
+  | MStar0 re : [] =~ (Star re)
+  | MStarApp s_1 s_2 re
+              (H_1 : s_1 =~ re)
+              (H_2 : s_2 =~ (Star re))
+            : (s_1 ++ s_2) =~ (Star re)
+  where "s =~ re" := (exp_match s re).
+
+Example reg_exp_ex_1 : [1] =~ Char 1.
+Proof. apply MChar. Qed.
+
+Example reg_exp_ex_2 : [1;2] =~ App (Char 1) (Char 2).
+Proof. 
+  apply (MApp [1]).
+  - apply MChar.
+  - apply MChar.
+Qed.
+
+Example reg_exp_ex_2_0 : [1] ++ [2] =~ App (Char 1) (Char 2).
+Proof.
+  apply MApp.
+  - apply MChar.
+  - apply MChar.
+Qed.
+
+Example reg_exp_ex_2_1 : [1;2] =~ App (Char 1) (Char 2).
+Proof. 
+  apply (MApp [1] _ [2] _).
+  - apply MChar.
+  - apply MChar.
+Qed.
+
+Example reg_exp_ex3 : not ([1; 2] =~ Char 1).
+Proof. intros H. inversion H. Qed.
+  
+
+
+
+  
