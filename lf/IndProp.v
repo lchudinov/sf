@@ -663,7 +663,75 @@ Qed.
 Example reg_exp_ex3 : not ([1; 2] =~ Char 1).
 Proof. intros H. inversion H. Qed.
   
+Fixpoint reg_exp_of_list {T} (l: list T) :=
+  match l with 
+  | [] => EmptyStr
+  | x :: l' => App (Char x) (reg_exp_of_list l')
+  end.
 
+Example reg_exp_ex4 : [1; 2; 3] =~ reg_exp_of_list [1; 2; 3].
+Proof.
+  simpl. apply (MApp [1]).
+  { apply MChar. }
+  apply (MApp [2]).
+  { apply MChar. }
+  apply (MApp [3]).
+  { apply MChar. }
+  apply MEmpty.
+Qed.
 
+Lemma MStar1 : forall T s (re : reg_exp T),
+  s =~ re -> s =~ Star re.
+Proof.
+  intros.
+  rewrite <- (app_nil_r _ s).
+  apply MStarApp.
+  - apply H.
+  - apply MStar0.
+Qed.
 
+Lemma empty_is_empty : forall T (s : list T),
+  ~ (s =~ EmptySet).
+Proof.
+  unfold not.
+  intros. inversion H.
+Qed.
+
+Lemma MUnion' : forall T (s : list T) (re1 re2 : reg_exp T),
+  s =~ re1 \/ s =~ re2 -> s =~ Union re1 re2.
+Proof.
+  intros.
+  destruct H as [H | H].
+  - apply MUnionL. apply H.
+  - apply MUnionR. apply H.
+Qed.
+
+Lemma MStar' : forall T (ss : list (list T)) (re : reg_exp T),
+  (forall s, In s ss -> s =~ re) -> fold app ss [] =~ Star re.
+Proof.
+  intros.
+  induction ss as [|hss tss IHss].
+  - simpl. apply MStar0.
+  - simpl. apply MStarApp.
+    + apply H. simpl. left. reflexivity.
+    + apply IHss. intros. apply H. simpl. right. apply H0.
+Qed.
+
+Fixpoint re_chars {T} (re : reg_exp T) : list T :=
+  match re with
+  | EmptySet => []
+  | EmptyStr => []
+  | Char x => [x]
+  | App re1 re2 => re_chars re1 ++ re_chars re2
+  | Union re1 re2 => re_chars re1 ++ re_chars re2
+  | Star re => re_chars re
+  end.
+
+Theorem in_re_match : forall T (s : list T) (re : reg_exp T) (x : T),
+  s =~ re -> In x s -> In x (re_chars re).
+Proof.
+  intros T s re x HMatch Hin.
+  induction HMatch
+    as [| ]
   
+Qed.
