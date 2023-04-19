@@ -732,6 +732,62 @@ Theorem in_re_match : forall T (s : list T) (re : reg_exp T) (x : T),
 Proof.
   intros T s re x HMatch Hin.
   induction HMatch
-    as [| ]
-  
+    as [| x'
+        | s1 re1 s2 re2 Hmatch1 IH1 Hmatch2 IH2
+        | s1 re1 re2 Hmatch IH | re1 s2 re2 Hmatch IH
+        | re | s1 s2 re Hmatch1 IH1 Hmatch2 IH2].
+  - (* MEmpty *)
+    simpl in Hin. destruct Hin.
+  - (* MChar *)
+    simpl. simpl in Hin. apply Hin.
+  - (* MApp *)
+    simpl.
+    rewrite In_app_iff.
+    rewrite In_app_iff in Hin.
+    destruct Hin as [Hin | Hin].
+    + (* In x s1 *)
+      left. apply (IH1 Hin).
+    + (* In x s2 *)
+      right. apply (IH2 Hin).
+  - (* MUnionL *)
+    simpl. rewrite In_app_iff. left. apply (IH Hin).
+  - (* MUininR *)
+    simpl. rewrite In_app_iff. right. apply (IH Hin).
+  - (* MStar0 *)
+    destruct Hin.
+  - (* MStarApp *)
+    simpl.
+    rewrite In_app_iff in Hin.
+    destruct Hin as [Hin | Hin].
+    + (* In x s1 *)
+      apply (IH1 Hin).
+    + (* In x s2 *)
+      apply (IH2 Hin).
 Qed.
+
+Fixpoint re_not_empty {T : Type} (re : reg_exp T) : bool :=
+  match re with
+  | EmptySet => false
+  | EmptyStr => true
+  | Char x => true
+  | App re1 re2 => (re_not_empty re1) && (re_not_empty re2)
+  | Union re1 re2 => (re_not_empty re1) || (re_not_empty re2)
+  | Star re => re_not_empty re
+  end.
+
+Lemma re_not_empty_correct : forall T (re : reg_exp T),
+  (exists s, s =~ re) <-> re_not_empty re = true.
+Proof.
+  intros T re. split.
+  - intros H. destruct H as [x H].
+    induction H as
+      [| x'
+       | s1 re1 s2 re2 Hmatch1 IH1 Hmatch2 IH2
+       | s1 re1 re2 Hmatch IH | re1 s2 re2 Hmatch IH
+       | re | s1 s2 re Hmatch1 IH1 Hmatch2 IH2].
+    + simpl. reflexivity.
+    + simpl. reflexivity.
+    + simpl. rewrite IH1. rewrite IH2. reflexivity.
+    + simpl. rewrite IH. simpl. reflexivity.
+    + simpl. rewrite IH. simpl. rewrite orb_true_iff. right. reflexivity.
+    + simpl. 
