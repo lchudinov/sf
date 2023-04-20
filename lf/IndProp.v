@@ -772,7 +772,7 @@ Fixpoint re_not_empty {T : Type} (re : reg_exp T) : bool :=
   | Char x => true
   | App re1 re2 => (re_not_empty re1) && (re_not_empty re2)
   | Union re1 re2 => (re_not_empty re1) || (re_not_empty re2)
-  | Star re => re_not_empty re
+  | Star re => true
   end.
 
 Lemma re_not_empty_correct : forall T (re : reg_exp T),
@@ -790,4 +790,21 @@ Proof.
     + simpl. rewrite IH1. rewrite IH2. reflexivity.
     + simpl. rewrite IH. simpl. reflexivity.
     + simpl. rewrite IH. simpl. rewrite orb_true_iff. right. reflexivity.
-    + simpl. 
+    + simpl. reflexivity.
+    + simpl. reflexivity.
+  - intros H.
+    induction re.
+    + inversion H.
+    + exists []. apply MEmpty.
+    + exists [t]. apply MChar.
+    + simpl in H. apply andb_true_iff in H. destruct H as [H1 H2].
+      apply IHre1 in H1. apply IHre2 in H2.
+      destruct H1 as [s1 H1]. destruct H2 as [s2 H2].
+      exists (s1 ++ s2). apply MApp. apply H1. apply H2.
+    + simpl in H. apply orb_true_iff in H. destruct H as [H | H].
+      * apply IHre1 in H. destruct H as [s1 H]. exists s1. apply MUnionL. apply H.
+      * apply IHre2 in H. destruct H as [s2 H]. exists s2. apply MUnionR. apply H.
+    + simpl in H. exists []. apply MStar0.
+Qed.
+      
+      
