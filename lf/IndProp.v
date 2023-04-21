@@ -806,5 +806,92 @@ Proof.
       * apply IHre2 in H. destruct H as [s2 H]. exists s2. apply MUnionR. apply H.
     + simpl in H. exists []. apply MStar0.
 Qed.
-      
+
+Lemma star_app_failed: forall T (s1 s2 : list T) (re : reg_exp T),
+  s1 =~ Star re -> s2 =~ Star re -> s1 ++ s2 =~ Star re.
+Proof.
+  intros T s1 s2 re H1.
+  (* inversion H1. *)
+  generalize dependent s2.
+  induction H1
+  as [|x'|s1 re1 s2' re2 Hmatch1 IH1 Hmatch2 IH2
+      |s1 re1 re2 Hmatch IH|re1 s2' re2 Hmatch IH
+      |re''|s1 s2' re'' Hmatch1 IH1 Hmatch2 IH2].
+  - (* MEmpty *)
+    simpl. intros s2 H. apply H.
+  - (* MChar. *) intros s2 H. simpl. (* Stuck... *)
+Abort.
+
+Lemma star_app_rewritten: forall T (s1 s2 : list T) (re re' : reg_exp T),
+  re' = Star re ->
+  s1 =~ re' ->
+  s2 =~ Star re ->
+  s1 ++ s2 =~ Star re.
+Proof.
+  Abort.
+
+Lemma star_app: forall T (s1 s2 : list T) (re : reg_exp T),
+  s1 =~ Star re ->
+  s2 =~ Star re ->
+  s1 ++ s2 =~ Star re.
+Proof.
+  intros R s1 s2 re H1.
+  remember (Star re) as re'.
+  generalize dependent s2.
+  induction H1
+  as [|x'|s1 re1 s2' re2 Hmatch1 IH1 Hmatch2 IH2
+      |s1 re1 re2 Hmatch IH|re1 s2' re2 Hmatch IH
+      |re''|s1 s2' re'' Hmatch1 IH1 Hmatch2 IH2].
+  - (* MEmpty *) discriminate.
+  - (* MChar *) discriminate.
+  - (* MApp *) discriminate.
+  - (* MUnionL *) discriminate.
+  - (* MUnionR *) discriminate.
+  - (* MStar0 *) 
+    injection Heqre' as Heqre''. intros s H. simpl. apply H.
+  - (* MStarApp *)
+    injection Heqre' as Heqre''. intros s2 H1.
+    rewrite app_assoc. apply MStarApp.
+    + apply Hmatch1.
+    + apply IH2.
+      * rewrite Heqre''. reflexivity.
+      * apply H1.
+Qed.
+
+Lemma MStar'' : forall T (s : list T) (re : reg_exp T),
+  s =~ Star re ->
+  exists ss : list (list T),
+    s = fold app ss []
+    /\ forall s', In s' ss -> s' =~ re.
+Proof.
+  intros.
+  remember (Star re) as re'.
+  induction H
+  as [|x'|s1 re1 s2' re2 Hmatch1 IH1 Hmatch2 IH2
+      |s1 re1 re2 Hmatch IH|re1 s2' re2 Hmatch IH
+      |re''|s1 s2' re'' Hmatch1 IH1 Hmatch2 IH2].
+  - discriminate.
+  - discriminate.
+  - discriminate.
+  - discriminate.
+  - discriminate.
+  - injection Heqre' as Heqre''.
+    exists []. simpl. split.
+    + reflexivity.
+    + intros. inversion H.
+  - injection Heqre' as Heqre''.
+    destruct IH2 as [ss' [H1 H2]].
+    + rewrite Heqre''. reflexivity.
+    + exists (s1 :: ss'). split.
+      * simpl. rewrite H1. reflexivity.
+      * simpl. intros. destruct H as [H | H].
+        -- rewrite <- Heqre''. rewrite <- H. apply Hmatch1.
+        -- apply H2 in H. apply H.
+Qed.
+
+
+    
+
+
+
       
