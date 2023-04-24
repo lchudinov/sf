@@ -889,7 +889,61 @@ Proof.
         -- apply H2 in H. apply H.
 Qed.
 
+Module Pumping.
 
+Fixpoint pumping_constant {T} (re : reg_exp T) : nat :=
+  match re with
+  | EmptySet => 1
+  | EmptyStr => 1
+  | Char _ => 2
+  | App re1 re2 => pumping_constant re1 + pumping_constant re2
+  | Union re1 re2 => pumping_constant re1 + pumping_constant re2
+  | Star r => pumping_constant r
+  end.
+
+Lemma pumping_contant_ge_1 : forall T (re : reg_exp T),
+  pumping_constant re >= 1.
+Proof.
+  intros T re. induction re.
+  - simpl. apply le_n.
+  - simpl. apply le_n.
+  - simpl. apply le_S. apply le_n.
+  - simpl. apply le_trans with (n := pumping_constant re1).
+    apply IHre1. apply le_plus_l.
+  - simpl. apply le_trans with (n := pumping_constant re1).
+    apply IHre1. apply le_plus_l.
+  - simpl. apply IHre.
+Qed.
+
+Lemma pumping_constant_0_false : forall T (re : reg_exp T),
+  pumping_constant re = 0 -> False.
+Proof.
+  intros T re H.
+  assert (Hp1 : pumping_constant re >= 1).
+  { apply pumping_contant_ge_1. }
+  inversion Hp1 as [Hp1' | p Hp1' Hp1''].
+  - rewrite H in Hp1'. discriminate Hp1'.
+  - rewrite H in Hp1''. discriminate Hp1''.
+Qed.
+
+Fixpoint napp {T} (n : nat) (l : list T) : list T :=
+  match n with
+  | 0 => []
+  | S n' => l ++ napp n' l
+  end.
+
+Lemma napp_plus: forall T (n m : nat) (l : list T),
+  napp (n + m) l = napp n l ++ napp m l.
+Proof.
+  intros T n m l.
+  induction n as [|n IHn].
+  - simpl. reflexivity.
+  - simpl. rewrite IHn, app_assoc. reflexivity.
+Qed.
+
+
+    
+  
     
 
 
