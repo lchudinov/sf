@@ -941,7 +941,31 @@ Proof.
   - simpl. rewrite IHn, app_assoc. reflexivity.
 Qed.
 
+Lemma napp_star : forall T m s1 s2 (re : reg_exp T),
+  s1 =~ re -> s2 =~ Star re -> napp m s1 ++ s2 =~ Star re.
+Proof.
+  intros T m s1 s2 re Hs1 Hs2.
+  induction m.
+  - simpl. apply Hs2.
+  - simpl. rewrite app_assoc. apply MStarApp.
+    + apply Hs1.
+    + apply IHm.
+Qed.
 
+Lemma week_pumping : forall T (re : reg_exp T) s,
+  s =~ re -> pumping_constant re <= length s -> exists s1 s2 s3, s = s1 ++ s2 ++ s3 /\ s2 <> [] /\ forall m, s1 ++ napp m s2 ++ s3 =~ re.
+Proof.
+  intros T re s HMatch.
+  induction HMatch
+      as [ | x | s1 re1 s2 re2 Hmatch1 IH1 Hmatch2 IH2
+       | s1 re1 re2 Hmatch IH | re1 s2 re2 Hmatch IH
+       | re | s1 s2 re Hmatch1 IH1 Hmatch2 IH2 ].
+  - simpl. intros contra. inversion contra.
+  - simpl. intros contra. apply Sn_le_Sm__n_le_m in contra. inversion contra.
+  - intros H. simpl in H. rewrite app_length in H.
+  apply add_le_cases in H. destruct H.
+  + apply IH1 in H.
+    
     
   
     
