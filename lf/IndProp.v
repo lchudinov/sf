@@ -965,7 +965,64 @@ Proof.
   - intros H. simpl in H. rewrite app_length in H.
   apply add_le_cases in H. destruct H.
   + apply IH1 in H.
+  destruct H as [s1' [s2' [s3' [Happ [Hne Hnapp]]]]].
+  exists s1'. exists s2'. exists (s3' ++ s2).
+  split. 
+  
+Abort.
+
+Lemma  pumping : forall T (re : reg_exp T) s,
+  s =~ re -> pumping_constant re <= length s ->
+  exists s1 s2 s3, s = s1 ++ s2 ++ s3 /\ s2 <> [] /\ length s1 + length s2 <= pumping_constant re /\ forall m, s1 ++ napp m s2 ++ s3 =~ re.
+Proof.
+  intros T re s Hmatch.
+  induction Hmatch
+  as [ | x | s1 re1 s2 re2 Hmatch1 IH1 Hmatch2 IH2
+     | s1 re1 re2 Hmatch IH | re1 s2 re2 Hmatch IH
+     | re | s1 s2 re Hmatch1 IH1 Hmatch2 IH2 ].
+  - (* MEmpty *)
+     simpl. intros contra. inversion contra.
+  - (* MStr *)
+    simpl. intros contra. apply Sn_le_Sm__n_le_m in contra. inversion contra.
     
+   Admitted.
+End Pumping.
+
+Theorem filter_not_empty_In : forall n l,
+  filter (fun x => n =? x) l <> [] -> In n l.
+Proof.
+  intros n l.
+  induction l as [|m l' IHl'].
+  - simpl. intros H. apply H. reflexivity.
+  - simpl.  destruct (n =? m) eqn:H.
+    + intros _. rewrite eqb_eq in H. rewrite H. left. reflexivity.
+    + intros H'. right. apply IHl'. apply H'.
+Qed.
+
+Inductive reflect (P : Prop) : bool -> Prop :=
+  | ReflectT (H : P) : reflect P true
+  | ReflectF (H : ~ P) : reflect P false.
+
+Theorem iff_reflect : forall P b, (P <-> b = true) -> reflect P b.
+Proof.
+  intros P b H. destruct b eqn:Eb.
+  - apply ReflectT. rewrite H. reflexivity.
+  - apply ReflectF. rewrite H. intros H'. discriminate.
+Qed.
+
+Theorem reflect_iff : forall P b, reflect P b -> (P <-> b = true).
+Proof.
+  intros P b H.
+  destruct H as [HP | HF].
+  - split.
+    + reflexivity.
+    + intros. apply HP.
+  - split.
+    + intros. exfalso. apply HF. apply H.
+    + intros. discriminate H.
+Qed.
+
+
     
   
     
