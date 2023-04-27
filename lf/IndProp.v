@@ -1022,9 +1022,42 @@ Proof.
     + intros. discriminate H.
 Qed.
 
+Lemma eqbP : forall n m, reflect (n = m) ( n =? m).
+Proof.
+  intros n m. apply iff_reflect. rewrite eqb_eq. reflexivity.
+Qed.
 
-    
+Theorem filter_not_empty_In' : forall n l,
+  filter (fun x => n =? x) l <> [] -> In n l.
+Proof.
+  intros n l.
+  induction l as [|m l' IHl'].
+  - simpl. intros H. apply H. reflexivity.
+  - simpl. destruct (eqbP n m) as [H | H].
+    + intros _. rewrite H. left. reflexivity.
+    + intros H'. right. apply IHl'. apply H'.
+Qed.
+
+Fixpoint count n l :=
+  match l with
+  | [] => 0
+  | m :: l' => (if n =? m then 1 else 0) + count n l'
+  end.
   
+Theorem eqbP_practice : forall n l,
+  count n l = 0 -> ~(In n l).
+Proof.
+  intros n l Hcount. induction l as [| m l' IHl'].
+  - intros contra. inversion contra.
+  - simpl in Hcount. destruct (eqbP n m) as [H | H].
+    + inversion Hcount.
+    + intros contra. destruct contra as [Heq | HIn].
+      * apply H. symmetry in Heq. apply Heq.
+      * apply IHl'.
+        -- simpl in Hcount. apply Hcount.
+        -- apply HIn.
+Qed.
+
     
 
 
