@@ -1058,8 +1058,27 @@ Proof.
         -- apply HIn.
 Qed.
 
-    
+Inductive nostutter { X : Type } : list X -> Prop :=
+  | Nostutter_empty : nostutter []
+  | Nostutter_one (x : X): nostutter [x]
+  | Nostutter_n (x h: X) (l: list X) (H: nostutter (h :: l)) : x <> h -> nostutter (x :: (h :: l))
+.
 
+Example test_nostutter_1: nostutter [3;1;4;1;5;6].
+Proof.
+  (* repeat constructor. discriminate. discriminate. discriminate. discriminate. discriminate. *)
+  repeat constructor; apply eqb_neq; auto.
+Qed.
 
+Example test_nostutter_3: nostutter [5].
+(* Proof. apply Nostutter_one. Qed. *)
+Proof. constructor. Qed.
 
-      
+Example test_nostutter_4: not (nostutter [3;1;1;4]).
+Proof.
+  intro.
+  repeat match goal with
+    h: nostutter _ |- _ => inversion h; clear h; subst
+  end.
+  contradiction; auto.
+Qed.
