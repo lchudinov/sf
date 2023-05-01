@@ -1082,3 +1082,24 @@ Proof.
   end.
   contradiction; auto.
 Qed.
+
+Inductive merge {X:Type} : list X -> list X -> list X -> Prop :=
+  | merge_empty_1 (l1: list X) : merge l1 [] l1
+  | merge_empty_2 (l2: list X) : merge [] l2 l2
+  | merge_one_1 (h: X) (l1 l2 l3: list X) (H: merge l1 l2 l3) : merge (h :: l1) l2( h :: l3)
+  | merge_one_2 (h: X) (l1 l2 l3: list X) (H: merge l1 l2 l3) : merge l1 (h :: l2) (h :: l3)
+.
+
+Theorem merge_filter : forall (X : Set) (test: X -> bool) (l l1 l2 : list X),
+  merge l1 l2 l ->
+  All (fun n => test n = true) l1 ->
+  All (fun n => test n = false) l2 ->
+  filter test l = l1.
+Proof.
+  intros X test l l1 l2.
+  intros H.
+  induction H.
+  - simpl. induction l1.
+    + simpl. reflexivity.
+    + destruct IHl1.
+      * 
