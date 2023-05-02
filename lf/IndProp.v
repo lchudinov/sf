@@ -1096,10 +1096,13 @@ Theorem merge_filter : forall (X : Set) (test: X -> bool) (l l1 l2 : list X),
   All (fun n => test n = false) l2 ->
   filter test l = l1.
 Proof.
-  intros X test l l1 l2.
-  intros H.
-  induction H.
-  - simpl. induction l1.
+  intros X test l l1 l2 H H1 H2.
+  induction H as [l1|l2|h l1 l2 l3 IHm|h l1 l2 l3 IHm].
+  - induction l1.
     + simpl. reflexivity.
-    + destruct IHl1.
-      * 
+    + simpl in H1. destruct H1 as [Htest H1]. simpl.
+      rewrite Htest. apply IHl1 in H1. rewrite H1. reflexivity.
+  - induction l2.
+    + simpl. reflexivity.
+    + simpl in H2. destruct H2 as [Htest H2]. simpl.
+      rewrite Htest. rewrite IHl2. 
