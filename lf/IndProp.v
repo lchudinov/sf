@@ -1106,3 +1106,15 @@ Proof.
     + simpl. reflexivity.
     + simpl in H2. destruct H2 as [Htest H2]. simpl.
       rewrite Htest. rewrite IHl2. 
+      * reflexivity.
+      * apply H2.
+  - destruct H1 as [Htest H1]. simpl. rewrite Htest.
+    apply IHIHm in H1.
+    + rewrite H1. reflexivity.
+    + apply H2.
+  - destruct H2 as [Htest H2]. simpl. rewrite Htest.
+    apply IHIHm in H1.
+    + apply H1.
+    + apply H2. 
+Qed.
+
