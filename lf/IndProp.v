@@ -1118,3 +1118,18 @@ Proof.
     + apply H2. 
 Qed.
 
+Theorem filter_subseq_length: forall (test: nat -> bool) (ls l : list nat),
+  subseq ls l -> All (fun n => test n = true) ls -> length ls <= length (filter test l).
+Proof.
+  intros test ls l H1 H2.
+  induction H1.
+  - simpl. apply O_le_n.
+  - simpl. destruct H2 as [Htest H2]. rewrite Htest. simpl.
+    apply n_le_m__Sn_le_Sm. apply IHsubseq in H2. apply H2.
+  - simpl. destruct (test x).
+    + simpl. apply le_S. apply IHsubseq in H2. apply H2.
+    + apply IHsubseq in H2. apply H2.
+Qed.
+
+
+
