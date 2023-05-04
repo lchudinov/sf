@@ -1132,4 +1132,37 @@ Proof.
 Qed.
 
 
+Inductive pal {X:Type} : list X -> Prop :=
+  | pal_empty : pal []
+  | pal_one (x: X) : pal [x]
+  | pal_many (x: X) (l: list X) (H: pal l) : pal (x :: l ++ [x])
+.
+
+Theorem pal_app_rev : forall (X:Type) (l : list X),
+  pal (l ++ (rev l)).
+Proof.
+  intros X l.
+  induction l as [|h l IHl].
+  - simpl. apply pal_empty.
+  - simpl. rewrite <- app_assoc. apply pal_many. apply IHl.
+Qed.
+
+Theorem pal_rev : forall (X:Type) (l: list X) , pal l -> l = rev l.
+Proof.
+  intros X l H.
+  induction H as [|x|x l IHl].
+  - simpl. reflexivity.
+  - simpl. reflexivity.
+  - simpl. rewrite rev_app_distr. rewrite <- IHIHl.
+    simpl. reflexivity.
+Qed.
+
+Theorem palindrome_converse: forall {X: Type} (l: list X),
+  l = rev l -> pal l.
+Proof.
+  intros X l H.
+  induction l as [|h' l' IHl'].
+  - apply pal_empty.
+  -  simpl in H.
+  Abort.
 
