@@ -1163,6 +1163,31 @@ Proof.
   intros X l H.
   induction l as [|h' l' IHl'].
   - apply pal_empty.
-  -  simpl in H.
+  - simpl in H.
   Abort.
+  
+Inductive disjoint {X : Type} : list X -> list X -> Prop :=
+  | disjoint_empty_l (l : list X): disjoint [] l  
+  | disjoint_empty_r (l : list X): disjoint l []
+  | disjoint_one_l (x : X) (l1 l2 : list X) (H : disjoint l1 l2) : ~ In x l2 -> disjoint (x :: l1) l2 
+  | disjoint_one_r (x : X) (l1 l2 : list X) (H : disjoint l1 l2) : ~ In x l1 -> disjoint l1 (x :: l2) 
+.
+
+Inductive NoDup {X : Type} : list X -> Prop :=
+  | nodup_empty : NoDup []  
+  | nodup_one (x : X) : NoDup [x]
+  | nodup_more (x : X) (l : list X) (H: NoDup l) : ~ In x l -> NoDup (x :: l)
+.
+
+Theorem no_dup_disjoint : forall (X : Type) (l1 l2 : list X),
+NoDup l1 -> NoDup l2 -> disjoint l1 l2 -> NoDup (l1 ++ l2).
+Proof.
+  intros X l1 l2 H1 H2 H.
+  induction H.
+  - simpl. apply H2.
+  - rewrite app_nil_r. apply H1.
+  - simpl. apply nodup_more.
+    + destruct H1.
+      * 
+Qed.
 
