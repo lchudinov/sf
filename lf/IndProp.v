@@ -1167,27 +1167,30 @@ Proof.
   Abort.
   
 Inductive disjoint {X : Type} : list X -> list X -> Prop :=
-  | disjoint_empty_l (l : list X): disjoint [] l  
-  | disjoint_empty_r (l : list X): disjoint l []
-  | disjoint_one_l (x : X) (l1 l2 : list X) (H : disjoint l1 l2) : ~ In x l2 -> disjoint (x :: l1) l2 
-  | disjoint_one_r (x : X) (l1 l2 : list X) (H : disjoint l1 l2) : ~ In x l1 -> disjoint l1 (x :: l2) 
+  | disjoint_empty (l : list X): disjoint [] l  
+  | disjoint_one (x : X) (l1 l2 : list X) (P: ~ In x l2) (H : disjoint l1 l2) : disjoint (x :: l1) l2 
 .
 
 Inductive NoDup {X : Type} : list X -> Prop :=
   | nodup_empty : NoDup []  
-  | nodup_one (x : X) : NoDup [x]
-  | nodup_more (x : X) (l : list X) (H: NoDup l) : ~ In x l -> NoDup (x :: l)
+  | nodup_more (x : X) (l : list X) (P: ~ In x l) (H: NoDup l) :  NoDup (x :: l)
 .
 
 Theorem no_dup_disjoint : forall (X : Type) (l1 l2 : list X),
 NoDup l1 -> NoDup l2 -> disjoint l1 l2 -> NoDup (l1 ++ l2).
 Proof.
   intros X l1 l2 H1 H2 H.
-  induction H.
+  induction H as [l'|x' l1' l2' P' H'].
   - simpl. apply H2.
-  - rewrite app_nil_r. apply H1.
   - simpl. apply nodup_more.
-    + destruct H1.
-      * 
+    + intros contra. apply In_app_iff in contra.
+      destruct contra as [contra | contra].
+      * inversion H1 as [|x'' l'' P'' H''].
+        apply P''. apply contra.
+      * apply P'. apply contra.
+    + apply IHH'. inversion H1 as [|x'' l'' P'' H''].
+      * apply H''.
+      * apply H2.
 Qed.
+
 
