@@ -1207,3 +1207,18 @@ Proof.
       simpl. reflexivity.
 Qed.
 
+Inductive repeats {X:Type} : list X -> Prop :=
+  | repeats_same (x : X) (l : list X) (P : In x l) : repeats(x :: l)
+  | repeats_other  (x : X) (l : list X) (H : repeats(l)) : repeats (x :: l)
+.
+
+Example repeats_1 : repeats [1; 2; 3; 1].
+Proof.
+  apply repeats_same. simpl. right. right. left. reflexivity.
+Qed.
+
+Example repeats_2 : repeats [2; 1; 2; 3; 1].
+Proof.
+  apply repeats_other. apply repeats_1.
+Qed.
+
