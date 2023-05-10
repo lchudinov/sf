@@ -1193,4 +1193,17 @@ Proof.
       * apply H2.
 Qed.
 
+Lemma in_split : forall (X : Type) (x : X) (l : list X),
+  In x l -> exists l1 l2, l = l1 ++ x :: l2.
+Proof.
+  intros X x l H.
+  induction l as [|h l'].
+  - inversion H.
+  - simpl in H. destruct H as [H | H].
+    + rewrite H. exists [], l'. simpl. reflexivity.
+    + apply IHl' in H. destruct H as [l1' H]. destruct H as [l2' H].
+      rewrite H.
+      exists (h :: l1'), l2'.
+      simpl. reflexivity.
+Qed.
 
