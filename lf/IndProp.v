@@ -1239,3 +1239,35 @@ Proof.
         -- intros. apply In_app_iff.
 Abort.
 
+Require Import Coq.Strings.Ascii.
+Definition string := list ascii.
+
+Lemma provable_equiv_true : forall (P : Prop), P -> (P <-> True).
+Proof.
+  intros. split.
+  - intros. constructor.
+  - intros. apply H.
+Qed.
+
+Lemma not_equiv_false : forall (P : Prop), ~ P -> (P <-> False).
+Proof.
+  intros.
+  split.
+  - apply H.
+  - intros. destruct H0.
+Qed.
+
+Lemma null_matches_none : forall (s : string), (s =~ EmptySet) <-> False.
+Proof.
+  intros.
+  apply not_equiv_false.
+  unfold not. intros. inversion H.
+Qed.
+
+Lemma empty_matches_eps : forall (s : string), s =~ EmptyStr <-> s = [ ].
+Proof.
+  split.
+  - intros. inversion H. reflexivity.
+  - intros. rewrite H. apply MEmpty.
+Qed.
+
