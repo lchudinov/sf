@@ -1222,3 +1222,20 @@ Proof.
   apply repeats_other. apply repeats_1.
 Qed.
 
+Theorem pigeonhole_principle: excluded_middle ->
+  forall (X:Type) (l1 l2:list X),
+  (forall x, In x l1 -> In x l2) ->
+  length l2 < length l1 ->
+  repeats l1.
+Proof.
+  intros EM X l1. induction l1 as [|x l1' IHl1'].
+  - simpl. intros. inversion H0.
+  - intros. destruct (EM (In x l1')).
+    + apply repeats_same. apply H1.
+    + apply repeats_other.
+      destruct (in_split X x l2) as [l0 [l2' H3]].
+      * apply H. simpl. left. reflexivity.
+      * apply IHl1' with (l0 ++ l2).
+        -- intros. apply In_app_iff.
+Abort.
+
