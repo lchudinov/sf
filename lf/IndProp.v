@@ -1271,3 +1271,84 @@ Proof.
   - intros. rewrite H. apply MEmpty.
 Qed.
 
+Lemma empty_nomatch_ne : forall (a : ascii) s, (a :: s =~ EmptyStr) <-> False.
+Proof.
+  intros.
+  apply not_equiv_false.
+  unfold not. intros. inversion H.
+Qed.
+
+Lemma char_nomatch_char :
+  forall (a b : ascii) s, b <> a -> (b :: s =~ Char a <-> False).
+Proof.
+  intros.
+  apply not_equiv_false.
+  unfold not.
+  intros.
+  apply H.
+  inversion H0.
+  reflexivity.
+Qed.
+
+Lemma char_eps_suffix : forall (a : ascii) s, a :: s =~ Char a <-> s = [ ].
+Proof.
+  split.
+  - intros. inversion H. reflexivity.
+  - intros. rewrite H. apply MChar.
+Qed.
+
+Lemma app_exists : forall (s : string) re0 re1,
+  s =~ App re0 re1 <->
+  exists s0 s1, s = s0 ++ s1 /\ s0 =~ re0 /\ s1 =~ re1.
+Proof.
+  intros.
+  split.
+  - intros. inversion H. exists s_1, s_2. split.
+    + reflexivity.
+    + split. apply H_1. apply H_2.
+  - intros [ s0 [ s1 [ Happ [ Hmat0 Hmat1 ] ] ] ].
+    rewrite Happ. apply (MApp s0 _ s1 _ Hmat0 Hmat1).
+Qed.
+
+Lemma app_ne : forall (a : ascii) s re0 re1,
+  a :: s =~ (App re0 re1) <->
+  ([ ] =~ re0 /\ a :: s =~ re1) \/
+  exists s0 s1, s = s0 ++ s1 /\ a :: s0 =~ re0 /\ s1 =~ re1.
+Proof.
+  intros.
+  split.
+  - intros H. inversion H.
+    destruct s_1.
+    + left. split.
+      * apply H_1.
+      * simpl. apply H_2.
+    + right. exists s_1, s_2. split.
+      *  inversion H1. reflexivity.
+      * split. inversion H1. rewrite H4 in *. apply H_1. apply H_2.
+  - intros [[H1 H2] | H].
+    + replace (a :: s) with ([] ++ (a :: s)).
+      * constructor.
+        -- apply H1.
+        -- apply H2.
+      * reflexivity.
+    + destruct H as [s0 [s1 [H1 [H2 H3]]]].
+      rewrite H1.
+      replace (a :: s0 ++ s1) with ((a :: s0) ++ s1).
+      * constructor.
+        -- apply H2.
+        -- apply H3.
+      * reflexivity.
+Qed.
+    
+Lemma union_disj : forall (s : string) re0 re1,
+  s =~ Union re0 re1 <-> s =~ re0 \/ s =~ re1.
+Proof.
+  intros. split.
+  - intros. inversion H.
+    + left. apply H2.
+    + right. apply H1.
+  - intros [ H | H ].
+    + apply MUnionL. apply H.
+    + apply MUnionR. apply H.
+Qed.
+
