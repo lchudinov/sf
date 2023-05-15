@@ -1352,3 +1352,51 @@ Proof.
     + apply MUnionR. apply H.
 Qed.
 
+Lemma star_ne : forall (a : ascii) s re,
+  a :: s =~ Star re <->
+  exists s0 s1, s = s0 ++ s1 /\ a :: s0 =~ re /\ s1 =~ Star re.
+Proof.
+  intros a s re.
+  split.
+  - intros H. remember (Star re) as re'. remember (a::s) as s'.
+    induction H.
+    + inversion Heqs'.
+    + inversion Heqre'.
+    + inversion Heqre'.
+    + inversion Heqre'.
+    + inversion Heqre'.
+    + inversion Heqs'.
+    + destruct s_1 as [|h s_1].
+      * inversion Heqre'. rewrite H2 in *.
+        apply IHexp_match2 in Heqre'.
+        destruct Heqre' as [s0 [s1 [Ha [Hb Hc]]]].
+        exists s0, s1. split.
+          apply Ha. split.
+          apply Hb.
+          apply Hc.
+          apply Heqs'.
+      * inversion Heqs'. rewrite H2 in *.
+        inversion Heqre'. rewrite H4 in *.
+        exists s_1, s_2. split.
+        -- reflexivity.
+        -- split.
+           apply H. apply H0.
+  - intros [s0 [s1 [H [H1 H2]]]].
+    rewrite H. apply (MStarApp (a:: s0)).
+    apply H1. apply H2.
+Qed.
+
+
+Definition refl_matches_eps m :=
+  forall re : reg_exp ascii, reflect ([ ] =~ re) (m re).
+        
+Fixpoint match_eps (re: reg_exp ascii) : bool :=
+match re with
+| EmptySet => false
+| EmptyStr => true
+| Char x => false
+| App re1 re2 => andb (match_eps re1) (match_eps re2)
+| Union re1 re2 => orb (match_eps re1) (match_eps re2)
+| Star re => true
+end.
+
