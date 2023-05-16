@@ -1400,3 +1400,39 @@ match re with
 | Star re => true
 end.
 
+Lemma nil_app_nil : forall (X: Type) (l1 l2: list X),
+  l1 ++ l2 = [] -> l1 = [] /\ l2 = [].
+Proof.
+  intros. destruct l1.
+  - simpl in H. split.
+    + reflexivity.
+    + apply H.
+  - discriminate H.
+Qed.
+
+Lemma match_eps_refl : refl_matches_eps match_eps.
+Proof.
+  unfold refl_matches_eps.
+  intros. induction re.
+  - simpl. apply ReflectF. unfold not. intros. inversion H.
+  - simpl. apply ReflectT. apply MEmpty.
+  - simpl. apply ReflectF. unfold not. intros. inversion H.
+  - simpl. inversion IHre1 as [H1 Hb1 | H1 Hb1].
+    + inversion IHre2 as [H2 Hb2 | H2 Hb2].
+      * simpl. apply ReflectT. apply (MApp [] re1 [] re2 H1 H2).
+      * simpl. apply ReflectF. unfold not. intros contra.
+        inversion contra as [| | s1 re1' s2 re2' H1' H2'| | | |].
+        destruct s2.
+        apply H2. apply H2'. destruct s1. discriminate. discriminate.
+    + simpl. apply ReflectF. unfold not. intros. inversion H.
+      destruct s_1. apply H1. apply H_1. discriminate.
+  - simpl. inversion IHre1 as [H1 Hb1 | H1 HB1].
+    + simpl. apply ReflectT. apply (MUnionL [] re1 re2 H1).
+    + simpl. inversion IHre2 as [H2 Hb2 | H2 Hb2].
+      * apply ReflectT. apply (MUnionR re1 [] re2 H2).
+      * apply ReflectF. intros contra. inversion contra.
+        ** apply H1. apply H3.
+        ** apply H2. apply H3.
+  - simpl. apply ReflectT. apply MStar0.
+Qed.
+    
