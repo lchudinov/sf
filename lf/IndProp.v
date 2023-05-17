@@ -1435,4 +1435,47 @@ Proof.
         ** apply H2. apply H3.
   - simpl. apply ReflectT. apply MStar0.
 Qed.
-    
+
+Definition is_der re (a : ascii) re' :=
+  forall s, a :: s =~ re <-> s =~ re'.
+
+Definition derives d := forall a re, is_der re a (d a re).
+
+Fixpoint derive (a : ascii) (re : reg_exp ascii) : reg_exp ascii :=
+  match re with
+  | EmptySet => EmptySet
+  | EmptyStr => EmptySet
+  | Char t => if eqb a t then EmptyStr else EmptySet
+  | App r_1 r_2 => if match_eps r_1 then Union (derive a r_2) (App (derive a r_1) r_2) else App (derive a r_1) r_2
+  | Union r_1 r_2 => Union (derive a r_1) (derive a r_2)
+  | Star r => App (derive a r) (Star r)
+  end.
+  
+Example c := ascii_of_nat 99.
+Example d := ascii_of_nat 100.
+
+Example test_der0 : match_eps (derive c (EmptySet)) = false.
+Proof. simpl. reflexivity. Qed.
+
+Example test_der1 : match_eps (derive c (Char c)) = true.
+Proof. simpl. reflexivity. Qed.
+  
+Example test_der2 : match_eps (derive c (Char d)) = false.
+Proof. simpl. reflexivity. Qed.
+  
+Example test_der3 : match_eps (derive c (App (Char c) EmptyStr)) = true.
+Proof. simpl. reflexivity. Qed.
+
+Example test_der4 : match_eps (derive c (App EmptyStr (Char c))) = true.
+Proof. simpl. reflexivity. Qed.
+
+Example test_der5 : match_eps (derive c (Star (Char c))) = true.
+Proof. simpl. reflexivity. Qed.
+
+Example test_der6 :
+  match_eps (derive d (derive c (App (Char c) (Char d)))) = true.
+Proof. simpl. reflexivity. Qed.
+  
+Example test_der7 :
+  match_eps (derive d (derive c (App (Char d) (Char c)))) = false.
+Proof. simpl.  reflexivity. Qed.
