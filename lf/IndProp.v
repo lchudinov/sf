@@ -1479,3 +1479,28 @@ Proof. simpl. reflexivity. Qed.
 Example test_der7 :
   match_eps (derive d (derive c (App (Char d) (Char c)))) = false.
 Proof. simpl.  reflexivity. Qed.
+
+Lemma derive_corr : derives derive.
+Proof.
+Admitted.
+
+Definition matches_regex m : Prop :=
+  forall (s : string) re, reflect (s =~ re) (m s re).
+
+Fixpoint regex_match (s : string) (re : reg_exp ascii) : bool :=
+  match s with
+  | [] => match_eps re
+  | h :: t => regex_match t (derive h re)
+  end.
+
+Theorem regex_refl : matches_regex regex_match.
+Proof.
+  intros s. induction s as [|h s IHs].
+  - intros re. simpl. destruct (match_eps_refl re).
+    + constructor. apply H.
+    + constructor. apply H.
+  - intros re. simpl. destruct (derive_corr h re s).
+  destruct (IHs (derive h re)).
+    + constructor. apply (H0 H1).
+    + constructor. intros contra. apply H1. apply H. apply contra.
+Qed.
