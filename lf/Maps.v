@@ -60,6 +60,44 @@ Proof.
   intros. unfold t_update. apply String.eqb_neq in H. rewrite H. reflexivity.
 Qed.
 
+Lemma t_update_shadow : forall (A : Type) (m : total_map A) x v1 v2,
+  (x !-> v2 ; x !-> v1 ; m) = (x !-> v2 ; m).
+Proof.
+  intros. apply functional_extensionality.
+  intros. unfold t_update.
+  destruct ((x =? x0)%string).
+  - reflexivity.
+  - reflexivity.
+Qed.
+  
+Theorem t_update_same : forall (A : Type) (m : total_map A) x,
+  (x !-> m x ; m) = m.
+Proof.
+  intros. apply functional_extensionality.
+  intros. unfold t_update. destruct (String.eqb_spec x x0).
+  - rewrite e. reflexivity.
+  - reflexivity.
+Qed.
+
+Theorem t_update_permute : forall (A : Type) (m : total_map A) v1 v2 x1 x2,
+  x2 <> x1 ->
+  (x1 !-> v1 ; x2 !-> v2 ; m)
+  =
+  (x2 !-> v2 ; x1 !-> v1 ; m).
+Proof.
+  intros. apply functional_extensionality. intros.
+  unfold t_update. destruct (String.eqb_spec x x1).
+  - destruct (String.eqb_spec x2 x).
+    + rewrite <- e. rewrite <- e0. rewrite String.eqb_refl.
+      unfold not in H. apply String.eqb_neq in H.
+      rewrite <- e in H. rewrite e0 in H.
+      rewrite String.eqb_refl in H. discriminate H.
+    +  rewrite <- e. rewrite String.eqb_refl. reflexivity.
+  - destruct (String.eqb_spec x2 x).
+    + unfold not in n. apply String.eqb_neq in n. rewrite String.eqb_sym in n.
+      rewrite n. reflexivity.
+    + reflexivity.
+Qed.
 
 
 
