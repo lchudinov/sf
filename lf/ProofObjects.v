@@ -120,6 +120,7 @@ Proof.
     + apply HQ.
   Show Proof.
 Qed.
+End And.
 
 Definition and_comm'_aux P Q (H : P /\ Q) : Q /\ P :=
   match H with
@@ -129,8 +130,58 @@ Definition and_comm'_aux P Q (H : P /\ Q) : Q /\ P :=
 Definition and_comm' P Q : P /\ Q <-> Q /\ P :=
   conj (and_comm'_aux P Q) (and_comm'_aux Q P).
 
-Definition conj_fact : ∀ P Q R, P ∧ Q → Q ∧ R → P ∧ R
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
-End And.
+Definition conj_fact : forall P Q R, P /\ Q -> Q /\ R -> P /\ R :=
+  fun (P Q R: Prop) (PQ: P /\ Q) (QR: Q /\ R) => 
+    conj (proj1 P Q PQ) (proj2 Q R QR). 
 
+Module Or.
+
+Inductive or (P Q : Prop) : Prop :=
+  | or_introl : P -> or P Q
+  | or_intror : Q -> or P Q.
+
+Arguments or_introl [P] [Q].
+Arguments or_intror [P] [Q].
+
+Notation "P \/ Q" := (or P Q) : type_scope.
+
+Definition inj_l : forall (P Q : Prop), P -> P \/ Q :=
+  fun P Q HP => or_introl HP.
+
+Theorem inj_l' : forall (P Q : Prop), P -> P \/ Q.
+  Proof.
+    intros P Q HP. left. apply HP. Show Proof.
+  Qed.
+
+Definition or_elim : forall (P Q R : Prop), (P \/ Q) -> (P -> R) -> (Q -> R) -> R :=
+  fun P Q R HPQ HPR HQR =>
+    match HPQ with
+    | or_introl HP => HPR HP
+    | or_intror HQ => HQR HQ
+    end.
+
+Theorem or_elim' : forall (P Q R : Prop), (P \/ Q) -> (P -> R) -> (Q -> R) -> R.
+    Proof.
+  intros P Q R HPQ HPR HQR.
+  destruct HPQ as [HP | HQ].
+  - apply HPR. apply HP.
+  - apply HQR. apply HQ.
+  Show Proof.
+Qed.
+
+Theorem or_commut'' : forall P Q, P \/ Q -> Q \/ P.
+Proof.
+  intros P Q HPQ.
+  destruct HPQ as [HP | HQ].
+  - right. apply HP.
+  - left. apply HQ.
+  Show Proof.
+Qed.
+
+End Or.
+Definition or_commut' : forall P Q, P \/ Q -> Q \/ P :=
+  fun P Q HPQ => match HPQ with
+  | or_introl HP => or_intror HP 
+  | or_intror HQ => or_introl HQ 
+  end.
 End Props.
