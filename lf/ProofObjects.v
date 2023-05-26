@@ -184,4 +184,49 @@ Definition or_commut' : forall P Q, P \/ Q -> Q \/ P :=
   | or_introl HP => or_intror HP 
   | or_intror HQ => or_introl HQ 
   end.
+
+Module Ex.
+
+Inductive ex {A : Type} (P : A -> Prop) : Prop :=
+  | ex_intro : forall x : A, P x -> ex P.
+
+Notation "'extsts' x, p" :=
+  (ex (fun x => p))
+    (at level 200, right associativity) : type_scope.
+End Ex.
+
+Check ex (fun n => ev n) : Prop.
+
+Definition some_nat_is_even : exists n, ev n :=
+  ex_intro ev 4 (ev_SS 2 (ev_SS 0 ev_0)).
+
+Compute (fun n => ev (S n)) 1.
+Compute ev_SS 2 (ev_SS 0 ev_0).
+Check ex (fun n => ev (S n)).
+
+Definition ex_ev_Sn0 : ex (fun n => ev (S n)) :=
+  ex_intro (fun n => ev (S n)) 3 (ev_SS 2 (ev_SS 0 ev_0)).
+
+Definition ex_ev_Sn : ex (fun n => ev (S n)) :=
+  ex_intro (fun n => ev (S n)) 1 (ev_SS 0 ev_0).
+  
+Inductive True : Prop :=
+| I : True.
+
+Definition p_implies_true : forall P, P -> True :=
+  fun P H => I.
+
+Check p_implies_true.
+  
+Inductive False : Prop := .
+
+Definition false_implies_zero_eq_one : False -> 0 = 1 :=
+  fun contra => match contra with end.
+
+Definition ex_falso_quodlibet' : forall P, False -> P :=
+  fun P contra => match contra with end.
+
 End Props.
+
+
+  
