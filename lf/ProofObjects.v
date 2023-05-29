@@ -226,6 +226,72 @@ Definition false_implies_zero_eq_one : False -> 0 = 1 :=
 Definition ex_falso_quodlibet' : forall P, False -> P :=
   fun P contra => match contra with end.
 
+Module EqualityPlayground.
+
+Inductive eq {X : Type} : X -> X -> Prop :=
+  | eq_refl : forall x, eq x x.
+
+Notation "x == y" :=
+  (eq x y)
+  (at level 70, no associativity)
+  : type_scope.
+
+Lemma four: 2 + 2 == 1 + 3.
+  Proof. 
+  apply eq_refl.
+  Show Proof.
+Qed.
+
+Definition four' : 2 + 2 == 1 + 3 :=
+  eq_refl 4.
+
+Definition singleton : forall (X : Type) (x : X), [] ++ [x] == x :: [] :=
+    fun (X : Type) (x : X) => eq_refl [x].
+
+Definition eq_add : forall (n1 n2 : nat), n1 == n2 -> (S n1) == (S n2) :=
+  fun n1 n2 Heq =>
+    match Heq with
+    | eq_refl n => eq_refl (S n)
+    end.
+
+Theorem eq_add' : forall (n1 n2 : nat), n1 == n2 -> (S n1) == (S n2).
+    Proof.
+  intros n1 n2 Heq.
+  Fail rewrite Heq.
+  destruct Heq.
+  Fail reflexivity.
+  apply eq_refl.
+    Qed.
+
+Definition eq_cons : forall (X : Type) (h1 h2 : X) (t1 t2 : list X),
+  h1 == h2 -> t1 == t2 -> h1 :: t1 == h2 :: t2 :=
+  fun x h1 h2 t1 t2 Hheq Hteq => match Hheq, Hteq with
+  | eq_refl h, eq_refl t => eq_refl (h :: t)
+  end.
+
+Lemma equality__leibniz_equality : forall (X : Type) (x y: X),
+  x == y -> forall (P : X -> Prop), P x -> P y.
+Proof.
+  intros.
+  destruct H. apply H0.
+  Show Proof.
+Qed.
+Definition equality__leibniz_equality_term : forall (X : Type) (x y: X),
+  x == y -> forall P : (X -> Prop), P x -> P y :=
+  fun X x y Hxeqy =>
+    match Hxeqy with
+    | eq_refl a => fun P H => H
+    end.
+
+Lemma leibniz_equality__equality : forall (X : Type) (x y: X),
+    (forall P:X -> Prop, P x -> P y) -> x == y.
+Proof.
+  intros X x y H. apply H. apply eq_refl.
+  Show Proof.
+Qed.
+
+End EqualityPlayground.
+
 End Props.
 
 
