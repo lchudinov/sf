@@ -292,6 +292,49 @@ Qed.
 
 End EqualityPlayground.
 
+Definition and_assoc : forall P Q R : Prop,
+    P /\ (Q /\ R) -> (P /\ Q) /\ R :=
+  fun P Q R H =>
+    match H with
+    | conj HP (conj HQ HR) => conj (conj HP HQ) HR
+    end.
+
+Definition or_distributes_over_and : forall P Q R : Prop,
+  P \/ (Q /\ R) <-> (P \/ Q) /\ (P \/ R) :=
+  fun P Q R => 
+  conj 
+    (fun H => match H with
+    | or_introl HP => conj (or_introl HP) (or_introl HP)
+    | or_intror (conj HQ HR) => conj (or_intror HQ) (or_intror HR)
+    end)
+    (fun H => match H with
+    | conj HPQ HPR => match HPQ, HPR with
+                      | or_introl HP, _ => or_introl HP
+                      | _, or_introl HP => or_introl HP
+                      | or_intror HQ, or_intror HR => or_intror (conj HQ HR)
+                      end
+    end
+    ).
+    
+Theorem double_neg : forall P : Prop,
+    P -> ~~P.
+  Proof.
+    (* WORKED IN CLASS *)
+    intros P H.
+    Show Proof.
+    unfold not.
+    Show Proof.
+    intros G.
+    Show Proof.
+    apply G.
+    Show Proof.
+    apply H.
+    Show Proof.
+   Qed.
+
+Definition double_neg' : forall P : Prop, P -> ~~P :=
+  fun P H G => G H.
+
 End Props.
 
 
