@@ -335,6 +335,79 @@ Theorem double_neg : forall P : Prop,
 Definition double_neg' : forall P : Prop, P -> ~~P :=
   fun P H G => G H.
 
+Theorem contradiction_implies_anything : forall P Q : Prop,
+  (P /\ not P) -> Q.
+Proof.
+  (* WORKED IN CLASS *)
+  intros P Q [HP HNA]. unfold not in HNA.
+  Show Proof.
+  apply HNA in HP. destruct HP.
+  Show Proof.
+Qed.
+
+Definition contradiction_implies_anything' : forall P Q : Prop,
+  (P /\ not P) -> Q :=
+  fun P Q H => match H with
+    | conj HP HNP => match (HNP HP) with end
+  end.
+  
+Theorem de_morgan_not_or : forall (P Q : Prop),
+  not (P \/ Q) -> not P /\ not Q.
+Proof.
+  intros P Q H.
+  unfold not in H.
+  split.
+  - intros HP. apply or_intro_l  with (B:=Q) in HP. apply H. apply HP.
+  - intros HQ. apply or_intro_l with (B:=P) in HQ. apply or_commut in HQ. apply H. apply HQ.
+Qed.
+
+Definition de_morgan_not_or' : forall P Q : Prop,
+  ~ (P \/ Q) -> not P /\ not Q :=
+  fun P Q H => 
+    conj (fun HP => H (or_introl HP)) (fun HQ => H (or_intror HQ))
+.
+
+Definition curry : forall P Q R : Prop,
+  ((P /\ Q) -> R) -> (P -> (Q -> R)) :=
+  fun P Q R H HP HQ => H (conj HP HQ).
+
+Definition uncurry : forall P Q R : Prop,
+  (P -> (Q -> R)) -> ((P /\ Q) -> R) :=
+  fun P Q R H HPQ => match HPQ with
+                     | conj HP HQ => H HP HQ
+                     end.
+
+Definition propositional_extensionality : Prop :=
+  forall (P Q : Prop), (P <-> Q) -> P = Q.
+
+Theorem pe_implies_or_eq :
+  propositional_extensionality -> forall (P Q : Prop), (P \/ Q) = (Q \/ P).
+Proof.
+  unfold propositional_extensionality.
+  intros. apply H. split.
+  - intros H1. apply or_commut. apply H1.
+  - intros H1. apply or_commut. apply H1.
+Qed.
+
+Lemma pe_implies_true_eq :
+  propositional_extensionality -> forall (P : Prop), P -> True = P.
+Proof.
+  intros. apply H. split.
+  - intros. apply H0.
+  - intros. apply I.
+Qed. 
+
+Definition proof_irrelevance : Prop :=
+  forall (P : Prop) (pf1 pf2 : P), pf1 = pf2.
+
+Theorem pe_implies_pi :
+  propositional_extensionality -> proof_irrelevance.
+Proof.
+  unfold propositional_extensionality. unfold proof_irrelevance.
+  intros. assert (HP: True = P). { apply (pe_implies_true_eq H). apply pf1. }
+  destruct HP. rewrite pf1. rewrite pf2. reflexivity.
+Qed.
+  
 End Props.
 
 
