@@ -105,7 +105,60 @@ Theorem Toy_correct : exists f g,
 Proof.
   exists con1. exists con2. exact Toy_ind.
 Qed.
+Check list.
+Check list_ind.
 
+Inductive tree (X:Type) : Type :=
+  | leaf (x : X)
+  | node (t1 t2 : tree X).
 
-   
+Check tree_ind.
   
+Definition tree_ind_type :=
+  forall (X : Type) (P : tree X -> Prop),
+  (forall (x : X), P (leaf X x)) ->
+  (forall (t1 : tree X), P t1 -> forall (t2 : tree X), P t2 -> P (node X t1 t2)) ->
+  (forall (t1 t2 : tree X), P t1 -> P t2 -> P (node X t1 t2)) ->
+  forall (t : tree  X), P t.
+  
+Inductive mytype (X : Type) : Type :=
+  | constr1 (x : X)
+  | constr2 (n : nat)
+  | constr3 (m : mytype X) (n : nat).
+
+Check mytype_ind.
+
+Inductive foo (X Y : Type) :=
+  | bar (x : X)
+  | baz (y : Y)
+  | quux (f1 : nat -> foo X Y).
+
+Check foo_ind.
+  
+Inductive foo' (X:Type) : Type :=
+  | C1 (l : list X) (f : foo' X)
+  | C2.
+
+Definition foo''_ind := 
+forall (X : Type) (P : foo' X -> Prop),
+(forall (l : list X) (f : foo' X),
+P f ->
+P (C1 X l f)) ->
+P (C2 X) ->
+forall f : foo' X, P f.
+
+Definition P_m0r (n:nat) : Prop :=
+  n * 0 = 0.
+Definition P_m0r' : nat -> Prop :=
+  fun n => n * 0 = 0.
+
+Theorem mul_0_r'' : forall n:nat,
+  P_m0r n.
+Proof.
+apply nat_ind.
+- (* n = O *) reflexivity.
+- (* n = S n' *)
+  (* Note the proof state at this point! *)
+  intros n IHn.
+  unfold P_m0r in IHn. unfold P_m0r. simpl. apply IHn.
+Qed.
