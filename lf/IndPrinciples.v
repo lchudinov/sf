@@ -253,3 +253,100 @@ Check le2_ind :
     P n ->
     (forall m : nat, n <=2 m -> P m -> P (S m)) ->
     forall n0 : nat, n <=2 n0 -> P n0.
+    
+Print nat_ind.
+
+Fixpoint build_proof
+         (P : nat -> Prop)
+         (evPO : P 0)
+         (evPS : forall n : nat, P n -> P (S n))
+         (n : nat) : P n :=
+  match n with
+  | 0 => evPO
+  | S k => evPS k (build_proof P evPO evPS k)
+  end.
+  
+Definition nat_ind_tidy := build_proof.
+
+Lemma even_ev : forall n: nat, even n = true -> ev n.
+Proof.
+  induction n; intros.
+  - apply ev_0.
+  - destruct n.
+    + simpl in H. inversion H.
+    + simpl in H.
+      apply ev_SS.
+Abort.
+
+Definition nat_ind2 :
+  forall (P : nat -> Prop),
+  P 0 ->
+  P 1 ->
+  (forall n : nat, P n -> P (S(S n))) ->
+  forall n : nat , P n :=
+    fun P => fun P0 => fun P1 => fun PSS =>
+      fix f (n:nat) := match n with
+                         0 => P0
+                       | 1 => P1
+                       | S (S n') => PSS n' (f n')
+                       end.
+
+Lemma even_ev : forall n, even n = true -> ev n.
+Proof.
+  intros.
+  induction n as [ | |n'] using nat_ind2.
+  - apply ev_0.
+  - simpl in H.
+    inversion H.
+  - simpl in H.
+    apply ev_SS.
+    apply IHn'.
+    apply H.
+Qed.
+
+Notation "( x , y , .. , z )" := (pair .. (pair x y) .. z) : core_scope.
+
+Inductive t_tree (X : Type) : Type :=
+| t_leaf
+| t_branch : (t_tree X * X * t_tree X) -> t_tree X.
+Arguments t_leaf {X}.
+Arguments t_branch {X}.
+
+Check t_tree_ind.
+
+Fixpoint reflect {X : Type} (t : t_tree X) : t_tree X :=
+  match t with
+  | t_leaf => t_leaf
+  | t_branch (l, v, r) => t_branch (reflect r, v, reflect l)
+  end.
+Theorem reflect_involution : forall (X : Type) (t : t_tree X),
+    reflect (reflect t) = t.
+Proof.
+  intros X t. induction t.
+  - reflexivity.
+  - destruct p as [[l v] r]. simpl. Abort.
+  
+Definition better_t_tree_ind_type : Prop
+  := forall (X : Type) (P : t_tree X -> Prop),
+  P (t_leaf) -> 
+  (forall v : X, forall l : t_tree X,
+    P l -> forall r : t_tree X,
+    P r -> P (t_branch (l, v, r))) -> forall (t : t_tree X),
+    P t.
+  
+Definition better_t_tree_ind : better_t_tree_ind_type
+  := fun X P Pleaf Pbranch => fix f t :=
+    match t with
+    | t_leaf => Pleaf
+    | t_branch (l, v, r) => Pbranch v l (f l) r (f r)
+    end.
+
+Theorem reflect_involution : forall (X : Type) (t : t_tree X),
+    reflect (reflect t) = t.
+Proof.
+  intros X. apply better_t_tree_ind.
+  - reflexivity.
+  - intros. simpl. rewrite H. rewrite H0. reflexivity.
+Qed.
+
+
