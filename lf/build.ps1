@@ -8,3 +8,4 @@ coqc -Q . LF IndProp.v
 coqc -Q . LF Maps.v
 coqc -Q . LF ProofObjects.v
 coqc -Q . LF IndPrinciples.v
+coqc -Q . LF Rel.v
