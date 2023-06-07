@@ -56,3 +56,116 @@ Theorem empty_relation_partial_function :
 Proof.
   unfold partial_function. intros. inversion H.
 Qed.
+
+Definition reflexive {X: Type} (R: relation X) :=
+  forall a : X, R a a.
+Theorem le_reflexive :
+  reflexive le.
+Proof.
+  unfold reflexive. intros n. apply le_n. Qed.
+  
+Definition transitive {X: Type} (R: relation X) :=
+  forall a b c : X, (R a b) -> (R b c) -> (R a c).
+Theorem le_trans :
+  transitive le.
+  Proof.
+    intros n m o Hnm Hmo.
+    induction Hmo.
+    - (* le_n *) apply Hnm.
+    - (* le_S *) apply le_S. apply IHHmo. Qed.
+  
+Theorem lt_trans:
+  transitive lt.
+  Proof.
+    unfold lt. unfold transitive.
+    intros n m o Hnm Hmo.
+    apply le_S in Hnm.
+    apply le_trans with (a := (S n)) (b := (S m)) (c := o).
+    apply Hnm.
+    apply Hmo. Qed.
+
+Theorem lt_trans' :
+  transitive lt.
+Proof.
+  unfold lt. unfold transitive.
+  intros n m o Hnm Hmo.
+  induction Hmo as [| m' Hm'o].
+  - apply le_S in Hnm. apply Hnm.
+  - apply le_S in IHHm'o. apply IHHm'o.
+Qed.
+
+Theorem lt_trans'' :
+  transitive lt.
+Proof.
+  unfold lt. unfold transitive.
+  intros n m o Hnm Hmo.
+  induction o as [| o'].
+  - inversion Hmo.
+  - apply le_trans with (S m).
+    + apply le_S. apply Hnm.
+    + apply Hmo.
+Qed.
+
+Theorem le_Sn_le : forall n m, S n <= m -> n <= m.
+Proof.
+  intros n m H. apply le_trans with (S n).
+  - apply le_S. apply le_n.
+  - apply H.
+Qed.
+
+Theorem le_Sn_n : forall n,
+  ~ (S n <= n).
+Proof.
+  intros n contra.
+  induction n. inversion contra. apply le_S_n in contra. apply (IHn contra).
+Qed.
+
+Definition symmetric {X: Type} (R: relation X) :=
+  forall a b : X, (R a b) -> (R b a).
+
+Theorem le_not_symmetric :
+  not (symmetric le).
+Proof.
+  unfold symmetric. unfold not.
+  intros H.
+  assert (Nonsense: 1 <= 0). {
+    apply (H 0 1). apply le_Sn_le. apply le_n.
+  }
+  inversion Nonsense.
+Qed.
+
+Definition antisymmetric {X: Type} (R: relation X) :=
+  forall a b : X, (R a b) -> (R b a) -> a = b.
+
+Theorem le_antisymmetric :
+  antisymmetric le.
+  Proof.
+    unfold antisymmetric. intros a b H1 H2.
+    inversion H1.
+    - reflexivity.
+    - exfalso.
+      rewrite <- H0 in H2.
+      assert (Nonsense: S m <= m). {
+        apply le_trans with a.
+        apply H2.
+        apply H.
+      }
+      apply (le_Sn_n m Nonsense).
+Qed.
+
+Definition equivalence {X:Type} (R: relation X) :=
+  (reflexive R) /\ (symmetric R) /\ (transitive R).
+
+Definition order {X:Type} (R: relation X) :=
+  (reflexive R) /\ (antisymmetric R) /\ (transitive R).
+
+Definition preorder {X:Type} (R: relation X) :=
+  (reflexive R) /\ (transitive R).
+Theorem le_order :
+  order le.
+Proof.
+  unfold order. split.
+    - (* refl *) apply le_reflexive.
+    - split.
+      + (* antisym *) apply le_antisymmetric.
+      + (* transitive. *) apply le_trans. Qed.
