@@ -212,3 +212,123 @@ Proof.
   - simpl. rewrite IHb1. rewrite IHb2. reflexivity.
 Qed.
 
+Ltac invert H := inversion H; subst; clear H.
+
+Lemma invert_example1: forall {a b c: nat}, [a ;b] = [a;c] -> b = c.
+  intros.
+  invert H.
+  reflexivity.
+Qed.
+
+Example silly_presburger_example : forall m n o p,
+  m + n <= n + o /\ o + 3 = p + 3 ->
+  m <= p.
+Proof.
+  intros. lia.
+Qed.
+
+Example add_comm__lia : forall m n,
+    m + n = n + m.
+Proof.
+  intros. lia.
+Qed.
+Example add_assoc__lia : forall m n p,
+    m + (n + p) = m + n + p.
+Proof.
+  intros. lia.
+Qed.
+
+Module aevalR_first_try.
+
+Inductive aevalR : aexp -> nat -> Prop :=
+  | E_ANum (n : nat) :
+      aevalR (ANum n) n
+  | E_APlus (e1 e2 : aexp) (n1 n2 : nat) :
+      aevalR e1 n1 ->
+      aevalR e2 n2 ->
+      aevalR (APlus e1 e2) (n1 + n2)
+  | E_AMinus (e1 e2 : aexp) (n1 n2 : nat) :
+      aevalR e1 n1 ->
+      aevalR e2 n2 ->
+      aevalR (AMinus e1 e2) (n1 - n2)
+  | E_AMult (e1 e2 : aexp) (n1 n2 : nat) :
+      aevalR e1 n1 ->
+      aevalR e2 n2 ->
+      aevalR (AMult e1 e2) (n1 * n2).
+
+Module HypothesisNames.
+
+Inductive aevalR : aexp -> nat -> Prop :=
+  | E_ANum (n : nat) :
+      aevalR (ANum n) n
+  | E_APlus (e1 e2 : aexp) (n1 n2 : nat)
+      (H1 : aevalR e1 n1)
+      (H2 : aevalR e2 n2) :
+      aevalR (APlus e1 e2) (n1 + n2)
+  | E_AMinus (e1 e2 : aexp) (n1 n2 : nat)
+      (H1 : aevalR e1 n1)
+      (H2 : aevalR e2 n2) :
+      aevalR (AMinus e1 e2) (n1 - n2)
+  | E_AMult (e1 e2 : aexp) (n1 n2 : nat)
+      (H1 : aevalR e1 n1)
+      (H2 : aevalR e2 n2) :
+      aevalR (AMult e1 e2) (n1 * n2).
+End HypothesisNames.
+
+Notation "e '==>' n"
+         := (aevalR e n)
+            (at level 90, left associativity)
+         : type_scope.
+End aevalR_first_try.
+
+Reserved Notation "e '==>' n" (at level 90, left associativity).
+
+Inductive aevalR : aexp -> nat -> Prop :=
+  | E_ANum (n : nat) :
+      (ANum n) ==> n
+  | E_APlus (e1 e2 : aexp) (n1 n2 : nat) :
+      (e1 ==> n1) ->
+      (e2 ==> n2) ->
+      (APlus e1 e2) ==> (n1 + n2)
+  | E_AMinus (e1 e2 : aexp) (n1 n2 : nat) :
+      (e1 ==> n1) ->
+      (e2 ==> n2) ->
+      (AMinus e1 e2) ==> (n1 - n2)
+  | E_AMult (e1 e2 : aexp) (n1 n2 : nat) :
+      (e1 ==> n1) ->
+      (e2 ==> n2) ->
+      (AMult e1 e2) ==> (n1 * n2)
+
+  where "e '==>' n" := (aevalR e n) : type_scope.
+  
+Inductive bevalR : bexp -> bool -> Prop :=
+  | E_BTrue : bevalR BTrue true
+  | E_BFalse : bevalR BFalse false
+  | E_BEq (a1 a2 : aexp) (n1 n2 : nat): 
+    aevalR a1 n1 ->
+    aevalR a2 n2 ->
+    bevalR (BEq a1 a2) (n1 =? n2)
+  | E_BNeq (a1 a2 : aexp) (n1 n2 : nat): 
+    aevalR a1 n1 ->
+    aevalR a2 n2 ->
+    bevalR (BNeq a1 a2) (negb (n1 =? n2))
+  | E_BLe (a1 a2 : aexp) (n1 n2 : nat): 
+    aevalR a1 n1 ->
+    aevalR a2 n2 ->
+    bevalR (BLe a1 a2) (n1 <=? n2)
+  | E_BGt (a1 a2 : aexp) (n1 n2 : nat): 
+    aevalR a1 n1 ->
+    aevalR a2 n2 ->
+    bevalR (BGt a1 a2) (negb (n1 <=? n2))
+  | E_BNot (a : bexp) (b : bool): 
+    bevalR a b ->
+    bevalR (BNot a) (negb b)
+  | E_BAnd (a1 a2: bexp ) (b1 b2 : bool): 
+    bevalR a1 b1 ->
+    bevalR a2 b2 ->
+    bevalR (BAnd a1 a2) (andb b1 b2)
+  .
+  
+
+
+

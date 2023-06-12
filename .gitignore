@@ -3,4 +3,5 @@
 *.vos
 *.vo
 *.glob
+*.lia.cache
 \#*
