@@ -544,3 +544,226 @@ Example bexp1 :
   = true.
 Proof. reflexivity. Qed.
 
+Inductive com : Type :=
+  | CSkip
+  | CAsgn (x : string) (a : aexp)
+  | CSeq (c1 c2 : com)
+  | CIf (b : bexp) (c1 c2 : com)
+  | CWhile (b : bexp) (c : com).
+  
+Notation "'skip'" := CSkip (in custom com at level 0) : com_scope.
+Notation "x := y" := (CAsgn x y) (in custom com at level 0, x constr at level 0, y at level 85, no associativity) : com_scope.
+Notation "x ; y" := (CSeq x y) (in custom com at level 90, right associativity) : com_scope.
+Notation "'if' x 'then' y 'else' z 'end'" := (CIf x y z) (in custom com at level 89, x at level 99, y at level 99, z at level 99) : com_scope.
+Notation "'while' x 'do' y 'end'" := (CWhile x y) (in custom com at level 89, x at level 99, y at level 99) : com_scope.
+
+Definition fact_in_coq : com :=
+  <{ Z := X;
+     Y := 1;
+     while Z <> 0 do
+       Y := Y * Z;
+       Z := Z - 1
+     end }>.
+Print fact_in_coq.
+
+Unset Printing Notations.
+Print fact_in_coq.
+(* ===>
+   fact_in_coq =
+   CSeq (CAsgn Z X)
+        (CSeq (CAsgn Y (S O))
+              (CWhile (BNot (BEq Z O))
+                      (CSeq (CAsgn Y (AMult Y Z))
+                            (CAsgn Z (AMinus Z (S O))))))
+        : com *)
+Set Printing Notations.
+Print example_bexp.
+(* ===> example_bexp = <{(true && ~ (X <= 4))}> *)
+Set Printing Coercions.
+Print example_bexp.
+(* ===> example_bexp = <{(true && ~ (AId X <= ANum 4))}> *)
+Print fact_in_coq.
+(* ===>
+  fact_in_coq =
+  <{ Z := (AId X);
+     Y := (ANum 1);
+     while ~ (AId Z) = (ANum 0) do
+       Y := (AId Y) * (AId Z);
+       Z := (AId Z) - (ANum 1)
+     end }>
+       : com *)
+Unset Printing Coercions.
+
+Locate aexp.
+
+Locate "&&".
+Locate ";".
+Locate "while".
+
+Definition plus2 : com :=
+  <{ X := X + 2 }>.
+  
+Definition XtimesYinZ : com :=
+  <{ Z := X * Y }>.
+  
+Definition subtract_slowly_body : com :=
+  <{ Z := Z - 1 ;
+     X := X - 1 }>.
+     
+Definition subtract_slowly : com :=
+  <{ while X <> 0 do
+       subtract_slowly_body
+     end }>.
+Definition subtract_3_from_5_slowly : com :=
+  <{ X := 3 ;
+     Z := 5 ;
+     subtract_slowly }>.
+
+Definition loop : com :=
+  <{ while true do
+       skip
+     end }>.
+
+Fixpoint ceval_fun_no_while (st : state) (c : com) : state :=
+ match c with
+   | <{ skip }> =>
+       st
+   | <{ x := a }> =>
+       (x !-> (aeval st a) ; st)
+   | <{ c1 ; c2 }> =>
+       let st' := ceval_fun_no_while st c1 in
+       ceval_fun_no_while st' c2
+   | <{ if b then c1 else c2 end}> =>
+       if (beval st b)
+         then ceval_fun_no_while st c1
+         else ceval_fun_no_while st c2
+   | <{ while b do c end }> =>
+       st (* bogus *)
+ end.
+ 
+Reserved Notation
+         "st '=[' c ']=>' st'"
+         (at level 40, c custom com at level 99,
+          st constr, st' constr at next level).
+
+Inductive ceval : com -> state -> state -> Prop :=
+| E_Skip : forall st,
+    st =[ skip ]=> st
+| E_Asgn : forall st a n x,
+    aeval st a = n ->
+    st =[ x := a ]=> (x !-> n ; st)
+| E_Seq : forall c1 c2 st st' st'',
+    st =[ c1 ]=> st' ->
+    st' =[ c2 ]=> st'' ->
+    st =[ c1 ; c2 ]=> st''
+| E_IfTrue : forall st st' b c1 c2,
+    beval st b = true ->
+    st =[ c1 ]=> st' ->
+    st =[ if b then c1 else c2 end]=> st'
+| E_IfFalse : forall st st' b c1 c2,
+    beval st b = false ->
+    st =[ c2 ]=> st' ->
+    st =[ if b then c1 else c2 end]=> st'
+| E_WhileFalse : forall b st c,
+    beval st b = false ->
+    st =[ while b do c end ]=> st
+| E_WhileTrue : forall st st' st'' b c,
+    beval st b = true ->
+    st =[ c ]=> st' ->
+    st' =[ while b do c end ]=> st'' ->
+    st =[ while b do c end ]=> st''
+
+where "st =[ c ]=> st'" := (ceval c st st').
+
+Example ceval_example1:
+  empty_st =[
+     X := 2;
+     if (X <= 1)
+       then Y := 3
+       else Z := 4
+     end
+  ]=> (Z !-> 4 ; X !-> 2).
+Proof.
+  (* We must supply the intermediate state *)
+  apply E_Seq with (X !-> 2).
+  - (* assignment command *)
+    apply E_Asgn. reflexivity.
+  - (* if command *)
+    apply E_IfFalse.
+    + reflexivity.
+    + apply E_Asgn. reflexivity.
+Qed.
+
+Example ceval_example2:
+  empty_st =[
+    X := 0;
+    Y := 1;
+    Z := 2
+  ]=> (Z !-> 2 ; Y !-> 1 ; X !-> 0).
+Proof.
+  apply E_Seq with (X !-> 0).
+  - apply E_Asgn. reflexivity.
+  - apply E_Seq with (Y !-> 1; X !-> 0).
+    + apply E_Asgn. simpl. reflexivity.
+    + apply E_Asgn. simpl. reflexivity.
+Qed.
+
+Definition pup_to_n : com
+  := <{ Y := 0;
+        while X > 0 do
+          Y := Y + X;
+          X := X - 1
+        end }>.
+
+Theorem pup_to_2_ceval :
+(X !-> 2) =[
+  pup_to_n
+]=> (X !-> 0 ; Y !-> 3 ; X !-> 1 ; Y !-> 2 ; Y !-> 0 ; X !-> 2).
+Proof.
+  Proof.
+    apply E_Seq with (Y !-> 0 ; X !-> 2).
+    + apply E_Asgn. reflexivity.
+    + apply E_WhileTrue with (X !-> 1 ; Y !-> 2 ; Y !-> 0 ; X !-> 2).
+      - reflexivity.
+      - apply E_Seq with (Y !-> 2 ; Y !-> 0 ; X !-> 2).
+        * apply E_Asgn. reflexivity.
+        * apply E_Asgn. reflexivity.
+      - apply E_WhileTrue with (X !-> 0 ; Y !-> 3 ; X !-> 1 ; Y !-> 2 ; Y !-> 0 ; X !-> 2).
+        * reflexivity.
+        * apply E_Seq with (Y !-> 3 ; X !-> 1 ; Y !-> 2 ; Y !-> 0 ; X !-> 2).
+          -- apply E_Asgn. reflexivity.
+          -- apply E_Asgn. reflexivity.
+        * apply E_WhileFalse. reflexivity.
+  Qed.
+
+  Theorem ceval_deterministic: forall c st st1 st2,
+  st =[ c ]=> st1 ->
+  st =[ c ]=> st2 ->
+  st1 = st2.
+Proof.
+intros c st st1 st2 E1 E2.
+generalize dependent st2.
+induction E1; intros st2 E2; inversion E2; subst.
+- (* E_Skip *) reflexivity.
+- (* E_Asgn *) reflexivity.
+- (* E_Seq *)
+ rewrite (IHE1_1 st'0 H1) in *.
+ apply IHE1_2. assumption.
+- (* E_IfTrue, b evaluates to true *)
+   apply IHE1. assumption.
+- (* E_IfTrue,  b evaluates to false (contradiction) *)
+   rewrite H in H5. discriminate.
+- (* E_IfFalse, b evaluates to true (contradiction) *)
+   rewrite H in H5. discriminate.
+- (* E_IfFalse, b evaluates to false *)
+   apply IHE1. assumption.
+- (* E_WhileFalse, b evaluates to false *)
+ reflexivity.
+- (* E_WhileFalse, b evaluates to true (contradiction) *)
+ rewrite H in H2. discriminate.
+- (* E_WhileTrue, b evaluates to false (contradiction) *)
+ rewrite H in H4. discriminate.
+- (* E_WhileTrue, b evaluates to true *)
+ rewrite (IHE1_1 st'0 H3) in *.
+ apply IHE1_2. assumption. Qed.
+ 
