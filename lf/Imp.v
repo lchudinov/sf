@@ -767,3 +767,64 @@ induction E1; intros st2 E2; inversion E2; subst.
  rewrite (IHE1_1 st'0 H3) in *.
  apply IHE1_2. assumption. Qed.
  
+Theorem plus2_spec : forall st n st',
+  st X = n -> st =[ plus2 ]=> st' -> st' X = n + 2.
+Proof.
+  intros st n st' HX Heval.
+  inversion Heval. subst. clear Heval. simpl.
+  apply t_update_eq.
+Qed.
+
+Theorem XtimesYinZ_spec : forall st n m st',
+  st X = n ->
+  st Y = m ->
+  st =[ XtimesYinZ ]=> st' ->
+  st' Z = n * m.
+Proof.
+  intros st n m st' Hx Hy Heval.
+  inversion Heval. subst. clear Heval.
+  apply t_update_eq.
+Qed.
+
+Theorem loop_never_stops : forall st st',
+  ~(st =[ loop ]=> st').
+Proof.
+  intros st st' contra. unfold loop in contra.
+  remember <{ while true do skip end }> as loopdef
+           eqn:Heqloopdef.
+  induction contra; try discriminate.
+  + inversion Heqloopdef. subst. discriminate.
+  + inversion Heqloopdef. subst. apply IHcontra2. reflexivity.
+Qed.
+
+Fixpoint no_whiles (c : com) : bool :=
+  match c with
+  | <{ skip }> =>
+      true
+  | <{ _ := _ }> =>
+      true
+  | <{ c1 ; c2 }> =>
+      andb (no_whiles c1) (no_whiles c2)
+  | <{ if _ then ct else cf end }> =>
+      andb (no_whiles ct) (no_whiles cf)
+  | <{ while _ do _ end }> =>
+      false
+  end.
+ 
+Inductive no_whilesR: com -> Prop :=
+  | no_whiles_skip : no_whilesR <{ skip}>
+  | no_whiles_asgn : forall x a, no_whilesR <{ x := a}>
+  | no_whiles_seq : forall c1 c2 (H1 : no_whilesR c1) (H2 : no_whilesR c2), no_whilesR <{c1; c2}>
+  | no_whiles_if : forall b ct cf (H1 : no_whilesR ct) (H2 : no_whilesR cf), no_whilesR <{ if b then ct else cf end }>
+  .
+    
+Theorem no_whiles_eqv: 
+  forall c, no_whiles c = true <-> no_whilesR c.
+Proof.
+  intros.
+  split.
+  - induction c.
+    + constructor.
+    + intros H. constructor.
+Admitted.
+  
