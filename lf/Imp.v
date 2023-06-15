@@ -823,8 +823,14 @@ Theorem no_whiles_eqv:
 Proof.
   intros.
   split.
-  - induction c.
-    + constructor.
-    + intros H. constructor.
-Admitted.
-  
+  - induction c;
+    try constructor;
+    try (inversion H as [H1]; apply andb_true_iff in H1);
+    try (destruct H1 as [H1 _]; apply IHc1; apply H1);
+    try (destruct H1 as [_ H1]; apply IHc2; apply H1).
+    discriminate.
+  - intros H.
+    induction H;
+    try simpl; try reflexivity; apply andb_true_iff; split; assumption.
+Qed.
+
