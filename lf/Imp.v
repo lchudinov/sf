@@ -834,3 +834,60 @@ Proof.
     try simpl; try reflexivity; apply andb_true_iff; split; assumption.
 Qed.
 
+
+Theorem no_whiles_terminating : 
+  forall c, no_whilesR c -> forall st, exists st', st =[ c ]=> st'.
+Proof.
+Admitted.
+
+Inductive sinstr : Type :=
+| SPush (n : nat)
+| SLoad (x : string)
+| SPlus
+| SMinus
+| SMult.
+
+Fixpoint s_execute (st : state) (stack : list nat) (prog : list sinstr) : list nat :=
+  match prog, stack with
+  | [], _ => stack
+  | (SPush n) :: xprog, stack  => s_execute st (n :: stack) xprog
+  | (SLoad x) :: xprog, stack  => s_execute st ((st x) :: stack) xprog
+  | SPlus :: xprog, n1 :: n2 :: xstack => s_execute st ((n1 + n2) :: xstack) xprog
+  | SMinus :: xprog, n1 :: n2 :: xstack => s_execute st ((n2 - n1) :: xstack) xprog
+  | SMult :: xprog, n1 :: n2 :: xstack => s_execute st ((n1 * n2) :: xstack) xprog
+  | _, _ => stack
+  end.
+
+Example s_execute1 :
+     s_execute empty_st []
+       [SPush 5; SPush 3; SPush 1; SMinus]
+   = [2; 5].
+Proof.
+  simpl. reflexivity.
+Qed.
+
+Example s_execute2 :
+     s_execute (X !-> 3) [3;4]
+       [SPush 4; SLoad X; SMult; SPlus]
+   = [15; 4].
+Proof.
+  simpl. reflexivity.
+Qed.
+
+
+Fixpoint s_compile (e : aexp) : list sinstr :=
+  match e with
+  | ANum n => [SPush n]
+  | AId x => [SLoad x]
+  | APlus a1 a2 => (s_compile a1) ++ (s_compile a2) ++ [SPlus]
+  | AMinus a1 a2 => (s_compile a1) ++ (s_compile a2) ++ [SMinus]
+  | AMult a1 a2 => (s_compile a1) ++ (s_compile a2) ++ [SMult]
+  end.
+
+Example s_compile1 :
+  s_compile <{ X - (2 * Y) }>
+  = [SLoad X; SPush 2; SLoad Y; SMult; SMinus].
+Proof.
+  simpl. reflexivity.
+Qed.
+
