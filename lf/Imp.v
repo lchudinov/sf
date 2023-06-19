@@ -852,9 +852,9 @@ Fixpoint s_execute (st : state) (stack : list nat) (prog : list sinstr) : list n
   | [], _ => stack
   | (SPush n) :: xprog, stack  => s_execute st (n :: stack) xprog
   | (SLoad x) :: xprog, stack  => s_execute st ((st x) :: stack) xprog
-  | SPlus :: xprog, n1 :: n2 :: xstack => s_execute st ((n1 + n2) :: xstack) xprog
-  | SMinus :: xprog, n1 :: n2 :: xstack => s_execute st ((n2 - n1) :: xstack) xprog
-  | SMult :: xprog, n1 :: n2 :: xstack => s_execute st ((n1 * n2) :: xstack) xprog
+  | SPlus :: xprog, n2 :: n1 :: xstack => s_execute st ((n1 + n2) :: xstack) xprog
+  | SMinus :: xprog, n2 :: n1 :: xstack => s_execute st ((n1 - n2) :: xstack) xprog
+  | SMult :: xprog, n2 :: n1 :: xstack => s_execute st ((n1 * n2) :: xstack) xprog
   | _, _ => stack
   end.
 
@@ -891,3 +891,60 @@ Proof.
   simpl. reflexivity.
 Qed.
 
+Theorem execute_app : forall st p1 p2 stack,
+  s_execute st stack (p1 ++ p2) = s_execute st (s_execute st stack p1) p2.
+Proof.
+  intros st p1 p2.
+  induction p1.
+  - simpl. reflexivity.
+  - intros stack. destruct a. 
+    + destruct stack.
+      * simpl. apply IHp1.
+      * apply IHp1.
+    + simpl. apply IHp1.
+Admitted.
+
+Lemma s_compile_correct_aux : forall st e stack,
+  s_execute st stack (s_compile e) = aeval st e :: stack.
+Proof.
+  intros st e.
+  induction e.
+  - simpl. reflexivity.
+  - simpl. reflexivity.
+  - intros. simpl. rewrite execute_app. rewrite execute_app.
+    rewrite IHe1. rewrite IHe2. simpl. reflexivity.
+  - intros. simpl. rewrite execute_app. rewrite execute_app.
+    rewrite IHe1. rewrite IHe2. simpl. reflexivity.
+  - intros. simpl. rewrite execute_app. rewrite execute_app.
+    rewrite IHe1. rewrite IHe2. simpl. reflexivity.
+Qed.
+
+Theorem s_compile_correct : forall (st : state) (e : aexp),
+  s_execute st [] (s_compile e) = [ aeval st e ].
+Proof.
+  intros. rewrite s_compile_correct_aux. reflexivity.
+Qed.
+
+Fixpoint beval_short_circuit (st : state) (b : bexp) : bool :=
+  match b with
+  | <{true}> => true
+  | <{false}> => false
+  | <{a1 = a2}> => (aeval st a1) =? (aeval st a2)
+  | <{a1 <> a2}> => negb ((aeval st a1) =? (aeval st a2))
+  | <{a1 <= a2}> => (aeval st a1) <=? (aeval st a2)
+  | <{a1 > a2}> => negb ((aeval st a1) <=? (aeval st a2))
+  | <{~ b1}> => negb (beval_short_circuit st b1)
+  | <{b1 && b2}> => match (beval_short_circuit st b1) with
+                    | false => false
+                    | true => beval_short_circuit st b2
+                    end
+  end.
+
+Theorem beval_short_circuit_correct : forall (st : state) (b : bexp),
+  beval_short_circuit st b = beval st b.
+Proof.
+  intros.
+  induction b; simpl; reflexivity.
+Qed.
+
+Module BreakImp.
