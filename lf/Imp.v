@@ -948,3 +948,112 @@ Proof.
 Qed.
 
 Module BreakImp.
+
+Inductive com : Type :=
+  | CSkip
+  | CBreak (* <--- NEW *)
+  | CAsgn (x : string) (a : aexp)
+  | CSeq (c1 c2 : com)
+  | CIf (b : bexp) (c1 c2 : com)
+  | CWhile (b : bexp) (c : com).
+Notation "'break'" := CBreak (in custom com at level 0).
+Notation "'skip'" :=
+         CSkip (in custom com at level 0) : com_scope.
+Notation "x := y" :=
+         (CAsgn x y)
+            (in custom com at level 0, x constr at level 0,
+             y at level 85, no associativity) : com_scope.
+Notation "x ; y" :=
+         (CSeq x y)
+           (in custom com at level 90, right associativity) : com_scope.
+Notation "'if' x 'then' y 'else' z 'end'" :=
+         (CIf x y z)
+           (in custom com at level 89, x at level 99,
+            y at level 99, z at level 99) : com_scope.
+Notation "'while' x 'do' y 'end'" :=
+         (CWhile x y)
+            (in custom com at level 89, x at level 99, y at level 99) : com_scope.
+            
+Inductive result : Type :=
+| SContinue
+| SBreak.
+Reserved Notation "st '=[' c ']=>' st' '/' s"
+     (at level 40, c custom com at level 99, st' constr at next level).
+     
+Inductive ceval : com -> state -> result -> state -> Prop :=
+| E_Skip : forall st, st =[ skip ]=> st / SContinue
+| E_Break : forall st, st =[ break ]=> st / SBreak
+| E_Asgn : forall st a n x, aeval st a = n -> st =[ x := a ]=> (x !-> n ; st) / SContinue
+| E_Seq1 : forall c1 c2 st st' st'',
+    st =[ c1 ]=> st' / SBreak ->
+    st' =[ c2 ]=> st'' / SBreak
+| E_Seq2 : forall c1 c2 st st' st'' s,
+    st =[ c1 ]=> st' / SContinue->
+    st' =[ c2 ]=> st'' / s ->
+    st =[ c1 ; c2 ]=> st'' / s 
+| E_IfTrue : forall st st' b c1 c2 s,
+    beval st b = true ->
+    st =[ c1 ]=> st' / s ->
+    st =[ if b then c1 else c2 end]=> st' / s
+| E_IfFalse : forall st st' b c1 c2 s,
+    beval st b = false ->
+    st =[ c2 ]=> st' / s ->
+    st =[ if b then c1 else c2 end]=> st' / s
+| E_WhileFalse : forall b st c,
+    beval st b = false ->
+    st =[ while b do c end ]=> st / SContinue
+| E_WhileTrue1 : forall st st' b c,
+    beval st b = true ->
+    st =[ c ]=> st' / SBreak ->
+    st =[ while b do c end ]=> st' / SContinue
+| E_WhileTrue : forall st st' st'' b c,
+    beval st b = true ->
+    st =[ c ]=> st' / SContinue ->
+    st' =[ while b do c end ]=> st'' / SContinue ->
+    st =[ while b do c end ]=> st'' / SContinue
+where "st '=[' c ']=>' st' '/' s" := (ceval c st s st').
+
+ 
+Theorem break_ignore : forall c st st' s,
+  st =[ break; c ]=> st' / s ->
+  st = st'.
+Proof.
+  
+(* FILL IN HERE *) Admitted.
+Theorem while_continue : forall b c st st' s,
+st =[ while b do c end ]=> st' / s ->
+s = SContinue.
+Proof.
+(* FILL IN HERE *) Admitted.
+Theorem while_stops_on_break : forall b c st st',
+beval st b = true ->
+st =[ c ]=> st' / SBreak ->
+st =[ while b do c end ]=> st' / SContinue.
+Proof.
+(* FILL IN HERE *) Admitted.
+Theorem seq_continue : forall c1 c2 st st' st'',
+st =[ c1 ]=> st' / SContinue ->
+st' =[ c2 ]=> st'' / SContinue ->
+st =[ c1 ; c2 ]=> st'' / SContinue.
+Proof.
+(* FILL IN HERE *) Admitted.
+Theorem seq_stops_on_break : forall c1 c2 st st',
+st =[ c1 ]=> st' / SBreak ->
+st =[ c1 ; c2 ]=> st' / SBreak.
+Proof.
+(* FILL IN HERE *) Admitted.
+
+Theorem while_break_true : forall b c st st',
+st =[ while b do c end ]=> st' / SContinue ->
+beval st' b = true ->
+exists st'', st'' =[ c ]=> st' / SBreak.
+Proof.
+(* FILL IN HERE *) Admitted.
+
+Theorem ceval_deterministic: forall (c:com) st st1 st2 s1 s2,
+  st =[ c ]=> st1 / s1 ->
+  st =[ c ]=> st2 / s2 ->
+  st1 = st2 /\ s1 = s2.
+Proof.
+(* FILL IN HERE *) Admitted.
+End BreakImp.
