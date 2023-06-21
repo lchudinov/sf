@@ -11,3 +11,4 @@ coqc -Q . LF IndPrinciples.v
 coqc -Q . LF Rel.v
 coqc -Q . LF Imp.v
 coqc -Q . LF ImpParser.v
+coqc -Q . LF ImpCEvalFun.v
