@@ -4,4 +4,6 @@
 *.vo
 *.glob
 *.lia.cache
+*.cmi
+*.cmo
 \#*
