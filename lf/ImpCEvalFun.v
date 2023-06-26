@@ -151,6 +151,54 @@ Example peven_10 :
   = Some (0, 0, 1).
 Proof. reflexivity. Qed.
 
+Theorem ceval_step__ceval: forall c st st',
+      (exists i, ceval_step st c i = Some st') ->
+      st =[ c ]=> st'.
+Proof.
+  intros c st st' H.
+  inversion H as [i E].
+  clear H.
+  generalize dependent st'.
+  generalize dependent st.
+  generalize dependent c.
+  induction i as [| i' ].
+  - (* i = 0 -- contradictory *)
+    intros c st st' H. discriminate H.
+  - (* i = S i' *)
+    intros c st st' H.
+    destruct c;
+           simpl in H; inversion H; subst; clear H.
+      + (* skip *) apply E_Skip.
+      + (* := *) apply E_Asgn. reflexivity.
+      + (* ; *)
+        destruct (ceval_step st c1 i') eqn:Heqr1.
+        * (* Evaluation of r1 terminates normally *)
+          apply E_Seq with s.
+            apply IHi'. rewrite Heqr1. reflexivity.
+            apply IHi'. assumption.
+        * (* Otherwise -- contradiction *)
+          discriminate H1.
+      + (* if *)
+        destruct (beval st b) eqn:Heqr.
+        * (* r = true *)
+          apply E_IfTrue. rewrite Heqr. reflexivity.
+          apply IHi'. assumption.
+        * (* r = false *)
+          apply E_IfFalse. rewrite Heqr. reflexivity.
+          apply IHi'. assumption.
+      + (* while *) destruct (beval st b) eqn :Heqr.
+        * (* r = true *)
+         destruct (ceval_step st c i') eqn:Heqr1.
+         { (* r1 = Some s *)
+           apply E_WhileTrue with s. rewrite Heqr.
+           reflexivity.
+           apply IHi'. rewrite Heqr1. reflexivity.
+           apply IHi'. assumption. }
+         { (* r1 = None *) discriminate H1. }
+        * (* r = false *)
+          injection H1 as H2. rewrite <- H2.
+          apply E_WhileFalse. apply Heqr. Qed.
+
 Theorem ceval_step_more: forall i1 i2 st st' c,
   i1 <= i2 ->
   ceval_step st c i1 = Some st' ->
@@ -202,15 +250,32 @@ Proof.
   induction Hce.
   - exists 1. simpl. reflexivity.
   - exists 1. simpl. rewrite H. reflexivity.
-  - destruct IHHce2. destruct IHHce1.
-    rewrite <- H. exists 2. simpl.
-    
+  - inversion IHHce2. inversion IHHce2.
+    exists (S (x + x0)). simpl.
+    assert (ceval_step st c1 (x + x0) = Some st').
+    apply ceval_step_more with x. lia.
+    apply ceval_step_more with x0.
   (* FILL IN HERE *) Admitted.
-☐
-Theorem ceval_and_ceval_step_coincide: ∀ c st st',
+
+Theorem ceval_and_ceval_step_coincide: forall c st st',
       st =[ c ]=> st'
-  ↔ ∃ i, ceval_step st c i = Some st'.
+  <-> exists i, ceval_step st c i = Some st'.
 Proof.
   intros c st st'.
   split. apply ceval__ceval_step. apply ceval_step__ceval.
 Qed.
+
+Theorem ceval_deterministic' : forall c st st1 st2,
+     st =[ c ]=> st1 ->
+     st =[ c ]=> st2 ->
+     st1 = st2.
+Proof.
+  intros c st st1 st2 He1 He2.
+  apply ceval__ceval_step in He1.
+  apply ceval__ceval_step in He2.
+  inversion He1 as [i1 E1].
+  inversion He2 as [i2 E2].
+  apply ceval_step_more with (i2 := i1 + i2) in E1.
+  apply ceval_step_more with (i2 := i1 + i2) in E2.
+  rewrite E1 in E2. inversion E2. reflexivity.
+  lia. lia. Qed.
