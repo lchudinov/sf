@@ -268,3 +268,191 @@ Theorem ceval_deterministic'''': forall c st st1 st2,
     induction E1; intros st2 E2; inversion E2; subst; try find_rwd;
       try find_eqn; auto.
   Qed.
+  
+Module Repeat.
+Inductive com : Type :=
+  | CSkip
+  | CAsgn (x : string) (a : aexp)
+  | CSeq (c1 c2 : com)
+  | CIf (b : bexp) (c1 c2 : com)
+  | CWhile (b : bexp) (c : com)
+  | CRepeat (c : com) (b : bexp).
+
+Notation "'repeat' x 'until' y 'end'" :=
+         (CRepeat x y)
+            (in custom com at level 0,
+             x at level 99, y at level 99).
+Notation "'skip'" :=
+         CSkip (in custom com at level 0).
+Notation "x := y" :=
+         (CAsgn x y)
+            (in custom com at level 0, x constr at level 0,
+             y at level 85, no associativity).
+Notation "x ; y" :=
+         (CSeq x y)
+           (in custom com at level 90, right associativity).
+Notation "'if' x 'then' y 'else' z 'end'" :=
+         (CIf x y z)
+           (in custom com at level 89, x at level 99,
+            y at level 99, z at level 99).
+Notation "'while' x 'do' y 'end'" :=
+         (CWhile x y)
+            (in custom com at level 89, x at level 99, y at level 99).
+Reserved Notation "st '=[' c ']=>' st'"
+         (at level 40, c custom com at level 99, st' constr at next level).
+
+Inductive ceval : com -> state -> state -> Prop :=
+| E_Skip : forall st,
+    st =[ skip ]=> st
+| E_Asgn : forall st a1 n x,
+    aeval st a1 = n ->
+    st =[ x := a1 ]=> (x !-> n ; st)
+| E_Seq : forall c1 c2 st st' st'',
+    st =[ c1 ]=> st' ->
+    st' =[ c2 ]=> st'' ->
+    st =[ c1 ; c2 ]=> st''
+| E_IfTrue : forall st st' b c1 c2,
+    beval st b = true ->
+    st =[ c1 ]=> st' ->
+    st =[ if b then c1 else c2 end ]=> st'
+| E_IfFalse : forall st st' b c1 c2,
+    beval st b = false ->
+    st =[ c2 ]=> st' ->
+    st =[ if b then c1 else c2 end ]=> st'
+| E_WhileFalse : forall b st c,
+    beval st b = false ->
+    st =[ while b do c end ]=> st
+| E_WhileTrue : forall st st' st'' b c,
+    beval st b = true ->
+    st =[ c ]=> st' ->
+    st' =[ while b do c end ]=> st'' ->
+    st =[ while b do c end ]=> st''
+| E_RepeatEnd : forall st st' b c,
+    st =[ c ]=> st' ->
+    beval st' b = true ->
+    st =[ repeat c until b end ]=> st'
+| E_RepeatLoop : forall st st' st'' b c,
+    st =[ c ]=> st' ->
+    beval st' b = false ->
+    st' =[ repeat c until b end ]=> st'' ->
+    st =[ repeat c until b end ]=> st''
+where "st =[ c ]=> st'" := (ceval c st st').
+
+Theorem ceval_deterministic: forall c st st1 st2,
+  st =[ c ]=> st1 ->
+  st =[ c ]=> st2 ->
+  st1 = st2.
+Proof.
+  intros c st st1 st2 E1 E2.
+  generalize dependent st2;
+  induction E1;
+    intros st2 E2; inversion E2; subst; try find_rwd; try find_eqn; auto.
+  - (* E_RepeatEnd *)
+    + (* b evaluates to false (contradiction) *)
+       find_rwd.
+       (* oops: why didn't find_rwd solve this for us already?
+          answer: we did things in the wrong order. *)
+  - (* E_RepeatLoop *)
+     + (* b evaluates to true (contradiction) *)
+        find_rwd.
+Qed.
+
+Theorem ceval_deterministic': forall c st st1 st2,
+  st =[ c ]=> st1 ->
+  st =[ c ]=> st2 ->
+  st1 = st2.
+Proof.
+  intros c st st1 st2 E1 E2.
+  generalize dependent st2;
+  induction E1;
+    intros st2 E2; inversion E2; subst; try find_eqn; try find_rwd; auto.
+Qed.
+End Repeat.
+
+Example ceval_example1:
+  empty_st =[
+    X := 2;
+    if (X <= 1)
+      then Y := 3
+      else Z := 4
+    end
+  ]=> (Z !-> 4 ; X !-> 2).
+Proof.
+  (* We supply the intermediate state st'... *)
+  apply E_Seq with (X !-> 2).
+  - apply E_Asgn. reflexivity.
+  - apply E_IfFalse. reflexivity. apply E_Asgn. reflexivity.
+Qed.
+
+Example ceval'_example1:
+  empty_st =[
+    X := 2;
+    if (X <= 1)
+      then Y := 3
+      else Z := 4
+    end
+  ]=> (Z !-> 4 ; X !-> 2).
+Proof.
+  eapply E_Seq. (* 1 *)
+  - apply E_Asgn. (* 2 *) 
+    reflexivity. (* 3 *)
+  - (* 4 *) apply E_IfFalse. reflexivity. apply E_Asgn. reflexivity.
+Qed.
+
+Hint Constructors ceval : core.
+Hint Transparent state total_map : core.
+Example eauto_example : exists s',
+  (Y !-> 1 ; X !-> 2) =[
+    if (X <= Y)
+      then Z := Y - X
+      else Y := X + Z
+    end
+  ]=> s'.
+Proof. info_eauto. Qed.
+
+Lemma silly1 : forall (P : nat -> nat -> Prop) (Q : nat -> Prop),
+  (forall x y : nat, P x y) ->
+  (forall x y : nat, P x y -> Q x) ->
+  Q 42.
+Proof.
+  intros P Q HP HQ. eapply HQ. apply HP.
+  Abort.
+Lemma silly2 :
+  forall (P : nat -> nat -> Prop) (Q : nat -> Prop),
+  (exists y, P 42 y) ->
+  (forall x y : nat, P x y -> Q x) ->
+  Q 42.
+Proof.
+  intros P Q HP HQ. eapply HQ. destruct HP as [y HP'].
+  Fail apply HP'. Abort.
+  
+  Lemma silly2 :
+  forall (P : nat -> nat -> Prop) (Q : nat -> Prop),
+  (exists y, P 42 y) ->
+  (forall x y : nat, P x y -> Q x) ->
+  Q 42.
+Proof.
+  intros P Q HP HQ. destruct HP as [y HP'].
+  eapply HQ. apply HP'. 
+Qed.
+
+Lemma silly2_eassumption : forall (P : nat -> nat -> Prop) (Q : nat -> Prop),
+  (exists y, P 42 y) ->
+  (forall x y : nat, P x y -> Q x) ->
+  Q 42.
+Proof.
+  intros P Q HP HQ.
+  destruct HP as [y HP'].
+  eapply HQ.
+  eassumption.
+Qed.
+
+Lemma silly2_eato : forall (P : nat -> nat -> Prop) (Q : nat -> Prop),
+  (exists y, P 42 y) ->
+  (forall x y : nat, P x y -> Q x) ->
+  Q 42.
+Proof.
+  intros P Q HP HQ.
+  destruct HP as [y HP'].
+  eauto.
+Qed.
