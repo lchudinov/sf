@@ -14,3 +14,4 @@ coqc -Q . LF ImpParser.v
 coqc -Q . LF ImpCEvalFun.v
 coqc -Q . LF Extraction.v
 coqc -Q . LF Auto.v
+coqc -Q . LF AltAuto.v
