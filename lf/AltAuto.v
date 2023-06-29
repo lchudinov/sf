@@ -138,6 +138,39 @@
       destruct n; reflexivity.
     Qed.
     
+Theorem andb_eq_orb :
+  forall (b c : bool),
+  (andb b c = orb b c) -> b = c.
+Proof.
+  intros [] []; try reflexivity; simpl; intros H; rewrite H; reflexivity.
+Qed.
+
+Theorem add_assoc : forall n m p : nat,
+  n + (m + p) = (n + m) + p.
+Proof.
+  intros n m p; induction n as [|n'];
+  try reflexivity; simpl; rewrite IHn'; reflexivity.
+Qed.
+  
+Fixpoint nonzeros (lst : list nat) :=
+  match lst with
+  | [] => []
+  | 0 :: t => nonzeros t
+  | h :: t => h :: nonzeros t
+end.
+
+Lemma nonzeros_app : forall lst1 lst2 : list nat,
+  nonzeros (lst1 ++ lst2) = (nonzeros lst1) ++ (nonzeros lst2).
+Proof.
+  intros l1 l2;
+  induction l1 as [|h1 t1];
+  try simpl;
+  try reflexivity;
+  destruct h1;
+  rewrite IHt1;
+  reflexivity.
+Qed.
+  
     (** Using [try] and [;] together, we can improve the proof about
         regular expression optimization. *)
     
@@ -171,6 +204,27 @@
       - (* MStarApp *)  apply MStarApp. apply IH1.  apply IH2.
     Qed.
     
+Theorem app_length : forall (X : Type) (lst1 lst2 : list X),
+  length (lst1 ++ lst2) = (length lst1) + (length lst2).
+Proof.
+  intros; induction lst1;
+    [reflexivity | simpl; rewrite IHlst1; reflexivity].
+Qed.
+
+Theorem app_length' : forall (X : Type) (lst1 lst2 : list X),
+  length (lst1 ++ lst2) = (length lst1) + (length lst2).
+Proof.
+  intros; induction lst1;
+    [idtac | simpl; rewrite IHlst1];  reflexivity.
+Qed.
+
+Theorem add_assoc' : forall n m p : nat,
+    n + (m + p) = (n + m) + p.
+Proof.
+  intros n m p; induction n as [|n'];
+  [ reflexivity | simpl; rewrite IHn'; reflexivity].
+Qed.
+    
     (* ================================================================= *)
     (** ** The [repeat] Tactical *)
     
@@ -181,7 +235,13 @@
       repeat (try (left; reflexivity); right).
     Qed.
     
-    (* ################################################################# *)
+Theorem ev100: ev 100.
+Proof.
+  repeat constructor.
+Qed.
+
+
+(* ################################################################# *)
     (** * Tactics that Make Mentioning Names Unnecessary *)
     
     (** Hardcoding of hypothesis names isn't great. *)
