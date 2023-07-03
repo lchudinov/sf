@@ -374,6 +374,13 @@ Qed.
       Fail lia. (*goal is non-linear, valid, but unsolvable by lia *)
     Abort.
     
+    Require Import Ring.
+    Theorem mult_comm : forall (n m : nat),
+        n * m = m * n.
+    Proof.
+      intros n m. ring.
+    Qed.
+    
     (* ================================================================= *)
     (** ** Equalities: The [congruence] Tactic *)
     
@@ -457,6 +464,21 @@ Qed.
     Proof.
       intuition congruence.
     Qed.
+    
+    
+  Theorem plus_id_exercise_from_basics : forall n m o : nat,
+    n = m -> m = o -> n + m = m + o.
+  Proof. lia. Qed.
+  Theorem add_assoc_from_induction : forall n m p : nat,
+      n + (m + p) = (n + m) + p.
+  Proof. lia. Qed.
+  Theorem S_injective_from_tactics : forall (n m : nat),
+    S n = S m ->
+    n = m.
+  Proof. congruence. Qed.
+  Theorem or_distributes_over_and_from_logic : forall P Q R : Prop,
+      P \/ (Q /\ R) <-> (P \/ Q) /\ (P \/ R).
+  Proof. intuition. Qed.
     
     (* ################################################################# *)
     (** * Search Tactics *)
@@ -589,6 +611,23 @@ Qed.
     Proof.
       auto with le_db.
     Qed.
+    
+Definition is_fortytwo x := (x = 42).
+Example auto_example_7: forall x,
+  (x <= 42 /\ 42 <= x) -> is_fortytwo x.
+Proof.
+  auto. (* does nothing *)
+Abort.
+Hint Unfold is_fortytwo : le_db.
+Example auto_example_7' : forall x,
+  (x <= 42 /\ 42 <= x) -> is_fortytwo x.
+Proof. info_auto with le_db. Qed.
+Example auto_example_8 : forall (n m : nat),
+    n + m = m + n.
+Proof.
+  auto. (* no progress *)
+  info_auto with arith. (* uses Nat.add_comm *)
+Qed.
     
     (* ================================================================= *)
     (** ** The [eauto] variant *)
