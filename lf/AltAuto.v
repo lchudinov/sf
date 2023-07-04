@@ -751,6 +751,30 @@ Qed.
       intros b c; destructpf b; destructpf c.
     Qed.
     
+    Theorem andb3_exchange : forall b c d, andb (andb b c) d = andb (andb b d) c.
+    Proof.
+      intros; destructpf b; destructpf c; destructpf d.
+    Qed.
+    Theorem andb_true_elim2 : forall b c : bool,
+    andb b c = true -> c = true.
+    Proof.
+      intros b c. destruct b eqn:Eb.
+      - simpl. intros H. rewrite H. reflexivity.
+      - simpl. intros H. destruct c eqn:Ec.
+        + reflexivity.
+        + rewrite H. reflexivity.
+    Qed.
+    
+    Ltac destructpf' x := destruct x; simpl; try assumption; try reflexivity.
+    Theorem andb_true_elim2' : forall b c : bool,
+    andb b c = true -> c = true.
+    Proof.
+      intros; destructpf' b; destructpf' c.
+    Qed.
+    Theorem andb3_exchange' : forall b c d, andb (andb b c) d = andb (andb b d) c.
+    Proof.
+      intros; destructpf' b; destructpf' c; destructpf' d.
+    Qed.
     (* ================================================================= *)
     (** ** Ltac Pattern Matching *)
     
