@@ -980,6 +980,25 @@ Qed.
       intros n m. simple_induction n.
     Qed.
     
+    Ltac imp_intuition :=
+      repeat match goal with
+             | [ H : ?P |- ?P ] => apply H
+             | [ |- forall _, _ ] => intro
+             | [ H1 : ?P -> ?Q, H2 : ?P |- _ ] => apply H1 in H2
+             end.
+             
+    Example imp1 : forall (P : Prop), P -> P.
+    Proof. imp_intuition. Qed.
+    Example imp2 : forall (P Q : Prop), P -> (P -> Q) -> Q.
+    Proof. imp_intuition. Qed.
+    Example imp3 : forall (P Q R : Prop), (P -> Q -> R) -> (Q -> P -> R).
+    Proof. imp_intuition. Qed.
+    
+    Inductive nor (P Q : Prop) :=
+    | stroke : ~ P -> ~ Q -> nor P Q.
+    
+    
+    
     (* ################################################################# *)
     (** * Review *)
     
