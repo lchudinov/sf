@@ -996,9 +996,54 @@ Qed.
     
     Inductive nor (P Q : Prop) :=
     | stroke : ~ P -> ~ Q -> nor P Q.
-    
-    
-    
+    Theorem nor_not_or : forall (P Q : Prop),
+    nor P Q -> ~ (P \/ Q).
+    Proof.
+      intros. destruct H. unfold not. intros. destruct H. auto. auto.
+    Qed.
+    Theorem nor_comm : forall (P Q : Prop),
+      nor P Q <-> nor Q P.
+    Proof.
+      intros P Q. split.
+      - intros H. destruct H. apply stroke; assumption.
+      - intros H. destruct H. apply stroke; assumption.
+    Qed.
+    Theorem nor_not : forall (P : Prop),
+        nor P P <-> ~P.
+    Proof.
+      intros P. split.
+      - intros H. destruct H. assumption.
+      - intros H. apply stroke; assumption.
+    Qed.
+    Ltac nor_intuition :=
+      repeat match goal with
+             | [ H : ?P |- ?P ] => apply H
+             | [ |- forall _, _ ] => intro
+             | [ H1 : ?P -> ?Q, H2 : ?P |- _ ] => apply H1 in H2
+             | [ |- ~ ?P ] => unfold not
+             | [ H : ?P \/ ?Q|- _ ] => destruct H
+             | [ H : nor ?P ?Q|- _ ] => destruct H
+             | [ H : ~ ?P |- _ ] => unfold not in H  
+             | [ |- ?P <-> ?Q ] => split  
+             | [ |- nor ?P ?Q ] => constructor
+             end.
+
+    Theorem nor_not_or' : forall (P Q : Prop),
+    nor P Q -> ~ (P \/ Q).
+    Proof.
+      nor_intuition.
+    Qed.
+    Theorem nor_comm' : forall (P Q : Prop),
+      nor P Q <-> nor Q P.
+    Proof.
+      nor_intuition.
+    Qed.
+    Theorem nor_not' : forall (P : Prop),
+        nor P P <-> ~P.
+    Proof.
+      nor_intuition.
+    Qed.
+         
     (* ################################################################# *)
     (** * Review *)
     
