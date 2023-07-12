@@ -99,6 +99,29 @@ Proof.
     unfold bequiv in Hb. simpl in Hb. apply Hb.
 Qed.
 
+Theorem swap_if_branches : forall b c1 c2,
+  cequive
+    <{ if b then c1 else c2 end }>
+    <{ if ~ b then c2 else c1 end }>.
+Proof.
+  unfold cequive. intros.
+  split; intros.
+  - inversion H; subst.
+    + apply E_IfFalse.
+      * simpl. rewrite H5. reflexivity.
+      * assumption.
+    + apply E_IfTrue.
+      * simpl. rewrite H5. reflexivity.
+      * assumption.
+  - inversion H; subst.
+    + apply E_IfFalse.
+      * simpl in H5. rewrite negb_true_iff in H5. assumption.
+      * simpl in H5. rewrite negb_true_iff in H5. assumption.
+    + apply E_IfTrue.
+      * simpl in H5. rewrite negb_false_iff in H5. assumption.
+      * assumption.
+Qed.
+
 
     
 
