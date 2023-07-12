@@ -122,6 +122,23 @@ Proof.
       * assumption.
 Qed.
 
+Theorem while_false : forall b c,
+  bequiv b <{false}> ->
+  cequive
+    <{ while b do c end }>
+    <{ skip }>.
+Proof.
+  intros b c Hb. split; intros H.
+  - inversion H; subst.
+    + apply E_Skip.
+    + rewrite Hb in H2. discriminate.
+  - inversion H; subst.
+    + apply E_WhileFalse. apply Hb.
+Qed.
+
+
+
+
 
     
 
