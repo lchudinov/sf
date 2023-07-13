@@ -136,6 +136,34 @@ Proof.
     + apply E_WhileFalse. apply Hb.
 Qed.
 
+Lemma while_true_nonterm : forall b c st st',
+  bequiv b <{ true }> -> 
+  ~ (st =[ while b do c end ]=> st').
+Proof.
+  intros b c st st' Hb.
+  intros H.
+  remember <{ while b do c end }> as cw eqn:Heqcw.
+  induction H; inversion Heqcw; subst; clear Heqcw.
+  - unfold bequiv in Hb. rewrite Hb in H. discriminate.
+  - apply IHceval2. reflexivity.
+Qed.
+
+Theorem while_true : forall b c,
+  bequiv b <{true}> ->
+  cequive
+    <{ while b do c end }>
+    <{ while true do skip end }>.
+Proof.
+  intros b c Hb. split; intros H; inversion H; subst.
+  - exfalso. apply (while_true_nonterm b c st' st' Hb). assumption.
+  - inversion H; subst.
+    + rewrite H2 in H7. discriminate.
+    + exfalso. apply (while_true_nonterm b c st' st').
+      * assumption.
+      * 
+  Abort.
+
+
 
 
 
