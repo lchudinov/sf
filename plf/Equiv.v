@@ -183,7 +183,23 @@ Qed.
 Theorem seq_assoc : forall c1 c2 c3,
   cequiv <{(c1;c2);c3}> <{c1;(c2;c3)}>.
 Proof.
-  
+  intros c1 c2 c3 st st'.
+  split; intros Hce.
+  - inversion Hce; subst. inversion H1; subst.
+    apply E_Seq with (st' := st'1).
+    + assumption.
+    + apply E_Seq with (st' := st'0).
+      * assumption.
+      * assumption.
+  - inversion Hce; subst.
+    inversion H4; subst.
+    apply E_Seq with (st' := st'1).
+    + apply E_Seq with (st' := st'0).
+      * assumption.
+      * assumption.
+    + assumption.
+Qed.
+    
 Qed.
 
 
