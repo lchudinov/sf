@@ -154,14 +154,11 @@ Theorem while_true : forall b c,
     <{ while b do c end }>
     <{ while true do skip end }>.
 Proof.
-  intros b c Hb. split; intros H; inversion H; subst.
-  - exfalso. apply (while_true_nonterm b c st' st' Hb). assumption.
-  - inversion H; subst.
-    + rewrite H2 in H7. discriminate.
-    + exfalso. apply (while_true_nonterm b c st' st').
-      * assumption.
-      * 
-  Abort.
+  intros b c Hb. split; intros H; 
+  exfalso; generalize dependent H; apply while_true_nonterm.
+  - assumption.
+  - unfold bequiv. reflexivity.
+Qed.
 
 
 
