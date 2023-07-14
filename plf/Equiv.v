@@ -33,7 +33,7 @@ Proof.
   intros st. unfold beval. rewrite aequiv_example. reflexivity.
 Qed.
 
-Definition cequive (c1 c2 : com) : Prop := 
+Definition cequiv (c1 c2 : com) : Prop := 
   forall (st st' : state),
   (st =[ c1 ]=> st') <-> (st =[ c2 ]=> st').
 
@@ -42,7 +42,7 @@ Definition refines (c1 c2 : com) : Prop :=
   (st =[ c1 ]=> st') -> (st =[ c2 ]=> st').
   
 Theorem skip_left : forall c,
-  cequive
+  cequiv
     <{ skip; c }>
     c .
 Proof.
@@ -57,7 +57,7 @@ Proof.
 Qed.
 
 Theorem skip_right : forall c,
-  cequive
+  cequiv
     <{ c; skip }>
     c .
 Proof.
@@ -71,7 +71,7 @@ Qed.
 
 Theorem if_true : forall b c1 c2,
   bequiv b <{ true }> ->
-  cequive <{ if b then c1 else c2 end }>
+  cequiv <{ if b then c1 else c2 end }>
   c1.
 Proof.
   intros b c1 c2 Hb.
@@ -87,7 +87,7 @@ Qed.
 
 Theorem if_false : forall b c1 c2,
   bequiv b <{ false }> ->
-  cequive <{ if b then c1 else c2 end }>
+  cequiv <{ if b then c1 else c2 end }>
   c2.
 Proof.
   intros b c1 c2 Hb.
@@ -100,11 +100,11 @@ Proof.
 Qed.
 
 Theorem swap_if_branches : forall b c1 c2,
-  cequive
+  cequiv
     <{ if b then c1 else c2 end }>
     <{ if ~ b then c2 else c1 end }>.
 Proof.
-  unfold cequive. intros.
+  unfold cequiv. intros.
   split; intros.
   - inversion H; subst.
     + apply E_IfFalse.
@@ -124,7 +124,7 @@ Qed.
 
 Theorem while_false : forall b c,
   bequiv b <{false}> ->
-  cequive
+  cequiv
     <{ while b do c end }>
     <{ skip }>.
 Proof.
@@ -150,7 +150,7 @@ Qed.
 
 Theorem while_true : forall b c,
   bequiv b <{true}> ->
-  cequive
+  cequiv
     <{ while b do c end }>
     <{ while true do skip end }>.
 Proof.
@@ -161,7 +161,7 @@ Proof.
 Qed.
 
 Theorem loop_unrolling : forall b c,
-  cequive
+  cequiv
     <{ while b do c end }>
     <{ if b then c ; while b do c end else skip end }>.
 Proof.
@@ -181,9 +181,9 @@ Proof.
 Qed.
 
 Theorem seq_assoc : forall c1 c2 c3,
-  cequive <{(c1;c2);c3}> <{c1;(c2;c3)}>.
+  cequiv <{(c1;c2);c3}> <{c1;(c2;c3)}>.
 Proof.
-Admitted.
+  
 Qed.
 
 
