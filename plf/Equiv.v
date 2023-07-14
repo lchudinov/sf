@@ -160,8 +160,31 @@ Proof.
   - unfold bequiv. reflexivity.
 Qed.
 
+Theorem loop_unrolling : forall b c,
+  cequive
+    <{ while b do c end }>
+    <{ if b then c ; while b do c end else skip end }>.
+Proof.
+  intros b c st st'.
+  split; intros Hce.
+  - inversion Hce; subst.
+    * apply E_IfFalse.
+      -- assumption.
+      -- apply E_Skip.
+    * apply E_IfTrue.
+      -- assumption.
+      -- apply E_Seq with (st' := st'0); assumption.
+  - inversion Hce; subst.
+    + inversion H5; subst.
+      apply E_WhileTrue with (st' := st'0); assumption.
+    + inversion H5; subst. apply E_WhileFalse. assumption.
+Qed.
 
-
+Theorem seq_assoc : forall c1 c2 c3,
+  cequive <{(c1;c2);c3}> <{c1;(c2;c3)}>.
+Proof.
+Admitted.
+Qed.
 
 
 
