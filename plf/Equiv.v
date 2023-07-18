@@ -199,8 +199,181 @@ Proof.
       * assumption.
     + assumption.
 Qed.
-    
+
+Theorem identity_assignment : forall x,
+  cequiv
+    <{ x := x }>
+    <{ skip }>.
+Proof.
+  intros.
+  split; intro H; inversion H; subst; clear H.
+  - (* -> *)
+    rewrite t_update_same.
+    apply E_Skip.
+  - (* <- *)
+    assert (Hx : st' =[ x := x ]=> (x !-> st' x ; st')).
+    { apply E_Asgn. reflexivity. }
+    rewrite t_update_same in Hx.
+    apply Hx.
 Qed.
+    
+Theorem assign_aequiv : forall (X : string) (a : aexp),
+  aequiv <{ X }> a ->
+  cequiv <{ skip }> <{ X := a }>.
+Proof.
+  unfold aequiv. intros X a Ha st st'. split; intro H; inversion H; subst; clear H.
+  Admitted.
+
+Definition prog_a : com :=
+  <{ while ~(X <= 0) do
+       X := X + 1
+     end }>.
+
+Definition prog_b : com :=
+  <{ if (X = 0) then
+       X := X + 1;
+       Y := 1
+     else
+       Y := 0
+     end;
+     X := X - Y;
+     Y := 0 }>.
+
+Definition prog_c : com :=
+  <{ skip }> .
+Definition prog_d : com :=
+  <{ while X <> 0 do
+       X := (X * Y) + 1
+     end }>.
+Definition prog_e : com :=
+  <{ Y := 0 }>.
+Definition prog_f : com :=
+  <{ Y := X + 1;
+     while X <> Y do
+       Y := X + 1
+     end }>.
+Definition prog_g : com :=
+  <{ while true do
+       skip
+     end }>.
+  Definition prog_h : com :=
+    <{ while X <> X do
+         X := X + 1
+       end }>.
+  Definition prog_i : com :=
+    <{ while X <> Y do
+         X := Y + 1
+       end }>.
+Definition equiv_classes : list (list com) :=
+[].
+
+Lemma refl_aequv : forall (a : aexp),
+  aequiv a a.
+Proof.
+  intros a st. reflexivity.
+Qed.
+
+Lemma sym_aequiv : forall (a1 a2 : aexp),
+  aequiv a1 a2 -> aequiv a2 a1.
+Proof.
+  intros a1 a2 H. intros st. symmetry. apply H. Qed.
+
+Lemma trans_aequiv : forall (a1 a2 a3 : aexp),
+  aequiv a1 a2 -> aequiv a2 a3 -> aequiv a1 a3.
+Proof.
+  unfold aequiv. intros a1 a2 a3 H12 H23 st.
+  rewrite H12. rewrite H23. reflexivity.
+Qed.
+
+Lemma refl_bequiv : forall (b : bexp),
+  bequiv b b.
+Proof.
+  unfold bequiv. intros b st. reflexivity.
+Qed.
+
+Lemma sym_bequiv : forall (b1 b2 : bexp),
+  bequiv b1 b2 -> bequiv b2 b1.
+Proof.
+  unfold bequiv. intros b1 b2 H. intros st. symmetry. apply H. Qed.
+
+Lemma trans_bequiv : forall (b1 b2 b3 : bexp),
+  bequiv b1 b2 -> bequiv b2 b3 -> bequiv b1 b3.
+Proof.
+  unfold bequiv. intros b1 b2 b3 H12 H23 st.
+  rewrite H12. rewrite H23. reflexivity.
+Qed.
+
+Lemma refl_cequiv : forall (c : com),
+  cequiv c c.
+Proof.
+  unfold cequiv. intros c st st'. reflexivity.
+Qed.
+
+Lemma sym_cequiv : forall (c1 c2 : com),
+  cequiv c1 c2 -> cequiv c2 c1.
+Proof.
+  unfold cequiv. intros c1 c2 H st st'.
+  rewrite H. reflexivity.
+Qed.
+
+Lemma trans_cequiv : forall (c1 c2 c3 : com),
+  cequiv c1 c2 -> cequiv c2 c3 -> cequiv c1 c3.
+Proof.
+  unfold cequiv. intros c1 c2 c3 H12 H23 st st'.
+  rewrite H12. apply H23.
+Qed.
+
+Theorem CAsgn_congruence : forall x a a',
+  aequiv a a' ->
+  cequiv <{x := a}> <{x := a'}>.
+Proof.
+  intros x a a' Heqv st st'.
+  split; intros Hceval.
+  - inversion Hceval. subst. apply E_Asgn. rewrite Heqv. reflexivity.
+  - inversion Hceval. subst. apply E_Asgn. rewrite Heqv. reflexivity.
+Qed.
+
+Theorem CWhile_congruence : forall b b' c c',
+  bequiv b b' -> cequiv c c' ->
+  cequiv <{ while b do c end }> <{ while b' do c' end }>.
+Proof.
+  assert (A: forall (b b' : bexp) (c c' : com) (st st' : state),
+      bequiv b b' -> cequiv c c' ->
+      st =[ while b do c end ]=> st' ->
+      st =[ while b' do c' end ]=> st').
+  {
+    unfold bequiv, cequiv.
+    intros b b' c c' st st' Hbe Hc1e Hce.
+    remember <{ while b do c end }> as cwhile eqn:Heqcwhile.
+    induction Hce; inversion Heqcwhile; subst.
+    + apply E_WhileFalse. rewrite <- Hbe. apply H.
+    + apply E_WhileTrue with (st' := st').
+      * rewrite <- Hbe. apply H.
+      * apply Hc1e. apply Hce1.
+      * apply IHHce2. reflexivity.
+  }
+  intros. split.
+  - apply A; assumption.
+  - apply A.
+    + apply sym_bequiv. assumption.
+    + apply sym_cequiv. assumption.
+Qed.
+
+Theorem CSeq_congruence : forall c1 c1' c2 c2',
+  cequiv c1 c1' -> cequiv c2 c2' ->
+  cequiv <{ c1;c2 }> <{ c1';c2' }>.
+Proof.
+  intros c1 c1' c2 c2' Hce1 Hce2 st st'.
+  split; intros H; inversion H; subst.
+  - apply E_Seq with st'0.
+    + apply Hce1. apply H2.
+    + apply Hce2. apply H5.
+  - apply E_Seq with st'0.
+    + apply Hce1. apply H2.
+    + apply Hce2. apply H5.
+Qed.    
+
+
 
 
 
