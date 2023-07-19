@@ -371,18 +371,198 @@ Proof.
   - apply E_Seq with st'0.
     + apply Hce1. apply H2.
     + apply Hce2. apply H5.
-Qed.    
+Qed.
 
+Theorem CIf_congruence : forall b b' c1 c1' c2 c2',
+  bequiv b b' -> cequiv c1 c1' -> cequiv c2 c2' ->
+  cequiv <{ if b then c1 else c2 end }>
+         <{ if b' then c1' else c2' end }>.
+Proof.
+  intros b b' c1 c1' c2 c2' Hbe Hce1 Hce2 st st'.
+  split; intros H; inversion H; subst.
+  - apply E_IfTrue.
+    * rewrite <- H5. apply sym_bequiv. assumption.
+    * unfold cequiv in Hce1. apply Hce1. assumption.
+  - apply E_IfFalse.
+    * unfold bequiv in Hbe. rewrite <- Hbe. assumption.
+    * unfold cequiv in Hce2. apply Hce2. assumption.
+  - apply E_IfTrue.
+    * unfold bequiv in Hbe. rewrite Hbe. assumption.
+    * unfold cequiv in Hce1. apply Hce1. assumption.
+  - apply E_IfFalse.
+    * unfold bequiv in Hbe. rewrite Hbe. assumption.
+    * unfold cequiv in Hce2. apply Hce2. assumption.
+Qed.
 
+Example congruence_example:
+  cequiv
+    (* Program 1: *)
+    <{ X := 0;
+       if (X = 0) then Y := 0
+       else Y := 42 end }>
+    (* Program 2: *)
+    <{ X := 0;
+       if (X = 0) then Y := X - X (* <--- Changed here *)
+       else Y := 42 end }>.
+Proof.
+  apply CSeq_congruence.
+  - apply refl_cequiv.
+  - apply CIf_congruence.
+    + apply refl_bequiv.
+    + apply CAsgn_congruence. unfold aequiv. simpl.
+      symmetry. apply minus_diag.
+    + apply refl_cequiv.
+Qed.
 
+Definition atrans_sound (atrans : aexp -> aexp) : Prop :=
+  forall (a : aexp),
+    aequiv a (atrans a).
+Definition btrans_sound (btrans : bexp -> bexp) : Prop :=
+  forall (b : bexp),
+    bequiv b (btrans b).
+Definition ctrans_sound (ctrans : com -> com) : Prop :=
+  forall (c : com),
+    cequiv c (ctrans c).
 
+Fixpoint fold_constants_aexp (a : aexp) : aexp :=
+  match a with
+  | ANum n => ANum n
+  | AId x => AId x
+  | <{ a1 + a2 }> =>
+    match (fold_constants_aexp a1,
+           fold_constants_aexp a2)
+    with
+    | (ANum n1, ANum n2) => ANum (n1 + n2)
+    | (a1', a2') => <{ a1' + a2' }>
+    end
+  | <{ a1 - a2 }> =>
+    match (fold_constants_aexp a1,
+           fold_constants_aexp a2)
+    with
+    | (ANum n1, ANum n2) => ANum (n1 - n2)
+    | (a1', a2') => <{ a1' - a2' }>
+    end
+  | <{ a1 * a2 }> =>
+    match (fold_constants_aexp a1,
+           fold_constants_aexp a2)
+    with
+    | (ANum n1, ANum n2) => ANum (n1 * n2)
+    | (a1', a2') => <{ a1' * a2' }>
+    end
+  end.
+Example fold_aexp_ex1 :
+    fold_constants_aexp <{ (1 + 2) * X }>
+  = <{ 3 * X }>.
+Proof. reflexivity. Qed.
 
-    
+Example fold_aexp_ex2 :
+  fold_constants_aexp <{ X - ((0 * 6) + Y) }> = <{ X - (0 + Y) }>.
+Proof. reflexivity. Qed.
 
-
-
-
+Fixpoint fold_constants_bexp (b : bexp) : bexp :=
+  match b with
+  | <{true}> => <{true}>
+  | <{false}> => <{false}>
+  | <{ a1 = a2 }> =>
+      match (fold_constants_aexp a1,
+             fold_constants_aexp a2) with
+      | (ANum n1, ANum n2) =>
+          if n1 =? n2 then <{true}> else <{false}>
+      | (a1', a2') =>
+          <{ a1' = a2' }>
+      end
+  | <{ a1 <> a2 }> =>
+      match (fold_constants_aexp a1,
+             fold_constants_aexp a2) with
+      | (ANum n1, ANum n2) =>
+          if negb (n1 =? n2) then <{true}> else <{false}>
+      | (a1', a2') =>
+          <{ a1' <> a2' }>
+      end
+  | <{ a1 <= a2 }> =>
+      match (fold_constants_aexp a1,
+             fold_constants_aexp a2) with
+      | (ANum n1, ANum n2) =>
+          if n1 <=? n2 then <{true}> else <{false}>
+      | (a1', a2') =>
+          <{ a1' <= a2' }>
+      end
+  | <{ a1 > a2 }> =>
+      match (fold_constants_aexp a1,
+             fold_constants_aexp a2) with
+      | (ANum n1, ANum n2) =>
+          if n1 <=? n2 then <{false}> else <{true}>
+      | (a1', a2') =>
+          <{ a1' > a2' }>
+      end
+  | <{ ~ b1 }> =>
+      match (fold_constants_bexp b1) with
+      | <{true}> => <{false}>
+      | <{false}> => <{true}>
+      | b1' => <{ ~ b1' }>
+      end
+  | <{ b1 && b2 }> =>
+      match (fold_constants_bexp b1,
+             fold_constants_bexp b2) with
+      | (<{true}>, <{true}>) => <{true}>
+      | (<{true}>, <{false}>) => <{false}>
+      | (<{false}>, <{true}>) => <{false}>
+      | (<{false}>, <{false}>) => <{false}>
+      | (b1', b2') => <{ b1' && b2' }>
+      end
+  end.
   
+Example fold_bexp_ex1 :
+  fold_constants_bexp <{ true && ~(false && true) }>
+  = <{ true }>.
+Proof. reflexivity. Qed.
 
+Example fold_bexp_ex2 :
+  fold_constants_bexp <{ (X = Y) && (0 = (2 - (1 + 1))) }>
+  = <{ (X = Y) && true }>.
+Proof. reflexivity. Qed.
 
-
+Fixpoint fold_constants_com (c : com) : com :=
+  match c with
+  | <{ skip }> =>
+      <{ skip }>
+  | <{ x := a }> =>
+      <{ x := (fold_constants_aexp a) }>
+  | <{ c1 ; c2 }> =>
+      <{ fold_constants_com c1 ; fold_constants_com c2 }>
+  | <{ if b then c1 else c2 end }> =>
+      match fold_constants_bexp b with
+      | <{true}> => fold_constants_com c1
+      | <{false}> => fold_constants_com c2
+      | b' => <{ if b' then fold_constants_com c1
+                       else fold_constants_com c2 end}>
+      end
+  | <{ while b do c1 end }> =>
+      match fold_constants_bexp b with
+      | <{true}> => <{ while true do skip end }>
+      | <{false}> => <{ skip }>
+      | b' => <{ while b' do (fold_constants_com c1) end }>
+      end
+  end.
+Example fold_com_ex1 :
+  fold_constants_com
+    (* Original program: *)
+    <{ X := 4 + 5;
+       Y := X - 3;
+       if ((X - Y) = (2 + 4)) then skip
+       else Y := 0 end;
+       if (0 <= (4 - (2 + 1))) then Y := 0
+       else skip end;
+       while (Y = 0) do
+         X := X + 1
+       end }>
+  = (* After constant folding: *)
+    <{ X := 9;
+       Y := X - 3;
+       if ((X - Y) = 6) then skip
+       else Y := 0 end;
+       Y := 0;
+       while (Y = 0) do
+         X := X + 1
+       end }>.
+Proof. reflexivity. Qed.
