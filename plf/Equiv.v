@@ -696,12 +696,43 @@ Fixpoint optimize_0plus_bexp (b : bexp) : bexp :=
   | <{ ~ b1 }> => <{ ~ (optimize_0plus_bexp b1) }>
   | _ => b
   end.
-Fixpoint optimize_0plus_com (c : com) : com
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Fixpoint optimize_0plus_com (c : com) : com :=
+  match c with
+  | <{ skip }> =>
+      <{ skip }>
+  | <{ x := a }> =>
+      <{ x := (optimize_0plus_aexp a) }>
+  | <{ c1 ; c2 }> =>
+      <{ optimize_0plus_com c1 ; optimize_0plus_com c2 }>
+  | <{ if b then c1 else c2 end }> =>
+      match optimize_0plus_bexp b with
+      | <{true}> => optimize_0plus_com c1
+      | <{false}> => optimize_0plus_com c2
+      | b' => <{ if b' then optimize_0plus_com c1
+                       else optimize_0plus_com c2 end}>
+      end
+  | <{ while b do c1 end }> =>
+      match optimize_0plus_bexp b with
+      | <{true}> => <{ while true do skip end }>
+      | <{false}> => <{ skip }>
+      | b' => <{ while b' do (optimize_0plus_com c1) end }>
+      end
+  end.
 Example test_optimize_0plus:
     optimize_0plus_com
-       <{ while X ≠ 0 do X := 0 + X - 1 end }>
-  = <{ while X ≠ 0 do X := X - 1 end }>.
+       <{ while X <> 0 do X := 0 + X - 1 end }>
+  = <{ while X <> 0 do X := X - 1 end }>.
 Proof.
-  (* FILL IN HERE *) Admitted.
-      
+  simpl. reflexivity.
+Qed.
+
+Theorem optimize_0plus_aexp_sound:
+  atrans_sound optimize_0plus_aexp.
+Proof.
+  unfold atrans_sound. intros a. unfold aequiv. intros st.
+  induction a.
+  - simpl. reflexivity.
+  - simpl. reflexivity.
+  - simpl.
+  Admitted.
+  
