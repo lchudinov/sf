@@ -729,10 +729,43 @@ Qed.
 Theorem optimize_0plus_aexp_sound:
   atrans_sound optimize_0plus_aexp.
 Proof.
-  unfold atrans_sound. intros a. unfold aequiv. intros st.
-  induction a.
-  - simpl. reflexivity.
-  - simpl. reflexivity.
+  unfold atrans_sound, aequiv. intros.
+  induction a; try (simpl; reflexivity).
+  - destruct a1.
+    + destruct n.
+      * simpl. apply IHa2.
+      * simpl. rewrite IHa2. reflexivity.
+    + simpl. rewrite IHa2. reflexivity.
+    + simpl. simpl in IHa1. rewrite IHa1. rewrite IHa2. reflexivity.
+    + simpl. simpl in IHa1. rewrite IHa1. rewrite IHa2. reflexivity.
+    + simpl. simpl in IHa1. rewrite IHa1. rewrite IHa2. reflexivity.
+  - simpl. rewrite IHa1. rewrite IHa2. reflexivity.
+  - simpl. rewrite IHa1. rewrite IHa2. reflexivity.
+Qed.
+
+Theorem optimize_0plus_bexp_sound :
+  btrans_sound optimize_0plus_bexp.
+Proof.
+  unfold btrans_sound, bequiv. intros.
+  induction b; try (simpl; reflexivity).
   - simpl.
-  Admitted.
+    remember (optimize_0plus_aexp a1) as a1' eqn:Heqa1'.
+    remember (optimize_0plus_aexp a2) as a2' eqn:Heqa2'.
+Admitted.
+
+Theorem optimize_0plus_com_sound :
+  ctrans_sound optimize_0plus_com.
+Proof.
+  (* FILL IN HERE *) Admitted.
   
+  Definition optimizer (c : com) := optimize_0plus_com (fold_constants_com c).
+  
+Theorem optimizer_sound :
+  ctrans_sound optimizer.
+Proof.
+  unfold ctrans_sound, optimizer; intros.
+  apply trans_cequiv with (fold_constants_com c).
+  - apply fold_constants_com_sound.
+  - apply (optimize_0plus_com_sound (fold_constants_com c)).
+  
+
