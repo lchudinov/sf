@@ -767,5 +767,93 @@ Proof.
   apply trans_cequiv with (fold_constants_com c).
   - apply fold_constants_com_sound.
   - apply (optimize_0plus_com_sound (fold_constants_com c)).
-  
+Qed.
 
+Fixpoint subst_aexp (x : string) (u : aexp) (a : aexp) : aexp :=
+  match a with
+  | ANum n =>
+      ANum n
+  | AId x' =>
+      if String.eqb x x' then u else AId x'
+  | <{ a1 + a2 }> =>
+      <{ (subst_aexp x u a1) + (subst_aexp x u a2) }>
+  | <{ a1 - a2 }> =>
+      <{ (subst_aexp x u a1) - (subst_aexp x u a2) }>
+  | <{ a1 * a2 }> =>
+      <{ (subst_aexp x u a1) * (subst_aexp x u a2) }>
+  end.
+
+Example subst_aexp_ex :
+  subst_aexp X <{42 + 53}> <{Y + X}>
+  = <{ Y + (42 + 53)}>.
+Proof. simpl. reflexivity. Qed.
+
+Definition subst_equiv_property : Prop := forall x1 x2 a1 a2,
+  cequiv <{ x1 := a1; x2 := a2 }>
+         <{ x1 := a1; x2 := subst_aexp x1 a1 a2 }>.
+         
+Theorem subst_inequiv :
+  ~ subst_equiv_property.
+Proof.
+unfold subst_equiv_property.
+intros Contra.
+(* Here is the counterexample: assuming that subst_equiv_property
+   holds allows us to prove that these two programs are
+   equivalent... *)
+remember <{ X := X + 1;
+            Y := X }>
+    as c1.
+remember <{ X := X + 1;
+            Y := X + 1 }>
+    as c2.
+assert (cequiv c1 c2) by (subst; apply Contra).
+clear Contra.
+(* ... allows us to show that the command c2 can terminate
+   in two different final states:
+      st1 = (Y !-> 1 ; X !-> 1)
+      st2 = (Y !-> 2 ; X !-> 1). *)
+remember (Y !-> 1 ; X !-> 1) as st1.
+remember (Y !-> 2 ; X !-> 1) as st2.
+assert (H1 : empty_st =[ c1 ]=> st1);
+assert (H2 : empty_st =[ c2 ]=> st2);
+try (subst;
+     apply E_Seq with (st' := (X !-> 1));
+     apply E_Asgn; reflexivity).
+clear Heqc1 Heqc2.
+apply H in H1.
+clear H.
+(* Finally, we use the fact that evaluation is deterministic
+   to obtain a contradiction. *)
+assert (Hcontra : st1 = st2)
+  by (apply (ceval_deterministic c2 empty_st); assumption).
+clear H1 H2.
+assert (Hcontra' : st1 Y = st2 Y)
+  by (rewrite Hcontra; reflexivity).
+subst. discriminate. Qed.
+
+Inductive var_not_used_in_aexp (x : string) : aexp -> Prop :=
+  | VNUNum : forall n, var_not_used_in_aexp x (ANum n)
+  | VNUId : forall y, x <> y -> var_not_used_in_aexp x (AId y)
+  | VNUPlus : forall a1 a2,
+      var_not_used_in_aexp x a1 ->
+      var_not_used_in_aexp x a2 ->
+      var_not_used_in_aexp x (<{ a1 + a2 }>)
+  | VNUMinus : forall a1 a2,
+      var_not_used_in_aexp x a1 ->
+      var_not_used_in_aexp x a2 ->
+      var_not_used_in_aexp x (<{ a1 - a2 }>)
+  | VNUMult : forall a1 a2,
+      var_not_used_in_aexp x a1 ->
+      var_not_used_in_aexp x a2 ->
+      var_not_used_in_aexp x (<{ a1 * a2 }>).
+      
+Lemma aeval_weakening : forall x st a ni,
+  var_not_used_in_aexp x a ->
+  aeval (x !-> ni ; st) a = aeval st a.
+Proof.
+  intros. induction H; try (simpl; reflexivity).
+  Admitted.
+
+  
+  - 
+      (* FILL IN HERE *) Admitted.
