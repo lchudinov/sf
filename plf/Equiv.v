@@ -851,9 +851,88 @@ Lemma aeval_weakening : forall x st a ni,
   var_not_used_in_aexp x a ->
   aeval (x !-> ni ; st) a = aeval st a.
 Proof.
-  intros. induction H; try (simpl; reflexivity).
   Admitted.
-
   
-  - 
-      (* FILL IN HERE *) Admitted.
+Theorem inequiv_exercise:
+  ~ cequiv <{ while true do skip end }> <{ skip }>.
+Proof.
+  unfold not, cequiv.
+  Admitted.
+  
+Module Himp.
+
+Inductive com : Type :=
+  | CSkip : com
+  | CAsgn : string -> aexp -> com
+  | CSeq : com -> com -> com
+  | CIf : bexp -> com -> com -> com
+  | CWhile : bexp -> com -> com
+  | CHavoc : string -> com.
+Notation "'havoc' l" := (CHavoc l)
+                          (in custom com at level 60, l constr at level 0).
+Notation "'skip'" :=
+         CSkip (in custom com at level 0).
+Notation "x := y" :=
+         (CAsgn x y)
+            (in custom com at level 0, x constr at level 0,
+             y at level 85, no associativity).
+Notation "x ; y" :=
+         (CSeq x y)
+           (in custom com at level 90, right associativity).
+Notation "'if' x 'then' y 'else' z 'end'" :=
+         (CIf x y z)
+           (in custom com at level 89, x at level 99,
+            y at level 99, z at level 99).
+Notation "'while' x 'do' y 'end'" :=
+         (CWhile x y)
+            (in custom com at level 89, x at level 99, y at level 99).
+
+Reserved Notation "st '=[' c ']=>' st'"
+(at level 40, c custom com at level 99, st constr,
+ st' constr at next level).
+
+Inductive ceval : com -> state -> state -> Prop :=
+  | E_Skip : forall st,
+      st =[ skip ]=> st
+  | E_Asgn : forall st a n x,
+      aeval st a = n ->
+      st =[ x := a ]=> (x !-> n ; st)
+  | E_Seq : forall c1 c2 st st' st'',
+      st =[ c1 ]=> st' ->
+      st' =[ c2 ]=> st'' ->
+      st =[ c1 ; c2 ]=> st''
+  | E_IfTrue : forall st st' b c1 c2,
+      beval st b = true ->
+      st =[ c1 ]=> st' ->
+      st =[ if b then c1 else c2 end ]=> st'
+  | E_IfFalse : forall st st' b c1 c2,
+      beval st b = false ->
+      st =[ c2 ]=> st' ->
+      st =[ if b then c1 else c2 end ]=> st'
+  | E_WhileFalse : forall b st c,
+      beval st b = false ->
+      st =[ while b do c end ]=> st
+  | E_WhileTrue : forall st st' st'' b c,
+      beval st b = true ->
+      st =[ c ]=> st' ->
+      st' =[ while b do c end ]=> st'' ->
+      st =[ while b do c end ]=> st''
+  | E_Havoc : forall st l n,
+      st =[ havoc l ]=> (l !-> n ; st)
+  where "st =[ c ]=> st'" := (ceval c st st').
+     
+Example havoc_example1 : empty_st =[ havoc X ]=> (X !-> 0).
+Proof.
+  constructor.
+Qed. 
+Example havoc_example2 :
+  empty_st =[ skip; havoc Z ]=> (Z !-> 42).
+Proof.
+  apply E_Seq with empty_st.
+  - constructor.
+  - constructor.
+Qed.
+
+Definition cequiv (c1 c2 : com) : Prop := forall st st' : state,
+  st =[ c1 ]=> st' <-> st =[ c2 ]=> st'.
+
