@@ -935,4 +935,69 @@ Qed.
 
 Definition cequiv (c1 c2 : com) : Prop := forall st st' : state,
   st =[ c1 ]=> st' <-> st =[ c2 ]=> st'.
+  
+Definition pXY :=
+  <{ havoc X ; havoc Y }>.
+Definition pYX :=
+  <{ havoc Y; havoc X }>.
+  
+Theorem pXY_cequiv_pYX :
+  cequiv pXY pYX \/ ~cequiv pXY pYX.
+Proof.
+  left. unfold pXY, pYX. split; intro.
+  - inversion H. inversion H2. inversion H2. subst.
+    apply E_Seq with (st' := Y !-> n0).
+  Admitted.
 
+Definition ptwice :=
+  <{ havoc X; havoc Y }>.
+Definition pcopy :=
+  <{ havoc X; Y := X }>.
+  
+  
+Theorem ptwice_cequiv_pcopy :
+  cequiv ptwice pcopy \/ ~cequiv ptwice pcopy.
+Proof. (* FILL IN HERE *) Admitted.
+
+Definition p1 : com :=
+  <{ while ~ (X = 0) do
+       havoc Y;
+       X := X + 1
+     end }>.
+Definition p2 : com :=
+  <{ while ~ (X = 0) do
+       skip
+     end }>.
+     
+Lemma p1_may_diverge : forall st st', st X <> 0 ->
+  ~ st =[ p1 ]=> st'.
+Proof. (* FILL IN HERE *) Admitted.
+Lemma p2_may_diverge : forall st st', st X <> 0 ->
+  ~ st =[ p2 ]=> st'.
+Proof.
+(* FILL IN HERE *) Admitted.
+
+Theorem p1_p2_equiv : cequiv p1 p2.
+Proof. (* FILL IN HERE *) Admitted.
+
+Definition p3 : com :=
+  <{ Z := 1;
+     while X <> 0 do
+       havoc X;
+       havoc Z
+     end }>.
+Definition p4 : com :=
+  <{ X := 0;
+     Z := 1 }>.
+Theorem p3_p4_inequiv : ~ cequiv p3 p4.
+Proof. (* FILL IN HERE *) Admitted.
+
+Definition p5 : com :=
+  <{ while X <> 1 do
+       havoc X
+     end }>.
+Definition p6 : com :=
+  <{ X := 1 }>.
+Theorem p5_p6_equiv : cequiv p5 p6.
+Proof. (* FILL IN HERE *) Admitted.
+End Himp.
