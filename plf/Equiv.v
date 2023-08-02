@@ -1001,3 +1001,36 @@ Definition p6 : com :=
 Theorem p5_p6_equiv : cequiv p5 p6.
 Proof. (* FILL IN HERE *) Admitted.
 End Himp.
+
+Theorem swap_noninterfering_assignments: forall l1 l2 a1 a2,
+  l1 <> l2 ->
+  var_not_used_in_aexp l1 a2 ->
+  var_not_used_in_aexp l2 a1 ->
+  cequiv
+    <{ l1 := a1; l2 := a2 }>
+    <{ l2 := a2; l1 := a1 }>.
+Proof.
+  intros. unfold cequiv. intros st st'. split; intros.
+  - inversion H0; inversion H1; inversion H2; subst.
+    + (* maybe *) apply E_Seq with (st' := (l2 !-> n; st)).
+Admitted.
+
+Definition capprox (c1 c2 : com) : Prop := forall (st st' : state),
+  st =[ c1 ]=> st' -> st =[ c2 ]=> st'.
+  
+Definition c3 : com :=
+<{ X := 1 }>.
+Definition c4 : com :=
+<{ X := 2 }>.
+Theorem c3_c4_different : ~ capprox c3 c4 /\ ~ capprox c4 c3.
+Proof.
+  split.
+  - unfold not, capprox, c3, c4.
+    Admitted.
+
+Require Import Coq.Logic.Classical_Prop.
+Lemma help1: ~ (forall x, x = x - 1).
+Proof. 
+    intros H.
+    (* apply classic in H. *)
+    Admitted.
