@@ -1026,11 +1026,27 @@ Theorem c3_c4_different : ~ capprox c3 c4 /\ ~ capprox c4 c3.
 Proof.
   split.
   - unfold not, capprox, c3, c4.
+    intros.
+    specialize (H empty_st (X !-> 1)).
+    
+    simpl in H.
     Admitted.
+    
+Definition cmin : com := 
+  <{ while true do
+       skip
+     end }>.
 
-Require Import Coq.Logic.Classical_Prop.
-Lemma help1: ~ (forall x, x = x - 1).
-Proof. 
-    intros H.
-    (* apply classic in H. *)
-    Admitted.
+Theorem cmin_minimal : forall c, capprox cmin c.
+Proof.
+  unfold capprox, cmin. intros. induction c;
+  apply while_true_nonterm in H; inversion H;
+  apply refl_bequiv.
+Qed.
+
+Definition zprop (c : com) : Prop
+  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Theorem zprop_preserving : forall c c',
+  zprop c -> capprox c c' -> zprop c'.
+Proof. (* FILL IN HERE *) Admitted.
+
