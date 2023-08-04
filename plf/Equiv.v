@@ -1017,7 +1017,7 @@ Admitted.
 
 Definition capprox (c1 c2 : com) : Prop := forall (st st' : state),
   st =[ c1 ]=> st' -> st =[ c2 ]=> st'.
-  
+
 Definition c3 : com :=
 <{ X := 1 }>.
 Definition c4 : com :=
@@ -1025,11 +1025,12 @@ Definition c4 : com :=
 Theorem c3_c4_different : ~ capprox c3 c4 /\ ~ capprox c4 c3.
 Proof.
   split.
-  - unfold not, capprox, c3, c4.
-    intros.
+  - unfold not, capprox, c3, c4. intros.
     specialize (H empty_st (X !-> 1)).
-    
-    simpl in H.
+    assert(empty_st =[ X := 1 ]=> (X !-> 1)).
+    + constructor. reflexivity.
+    + apply H in H0. clear H.
+      inversion H0; subst. simpl in H4.
     Admitted.
     
 Definition cmin : com := 
@@ -1039,9 +1040,10 @@ Definition cmin : com :=
 
 Theorem cmin_minimal : forall c, capprox cmin c.
 Proof.
-  unfold capprox, cmin. intros. induction c;
-  apply while_true_nonterm in H; inversion H;
-  apply refl_bequiv.
+  unfold capprox, cmin. intros. 
+  apply while_true_nonterm in H.
+  - induction c; inversion H.
+  - apply refl_bequiv.
 Qed.
 
 Definition zprop (c : com) : Prop
