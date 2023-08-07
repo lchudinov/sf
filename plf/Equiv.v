@@ -1031,6 +1031,8 @@ Proof.
     + constructor. reflexivity.
     + apply H in H0. clear H.
       inversion H0; subst. simpl in H4.
+      inversion H0; subst; clear H0.
+      simpl in H5. clear H5.
     Admitted.
     
 Definition cmin : com := 
