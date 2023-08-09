@@ -1019,20 +1019,51 @@ Definition capprox (c1 c2 : com) : Prop := forall (st st' : state),
   st =[ c1 ]=> st' -> st =[ c2 ]=> st'.
 
 Definition c3 : com :=
-<{ X := 1 }>.
+<{ skip }>.
 Definition c4 : com :=
-<{ X := 2 }>.
+<{ X := 0 }>.
 Theorem c3_c4_different : ~ capprox c3 c4 /\ ~ capprox c4 c3.
 Proof.
-  split.
-  - unfold not, capprox, c3, c4. intros.
-    specialize (H empty_st (X !-> 1)).
+  unfold capprox, c3, c4. split.
+  - intro.
+    assert ((X !-> 1) =[ skip ]=> (X !-> 1)).
+    { constructor. }
+    apply H in H0.
+    inversion H0; subst. simpl in H4. 
+    rewrite <- H4 in H5.
+    assert (HH: {X --> 1; X --> 0} = {X --> 1} -> 0 + 0 = 1).
+    
+  - unfold capprox. split.
+    intros H.
+    specialize (H empty_st empty_st).
+    assert (empty_st =[ skip ]=> empty_st).
+    {
+      constructor.
+    }
+    assert (empty_st =[ X := 2 ]=> (X !-> 2)).
+    {
+      constructor. reflexivity.
+    }
+    apply H in H0.
+    destruct H0.
+    + 
+
+    admit.
+
+    
+    
+    
+    
+    
+    
     assert(empty_st =[ X := 1 ]=> (X !-> 1)).
     + constructor. reflexivity.
     + apply H in H0. clear H.
       inversion H0; subst. simpl in H4.
       inversion H0; subst; clear H0.
       simpl in H5. clear H5.
+      unfold t_update in H4.
+      destruct (X =? x') in H4.
     Admitted.
     
 Definition cmin : com := 
