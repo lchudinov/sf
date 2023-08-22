@@ -21,4 +21,62 @@ Definition assn4 : Assertion := fun st => st Z = max (st X) (st Y).
 (* holds for states st in which value of Z equals max of values X and Y *)
 End ExAssertions.
 
+Definition assert_implies (P Q : Assertion) : Prop :=
+  forall st, P st -> Q st.
 
+Declare Scope hoare_spec_scope.
+
+Notation "P ->> Q" :=  (assert_implies P Q) (at level 80) : hoare_spec_scope.
+
+Open Scope hoare_spec_scope.
+
+Notation "P <<->> Q" :=  (P ->> Q /\ Q ->> P) (at level 80) : hoare_spec_scope.
+
+Definition Aexp : Type := state -> nat.
+Definition assert_of_Prop (P : Prop) : Assertion := fun _ => P.
+Definition Aexp_of_nat (n : nat) : Aexp := fun _ => n.
+Definition Aexp_of_aexp (a : aexp) : Aexp := fun st => aeval st a.
+Coercion assert_of_Prop : Sortclass >-> Assertion.
+Coercion Aexp_of_nat : nat >-> Aexp.
+Coercion Aexp_of_aexp : aexp >-> Aexp.
+Add Printing Coercion Aexp_of_nat Aexp_of_aexp assert_of_Prop.
+Arguments assert_of_Prop /.
+Arguments Aexp_of_nat /.
+Arguments Aexp_of_aexp /.
+Add Printing Coercion Aexp_of_nat Aexp_of_aexp assert_of_Prop.
+Declare Scope assertion_scope.
+Bind Scope assertion_scope with Assertion.
+Bind Scope assertion_scope with Aexp.
+Delimit Scope assertion_scope with assertion.
+Notation assert P := (P%assertion : Assertion).
+Notation mkAexp a := (a%assertion : Aexp).
+Notation "~ P" := (fun st => ~ assert P st) : assertion_scope.
+Notation "P /\ Q" := (fun st => assert P st /\ assert Q st) : assertion_scope.
+Notation "P \/ Q" := (fun st => assert P st \/ assert Q st) : assertion_scope.
+Notation "P -> Q" := (fun st => assert P st -> assert Q st) : assertion_scope.
+Notation "P <-> Q" := (fun st => assert P st <-> assert Q st) : assertion_scope.
+Notation "a = b" := (fun st => mkAexp a st = mkAexp b st) : assertion_scope.
+Notation "a <> b" := (fun st => mkAexp a st <> mkAexp b st) : assertion_scope.
+Notation "a <= b" := (fun st => mkAexp a st <= mkAexp b st) : assertion_scope.
+Notation "a < b" := (fun st => mkAexp a st < mkAexp b st) : assertion_scope.
+Notation "a >= b" := (fun st => mkAexp a st >= mkAexp b st) : assertion_scope.
+Notation "a > b" := (fun st => mkAexp a st > mkAexp b st) : assertion_scope.
+Notation "a + b" := (fun st => mkAexp a st + mkAexp b st) : assertion_scope.
+Notation "a - b" := (fun st => mkAexp a st - mkAexp b st) : assertion_scope.
+Notation "a * b" := (fun st => mkAexp a st * mkAexp b st) : assertion_scope.
+
+Definition ap {X} (f : nat -> X) (x : Aexp) :=
+  fun st => f (x st).
+
+Definition ap2 {X} (f : nat -> nat -> X) (x : Aexp) (y : Aexp) (st : state) :=
+  f (x st) (y st).
+Module ExamplePrettyAssertions.
+Definition ex1 : Assertion := X = 3.
+Definition ex2 : Assertion := True.
+Definition ex3 : Assertion := False.
+Definition assn1 : Assertion := X <= Y.
+Definition assn2 : Assertion := X = 3 \/ X <= Y.
+Definition assn3 : Assertion := Z = ap2 max X Y.
+Definition assn4 : Assertion := Z * Z <= X
+                            /\ ~ (((ap S Z) * (ap S Z)) <= X).
+End ExamplePrettyAssertions.
