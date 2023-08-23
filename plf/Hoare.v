@@ -107,3 +107,9 @@ Proof.
   unfold not in H. apply H in H1. inversion H1.
 Qed.
 
+Theorem hoare_skip : forall P, {{P}} skip {{P}}.
+Proof.
+  intros P st st' H HP. inversion H; subst. apply HP.
+Qed.
+  
+Qed.
