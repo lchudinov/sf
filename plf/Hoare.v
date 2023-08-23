@@ -80,3 +80,30 @@ Definition assn3 : Assertion := Z = ap2 max X Y.
 Definition assn4 : Assertion := Z * Z <= X
                             /\ ~ (((ap S Z) * (ap S Z)) <= X).
 End ExamplePrettyAssertions.
+
+Definition hoare_triple (P : Assertion) (c : com) (Q : Assertion) : Prop :=
+  forall st st',
+    st =[ c ]=> st' -> P st -> Q st'.
+
+Notation "{{ P }} c {{ Q }}" :=
+  (hoare_triple P c Q) (at level 90, c custom com at level 99)
+  : hoare_spec_scope.
+  
+Check ({{True}} X := 0 {{True}}).
+
+Theorem hoare_post_true : forall (P Q : Assertion) c,
+  (forall st, Q st) ->
+  {{P}} c {{Q}}.
+Proof.
+  intros. unfold hoare_triple. intros.
+  apply H.
+Qed.
+
+Theorem hoare_pre_false : forall (P Q : Assertion) c,
+  (forall st, ~ (P st)) ->
+  {{P}} c {{Q}}.
+Proof.
+  intros. unfold hoare_triple. intros.
+  unfold not in H. apply H in H1. inversion H1.
+Qed.
+
