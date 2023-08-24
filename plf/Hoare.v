@@ -112,4 +112,56 @@ Proof.
   intros P st st' H HP. inversion H; subst. apply HP.
 Qed.
   
+Theorem hoare_seq : forall P Q R c1 c2,
+  {{Q}} c2 {{R}} ->
+  {{P}} c1 {{Q}} ->
+  {{P}} c1; c2 {{R}}.
+Proof.
+  unfold hoare_triple.
+  intros. inversion H1; subst.
+  eauto.
 Qed.
+
+Definition assn_sub X a (P:Assertion) : Assertion :=
+  fun (st : state) =>
+    P (X !-> aeval st a ; st).
+Notation "P [ X |-> a ]" := (assn_sub X a P)
+  (at level 10, X at next level, a custom com) : hoare_spec_scope.
+  
+Theorem hoare_asgn : forall Q X a,
+  {{Q [X |-> a]}} X := a {{Q}}.
+Proof.
+  unfold hoare_triple.
+  intros Q X a st st' HE HQ.
+  inversion HE. subst.
+  unfold assn_sub in HQ.
+  assumption.
+Qed.
+
+Example assn_sub_example :
+  {{(X < 5) [X |-> X + 1]}}
+    X := X + 1
+  {{X < 5}}.
+Proof. apply hoare_asgn. Qed.
+
+Example hoare_asgn_examples1 :
+  exists P,
+    {{ P }}
+      X := 2 * X
+    {{ X <= 10 }}.
+Proof.
+  exists ( (X <= 10) [X |-> 2 * X] ).
+  apply hoare_asgn.
+Qed.
+
+Example hoare_asgn_examples2 :
+  exists P,
+    {{ P }}
+      X := 3
+    {{ 0 <= X /\ X <= 5 }}.
+Proof.
+  exists ( (0 <= X /\ X <= 5) [X |-> 3]).
+  apply hoare_asgn.
+Qed.
+
+
