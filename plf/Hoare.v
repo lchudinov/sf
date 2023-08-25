@@ -164,4 +164,33 @@ Proof.
   apply hoare_asgn.
 Qed.
 
+Theorem hoare_asgn_fwd :
+  forall m a P,
+  {{fun st => P st /\ st X = m}}
+    X := a
+  {{fun st => P (X !-> m ; st)
+           /\ st X = aeval (X !-> m ; st) a }}.
+Proof.
+  unfold hoare_triple. intros.
+  destruct H0. inversion H; subst.
+  split; rewrite t_update_shadow, t_update_same.
+  - assumption.
+  - reflexivity.
+Qed.
+
+Theorem hoare_asgn_fwd_exists :
+  forall a P,
+  {{fun st => P st}}
+    X := a
+  {{fun st => exists m, P (X !-> m ; st) /\ st X = aeval (X !-> m ; st) a }}.
+Proof.
+  unfold hoare_triple. intros.
+  exists (st X).
+  apply (hoare_asgn_fwd (st X) a P st st').
+  - assumption.
+  - split.
+    + assumption.
+    + reflexivity.
+Qed.
+
 
