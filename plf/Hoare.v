@@ -193,4 +193,63 @@ Proof.
     + reflexivity.
 Qed.
 
+Theorem hoare_consequence_pre : forall (P P' Q : Assertion) c,
+  {{P'}} c {{Q}} ->
+  P ->> P' ->
+  {{P}} c {{Q}}.
+Proof.
+  unfold hoare_triple, "->>".
+  intros P P' Q c Hhoare Himp st st' Heval Hpre.
+  apply Hhoare with (st := st).
+  - assumption.
+  - apply Himp. assumption.
+Qed.
 
+Theorem hoare_consequence_post : forall (P Q Q' : Assertion) c,
+  {{P}} c {{Q'}} ->
+  Q' ->> Q ->
+  {{P}} c {{Q}}.
+Proof.
+  unfold hoare_triple, "->>".
+  intros P Q Q' c Hhoare Himp st st' Heval Hpre.
+  apply Himp.
+  apply Hhoare with (st := st).
+  - assumption.
+  - assumption.
+Qed.
+
+Example hoare_asgn_example1 :
+  {{True}} X := 1 {{X = 1}}.
+Proof.
+  (* WORKED IN CLASS *)
+  eapply hoare_consequence_pre.
+  - apply hoare_asgn.
+  - unfold "->>", assn_sub, t_update.
+    intros st _. simpl. reflexivity.
+Qed.
+
+Example assn_sub_example2 :
+  {{X < 4}}
+    X := X + 1
+  {{X < 5}}.
+Proof.
+  (* WORKED IN CLASS *)
+  apply hoare_consequence_pre with (P' := (X < 5) [X |-> X + 1]).
+  - apply hoare_asgn.
+  - unfold "->>", assn_sub, t_update.
+    intros st H. simpl in *. lia.
+Qed.
+
+Theorem hoare_consequence : forall (P P' Q Q' : Assertion) c,
+  {{P'}} c {{Q'}} ->
+  P ->> P' ->
+  Q' ->> Q ->
+  {{P}} c {{Q}}.
+Proof.
+  intros P P' Q Q' c Htriple Hpre Hpost.
+  apply hoare_consequence_pre with (P' := P').
+  - apply hoare_consequence_post with (Q' := Q').
+    + assumption.
+    + assumption.
+  - assumption.
+Qed.
