@@ -253,3 +253,120 @@ Proof.
     + assumption.
   - assumption.
 Qed.
+
+Hint Unfold assert_implies hoare_triple assn_sub t_update : core.
+Hint Unfold assert_of_Prop Aexp_of_nat Aexp_of_aexp : core.
+
+Theorem hoare_consequence_pre' : forall (P P' Q : Assertion) c,
+  {{P'}} c {{Q}} ->
+  P ->> P' ->
+  {{P}} c {{Q}}.
+Proof.
+  unfold hoare_triple, "->>".
+  intros P P' Q c Hhoare Himp st st' Heval Hpre.
+  apply Hhoare with (st := st).
+  - assumption.
+  - apply Himp. assumption.
+Qed.
+
+Theorem hoare_consequence_pre'' : forall (P P' Q : Assertion) c,
+  {{P'}} c {{Q}} ->
+  P ->> P' ->
+  {{P}} c {{Q}}.
+Proof.
+  auto. (* no progress *)
+  Abort.
+  
+Theorem hoare_consequence_pre''' : forall (P P' Q : Assertion) c,
+  {{P'}} c {{Q}} ->
+  P ->> P' ->
+  {{P}} c {{Q}}.
+Proof.
+  unfold hoare_triple, "->>".
+  intros P P' Q c Hhoare Himp st st' Heval Hpre.
+  eapply Hhoare.
+  - eassumption.
+  - apply Himp. assumption.
+Qed.
+
+Theorem hoare_consequence_pre'''' : forall (P P' Q : Assertion) c,
+  {{P'}} c {{Q}} ->
+  P ->> P' ->
+  {{P}} c {{Q}}.
+Proof.
+  eauto.
+Qed.
+  
+Theorem hoare_consequence_post' : forall (P Q Q' : Assertion) c,
+  {{P}} c {{Q'}} ->
+  Q' ->> Q ->
+  {{P}} c {{Q}}.
+Proof.
+  eauto.
+Qed.
+
+Example hoare_asgn_example1' :
+  {{True}} X := 1 {{X = 1}}.
+Proof.
+  eapply hoare_consequence_pre.
+  - apply hoare_asgn.
+  - unfold "->>", assn_sub, t_update.
+    intros st _. simpl. reflexivity.
+Qed.
+
+Example hoare_asgn_example1'' :
+  {{True}} X := 1 {{X = 1}}.
+Proof.
+  eapply hoare_consequence_pre.
+  - apply hoare_asgn.
+  - auto.
+Qed.
+
+Example assn_sub_example2' :
+  {{X < 4}}
+    X := X + 1
+  {{X < 5}}.
+Proof.
+  eapply hoare_consequence_pre.
+  - apply hoare_asgn.
+  - auto. (* no progress *)
+    unfold "->>", assn_sub, t_update.
+    intros st H. simpl in *. lia.
+Qed.
+
+Ltac assn_auto :=
+  try auto; (* as in example 1, above *)
+  try (unfold "->>", assn_sub, t_update;
+       intros; simpl in *; lia). (* as in example 2 *)
+
+Example assn_sub_example2'' :
+   {{X < 4}}
+     X := X + 1
+   {{X < 5}}.
+Proof.
+   eapply hoare_consequence_pre.
+   - apply hoare_asgn.
+   - assn_auto.
+ Qed.
+ 
+Example assn_sub_ex1' :
+  {{ X <= 5 }}
+     X := 2 * X
+  {{ X <= 10 }}.
+Proof.
+  eapply hoare_consequence_pre.
+  - apply hoare_asgn.
+  - assn_auto.
+Qed.
+
+Example assn_sub_ex2' :
+  {{ 0 <= 3 /\ 3 <= 5 }}
+    X := 3
+  {{ 0 <= X /\ X <= 5 }}.
+Proof.
+  eapply hoare_consequence_pre.
+  - apply hoare_asgn.
+  - eauto.
+Qed.
+  
+
