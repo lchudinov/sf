@@ -369,4 +369,33 @@ Proof.
   - eauto.
 Qed.
   
+Example hoare_asgn_example3 : forall (a:aexp) (n:nat),
+  {{a = n}}
+    X := a;
+    skip
+  {{X = n}}.
+Proof.
+  intros a n. eapply hoare_seq.
+  - (* right part of seq *)
+    apply hoare_skip.
+  - (* left part of seq *)
+    eapply hoare_consequence_pre.
+    + apply hoare_asgn.
+    + assn_auto.
+Qed.
 
+Example hoare_asgn_example4 :
+  {{ True }}
+    X := 1;
+    Y := 2
+  {{ X = 1 /\ Y = 2 }}.
+Proof.
+  apply hoare_seq with (Q := (X = 1)%assertion).
+  (* The annotation %assertion is needed here to help Coq parse correctly. *)
+  - eapply hoare_consequence_pre.
+    + apply hoare_asgn.
+    + simpl. eauto.
+  - eapply hoare_consequence_pre.
+    + simpl. apply hoare_asgn.
+    + simpl. assn_auto.
+Qed.
