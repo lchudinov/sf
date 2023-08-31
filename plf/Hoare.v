@@ -399,3 +399,45 @@ Proof.
     + simpl. apply hoare_asgn.
     + simpl. assn_auto.
 Qed.
+
+Definition swap_program : com :=
+  <{ Z := X; Y := X; X := Z }>.
+  
+Theorem swap_exercise :
+  {{X <= Y}}
+    swap_program
+  {{Y <= X}}.
+Proof.
+  eapply hoare_seq.
+  - eapply hoare_seq.
+    + eapply hoare_asgn.
+    + eapply hoare_asgn.
+  - eapply hoare_consequence_pre.
+    + eapply hoare_asgn.
+    + simpl. intros st H. eauto.
+Qed.
+
+Lemma helper_for_invalid_triple:
+  empty_st =[ X := 3; Y := X ]=> (Y !-> 3; X !-> 3).
+Proof.
+  apply E_Seq with (st' := (X !-> 3)).
+  - constructor. reflexivity.
+  - apply E_Asgn. reflexivity.
+Qed.
+
+Theorem invalid_triple : ~ forall (a : aexp) (n : nat),
+    {{ a = n }}
+      X := 3; Y := a
+    {{ Y = n }}.
+Proof.
+  unfold hoare_triple.
+  intros H.
+  specialize H with (a := X) (n := 0) (st := empty_st) (st' := (X !-> 3; Y !-> 3)).
+  simpl in H.
+  assert (empty_st =[ X := 3; Y := X ]=> (Y !-> 3; X !-> 3)).
+  {
+    apply helper_for_invalid_triple.
+  }
+  
+  
+  
