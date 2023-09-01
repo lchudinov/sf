@@ -432,12 +432,17 @@ Theorem invalid_triple : ~ forall (a : aexp) (n : nat),
 Proof.
   unfold hoare_triple.
   intros H.
-  specialize H with (a := X) (n := 0) (st := empty_st) (st' := (X !-> 3; Y !-> 3)).
+  specialize H with (a := X) (n := 0) (st := empty_st).
   simpl in H.
   assert (empty_st =[ X := 3; Y := X ]=> (Y !-> 3; X !-> 3)).
   {
     apply helper_for_invalid_triple.
   }
-  
+  apply H in H0.
+  - inversion H0.
+  - reflexivity.
+Qed.
+
+
   
   
