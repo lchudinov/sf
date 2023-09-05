@@ -443,6 +443,110 @@ Proof.
   - reflexivity.
 Qed.
 
+Definition bassn b : Assertion :=
+  fun st => (beval st b = true).
+  
+Coercion bassn : bexp >-> Assertion.
+Arguments bassn /.
+
+Lemma bexp_eval_false : forall b st,
+  beval st b = false -> ~ ((bassn b) st).
+Proof.
+  congruence.
+Qed.
+
+Hint Resolve bexp_eval_false : core.
+
+Theorem hoare_if : forall P Q (b:bexp) c1 c2,
+  {{ P /\ b }} c1 {{Q}} ->
+  {{ P /\ ~ b}} c2 {{Q}} ->
+  {{P}} if b then c1 else c2 end {{Q}}.
+Proof.
+  intros P Q b c1 c2 HTrue HFalse st st' HE HP.
+  inversion HE; subst; eauto.
+Qed.
+
+Example if_example :
+  {{ True }}
+    if (X = 0)
+      then Y := 2
+      else Y := X + 1
+    end
+  {{ X <= Y }}.
+Proof.
+  apply hoare_if.
+  - eapply hoare_consequence_pre.
+    + apply hoare_asgn.
+    + assn_auto. (* no progress*)
+      unfold "->>", assn_sub, t_update, bassn.
+      simpl. intros st [_ H].
+      apply eqb_eq in H.
+      rewrite H. lia.
+  - eapply hoare_consequence_pre.
+    + apply hoare_asgn.
+    + assn_auto.
+Qed.
+
+Ltac assn_auto' :=
+  unfold "->>", assn_sub, t_update, bassn;
+  intros; simpl in *;
+  try rewrite -> eqb_eq in *; (* for equalities *)
+  auto; try lia.
+  
+Example if_example'' :
+  {{ True }}
+    if (X = 0)
+      then Y := 2
+      else Y := X + 1
+    end
+  {{ X <= Y }}.
+Proof.
+  apply hoare_if.
+  - eapply hoare_consequence_pre.
+    + apply hoare_asgn.
+    + assn_auto'.
+  - eapply hoare_consequence_pre.
+    + apply hoare_asgn.
+    + assn_auto'.
+Qed.
+
+Example if_example''' :
+  {{ True }}
+    if (X = 0)
+      then Y := 2
+      else Y := X + 1
+    end
+  {{ X <= Y }}.
+Proof.
+  apply hoare_if; eapply hoare_consequence_pre;
+  try apply hoare_asgn; try assn_auto'.
+Qed.
+
+Ltac assn_auto'' :=
+  unfold "->>", assn_sub, t_update, bassn;
+  intros; simpl in *;
+  try rewrite -> eqb_eq in *; (* for equalities *)
+  try rewrite -> leb_le in *; (* for inequalities *)
+  auto; try lia.
+
+Theorem if_minus_plus :
+  {{True}}
+    if (X <= Y)
+      then Z := Y - X
+      else Y := X + Z
+    end
+  {{Y = X + Z}}.
+Proof.
+  apply hoare_if;
+  eapply hoare_consequence_pre;
+  simpl; try apply hoare_asgn; assn_auto''.
+Qed.
+
+
+
+  
+  
+
 
   
   
