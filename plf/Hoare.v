@@ -630,7 +630,7 @@ Notation "{{ P }} c {{ Q }}" := (hoare_triple P c Q)
                                   
 Theorem hoare_if1 : forall P Q (b:bexp) c,
   {{ P /\ b }} c {{Q}} ->
-  P ->> Q /\ ~ b  ->
+  (P /\ ~ (bassn b))%assertion ->> Q  ->
   {{P}} if1 b then c end {{Q}}.
 Proof.
     intros P Q b c1 HTrue HFalse st st' HE HP.
@@ -652,6 +652,13 @@ Proof.
   auto.
 Qed.
 
+Ltac assn_auto''' :=
+  unfold "->>", assn_sub, t_update, bassn;
+  intros; simpl in *;
+  try rewrite -> eqb_eq in *; (* for equalities *)
+  try rewrite -> leb_le in *; (* for inequalities *)
+  auto; try lia.
+
 Lemma hoare_if1_good:
   {{ X + Y = Z }}
   if1 Y <> 0 then
@@ -659,11 +666,10 @@ Lemma hoare_if1_good:
   end
   {{ X = Z }}.
 Proof.
-  apply hoare_if1;
-  eapply hoare_consequence_pre;
-  simpl;
-  try apply hoare_asgn;
-  assn_auto''.
+  apply hoare_if1; eapply hoare_consequence_pre;
+  try apply hoare_asgn; try assn_auto''.
+  Qed.
+  try apply hoare_asgn; 
   
   
   
