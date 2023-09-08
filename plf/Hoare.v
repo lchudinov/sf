@@ -666,11 +666,20 @@ Lemma hoare_if1_good:
   end
   {{ X = Z }}.
 Proof.
-  apply hoare_if1; eapply hoare_consequence_pre;
-  try apply hoare_asgn; try assn_auto''.
-  Qed.
-  try apply hoare_asgn; 
-  
+  apply hoare_if1.
+  - eapply hoare_consequence_pre.
+    + apply hoare_asgn.
+    + intros st [H _]. simpl in *. assumption.
+  - intros st [H1 H2]. simpl in *.
+    destruct (st Y =? 0) eqn:EqnY.
+    + simpl in *. rewrite eqb_eq in *.
+      rewrite <- H1. rewrite EqnY. eauto.
+    + simpl in *. contradiction.
+Qed.
+
+End If1.
+
+
   
   
 
