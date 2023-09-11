@@ -719,17 +719,71 @@ Proof.
   - simpl. intros st [Hinv Hguard]. congruence.
 Qed.
 
+Module RepeatExercise.
+Inductive com : Type :=
+  | CSkip : com
+  | CAsgn : string -> aexp -> com
+  | CSeq : com -> com -> com
+  | CIf : bexp -> com -> com -> com
+  | CWhile : bexp -> com -> com
+  | CRepeat : com -> bexp -> com.
 
+Notation "'repeat' e1 'until' b2 'end'" :=
+          (CRepeat e1 b2)
+              (in custom com at level 0,
+               e1 custom com at level 99, b2 custom com at level 99).
+Notation "'skip'" :=
+         CSkip (in custom com at level 0).
+Notation "x := y" :=
+         (CAsgn x y)
+            (in custom com at level 0, x constr at level 0,
+             y at level 85, no associativity).
+Notation "x ; y" :=
+         (CSeq x y)
+           (in custom com at level 90, right associativity).
+Notation "'if' x 'then' y 'else' z 'end'" :=
+         (CIf x y z)
+           (in custom com at level 89, x at level 99,
+            y at level 99, z at level 99).
+Notation "'while' x 'do' y 'end'" :=
+         (CWhile x y)
+            (in custom com at level 89, x at level 99, y at level 99).
 
+Inductive ceval : state -> com -> state -> Prop :=
+  | E_Skip : forall st,
+      st =[ skip ]=> st
+  | E_Asgn : forall st a1 n x,
+      aeval st a1 = n ->
+      st =[ x := a1 ]=> (x !-> n ; st)
+  | E_Seq : forall c1 c2 st st' st'',
+      st =[ c1 ]=> st' ->
+      st' =[ c2 ]=> st'' ->
+      st =[ c1 ; c2 ]=> st''
+  | E_IfTrue : forall st st' b c1 c2,
+      beval st b = true ->
+      st =[ c1 ]=> st' ->
+      st =[ if b then c1 else c2 end ]=> st'
+  | E_IfFalse : forall st st' b c1 c2,
+      beval st b = false ->
+      st =[ c2 ]=> st' ->
+      st =[ if b then c1 else c2 end ]=> st'
+  | E_WhileFalse : forall b st c,
+      beval st b = false ->
+      st =[ while b do c end ]=> st
+  | E_WhileTrue : forall st st' st'' b c,
+      beval st b = true ->
+      st =[ c ]=> st' ->
+      st' =[ while b do c end ]=> st'' ->
+      st =[ while b do c end ]=> st''
+  | E_RepatFalse : forall b st st' c,
+      beval st b = false ->
+      st =[ c ]=> st' ->
+      st =[ repeat c until b end ]=> st'
+  | E_RepeatTrue : forall st st' st'' b c,
+      beval st b = true ->
+      st =[ c ]=> st' ->
+      st' =[ repeat c until b end ]=> st'' ->
+      st =[ repeat c until b end ]=> st''
 
-  
-  
+where "st '=[' c ']=>' st'" := (ceval st c st').
 
-
-
-  
-  
-
-
-  
-  
