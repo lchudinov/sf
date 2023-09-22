@@ -175,3 +175,146 @@ Example dec_while : decorated :=
     {{ True /\ X = 0 }} ->> {{ X = 0 }}
   }>.
   
+Fixpoint extract (d : dcom) : com :=
+  match d with
+  | DCSkip _ => CSkip
+  | DCSeq d1 d2 => CSeq (extract d1) (extract d2)
+  | DCAsgn X a _ => CAsgn X a
+  | DCIf b _ d1 _ d2 _ => CIf b (extract d1) (extract d2)
+  | DCWhile b _ d _ => CWhile b (extract d)
+  | DCPre _ d => extract d
+  | DCPost d _ => extract d
+  end.
+  
+Definition extract_dec (dec : decorated) : com :=
+  match dec with
+  | Decorated P d => extract d
+  end.
+  
+Example extract_while_ex :
+  extract_dec dec_while
+= <{while X <> 0 do X := X - 1 end}>.
+Proof.
+  unfold dec_while.
+  simpl.
+  reflexivity.
+Qed.
+
+Definition pre_dec (dec : decorated) : Assertion :=
+  match dec with
+  | Decorated P d => P
+  end.
+  
+Fixpoint post (d : dcom) : Assertion :=
+  match d with
+  | DCSkip P => P
+  | DCSeq _ d2 => post d2
+  | DCAsgn _ _ Q => Q
+  | DCIf _ _ _ _ _ Q => Q
+  | DCWhile _ _ _ Q => Q
+  | DCPre _ d => post d
+  | DCPost _ Q => Q
+  end.
+  
+Definition post_dec (dec : decorated) : Assertion :=
+  match dec with
+  | Decorated P d => post d
+  end.
+  
+Example pre_dec_while : pre_dec dec_while = True.
+Proof. reflexivity. Qed.
+Example post_dec_while : post_dec dec_while = (X = 0)%assertion.
+Proof. reflexivity. Qed.
+
+Definition outer_triple_valid (dec : decorated) :=
+  {{pre_dec dec}} extract_dec dec {{post_dec dec}}.
+  
+Example dec_while_triple_correct :
+  outer_triple_valid dec_while
+=
+  {{ True }}
+    while X <> 0 do X := X - 1 end
+  {{ X = 0 }}.
+Proof. reflexivity. Qed.
+
+Fixpoint verification_conditions (P : Assertion) (d : dcom) : Prop :=
+  match d with
+  | DCSkip Q =>
+      (P ->> Q)
+  | DCSeq d1 d2 =>
+      verification_conditions P d1
+      /\ verification_conditions (post d1) d2
+  | DCAsgn X a Q =>
+      (P ->> Q [X |-> a])
+  | DCIf b P1 d1 P2 d2 Q =>
+      ((P /\ b) ->> P1)%assertion
+      /\ ((P /\ ~ b) ->> P2)%assertion
+      /\ (post d1 ->> Q) /\ (post d2 ->> Q)
+      /\ verification_conditions P1 d1
+      /\ verification_conditions P2 d2
+  | DCWhile b Pbody d Ppost =>
+      (* post d is the loop invariant and the initial
+         precondition *)
+      (P ->> post d)
+      /\ ((post d /\ b) ->> Pbody)%assertion
+      /\ ((post d /\ ~ b) ->> Ppost)%assertion
+      /\ verification_conditions Pbody d
+  | DCPre P' d =>
+      (P ->> P')
+      /\ verification_conditions P' d
+  | DCPost d Q =>
+      verification_conditions P d
+      /\ (post d ->> Q)
+  end.
+  
+Theorem verification_correct : forall d P,
+  verification_conditions P d -> {{P}} extract d {{post d}}.
+Proof.
+  induction d; intros; simpl in *.
+  - (* Skip *)
+    eapply hoare_consequence_pre.
+      + apply hoare_skip.
+      + assumption.
+  - (* Seq *)
+    destruct H as [H1 H2].
+    eapply hoare_seq.
+      + apply IHd2. apply H2.
+      + apply IHd1. apply H1.
+  - (* Asgn *)
+    eapply hoare_consequence_pre.
+      + apply hoare_asgn.
+      + assumption.
+  - (* If *)
+    destruct H as [HPre1 [HPre2 [Hd1 [Hd2 [HThen HElse] ] ] ] ].
+    apply IHd1 in HThen. clear IHd1.
+    apply IHd2 in HElse. clear IHd2.
+    apply hoare_if.
+      + eapply hoare_consequence; eauto.
+      + eapply hoare_consequence; eauto.
+  - (* While *)
+    destruct H as [Hpre [Hbody1 [Hpost1 Hd] ] ].
+    eapply hoare_consequence; eauto.
+    apply hoare_while.
+    eapply hoare_consequence_pre; eauto.
+  - (* Pre *)
+    destruct H as [HP Hd].
+    eapply hoare_consequence_pre; eauto.
+  - (* Post *)
+    destruct H as [Hd HQ].
+    eapply hoare_consequence_post; eauto.
+Qed.
+
+Definition verification_conditions_dec
+              (dec : decorated) : Prop :=
+  match dec with
+  | Decorated P d => verification_conditions P d
+  end.
+Corollary verification_correct_dec : forall dec,
+  verification_conditions_dec dec ->
+  outer_triple_valid dec.
+Proof.
+  intros [P d]. apply verification_correct.
+Qed.
+
+
+  
