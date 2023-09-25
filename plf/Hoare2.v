@@ -316,5 +316,95 @@ Proof.
   intros [P d]. apply verification_correct.
 Qed.
 
+Eval simpl in verification_conditions_dec dec_while.
+Example vc_dec_while: verification_conditions_dec dec_while.
+Proof. verify_assn. Qed.
+
+Ltac verify :=
+  intros;
+  apply verification_correct;
+  verify_assn.
+  
+Theorem dec_while_correct :
+  outer_triple_valid dec_while.
+Proof. verify. Qed.
+
+Definition swap_dec (m n : nat) : decorated :=
+  <{
+    {{ X = m /\ Y = n }} ->>
+      {{ (X + Y) - ((X + Y) - Y) = n /\ (X + Y) - Y = m }}
+    X := X + Y
+      {{ X - (X - Y) = n /\ X - Y = m }};
+    Y := X - Y
+      {{ X - Y = n /\ Y = m }};
+    X := X - Y
+    {{ X = n /\ Y = m}}
+  }>.
+Theorem swap_correct : forall m n,
+  outer_triple_valid (swap_dec m n).
+Proof. verify. Qed.
+
+Definition positive_difference_dec :=
+  <{
+    {{True}}
+    if X <= Y then
+          {{True /\ X <= Y}} ->>
+          {{(Y - X) + X = Y
+                   \/ (Y - X) + Y = X}}
+      Z := Y - X
+          {{Z + X = Y \/ Z + Y = X}}
+    else
+          {{True /\ ~(X <= Y)}} ->>
+          {{(X - Y) + X = Y
+                   \/ (X - Y) + Y = X}}
+      Z := X - Y
+          {{Z + X = Y \/ Z + Y = X}}
+    end
+    {{Z + X = Y \/ Z + Y = X}}
+  }>.
+Theorem positive_difference_correct :
+  outer_triple_valid positive_difference_dec.
+Proof. verify. Qed.
+
+Definition if_minus_plus_dec :=
+  <{
+  {{True}}
+  if (X <= Y) then
+              {{ True /\ X <= Y }} ->>
+              {{ Y = X + (Y - X) }}
+    Z := Y - X
+              {{ Y = X + Z }}
+  else
+              {{ True /\ ~(X <= Y) }} ->>
+              {{ X + Z = X + Z }}
+    Y := X + Z
+              {{ Y = X + Z }}
+  end
+  {{ Y = X + Z }} }>.
+Theorem if_minus_plus_correct :
+  outer_triple_valid if_minus_plus_dec.
+Proof. verify. Qed.
+
+Definition div_mod_dec (a b : nat) : decorated :=
+  <{
+  {{ True }} ->>
+  {{ FILL_IN_HERE }}
+    X := a
+             {{ FILL_IN_HERE }};
+    Y := 0
+             {{ FILL_IN_HERE }};
+    while b <= X do
+             {{ FILL_IN_HERE }} ->>
+             {{ FILL_IN_HERE }}
+      X := X - b
+             {{ FILL_IN_HERE }};
+      Y := Y + 1
+             {{ FILL_IN_HERE }}
+    end
+  {{ FILL_IN_HERE }} ->>
+  {{ FILL_IN_HERE }} }>.
+Theorem div_mod_outer_triple_valid : forall a b,
+  outer_triple_valid (div_mod_dec a b).
+Proof. Admitted.
 
   
