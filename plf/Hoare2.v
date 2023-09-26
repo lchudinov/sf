@@ -407,4 +407,44 @@ Theorem div_mod_outer_triple_valid : forall a b,
   outer_triple_valid (div_mod_dec a b).
 Proof. Admitted.
 
+Example subtract_slowly_dec (m : nat) (p : nat) : decorated :=
+  <{
+  {{ X = m /\ Z = p }} ->>
+  {{ Z - X = p - m }}
+    while X <> 0 do
+                  {{ Z - X = p - m /\ X <> 0 }} ->>
+                  {{ (Z - 1) - (X - 1) = p - m }}
+       Z := Z - 1
+                  {{ Z - (X - 1) = p - m }} ;
+       X := X - 1
+                  {{ Z - X = p - m }}
+    end
+  {{ Z - X = p - m /\ X = 0 }} ->>
+  {{ Z = p - m }} }>.
   
+Theorem subtract_slowly_outer_triple_valid : forall m p,
+  outer_triple_valid (subtract_slowly_dec m p).
+Proof. verify. Qed.
+
+Example slow_assignment_dec (m : nat) : decorated :=
+  <{
+    {{ X = m }}
+      Y := 0
+                    {{ X = m /\ Y = 0 }} ->>
+                    {{ X + Y = m }} ;
+      while X <> 0 do
+                    {{ X + Y = m /\ (X <> 0) }} ->>
+                    {{ (X - 1) + (Y + 1) = m }}
+         X := X - 1
+                    {{ X + (Y + 1) = m }} ;
+         Y := Y + 1
+                    {{ X + Y = m }}
+      end
+    {{ X + Y = m /\ ~(X <> 0) }} ->>
+    {{ Y = m }}
+  }>.
+
+Theorem slow_assignment : forall m,
+  outer_triple_valid (slow_assignment_dec m).
+Proof. verify. Qed.
+
