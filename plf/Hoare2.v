@@ -448,3 +448,94 @@ Theorem slow_assignment : forall m,
   outer_triple_valid (slow_assignment_dec m).
 Proof. verify. Qed.
 
+Fixpoint parity x :=
+  match x with
+  | 0 => 0
+  | 1 => 1
+  | S (S x') => parity x'
+  end.
+  
+Definition parity_dec (m:nat) : decorated :=
+  <{
+  {{ X = m }} ->>
+  {{ ap parity X = parity m }}
+    while 2 <= X do
+                  {{ ap parity X = parity m /\ X <= 2 }} ->>
+                  {{ ap parity (X - 2) = parity m }}
+      X := X - 2
+                  {{ ap parity X = parity m }}
+    end
+  {{ ap parity X = parity m /\ ~(2 <= X) }} ->>
+  {{ X = parity m }} }>.
+  
+Lemma parity_ge_2 : forall x,
+  2 <= x -> parity (x - 2) = parity x.
+Proof.
+  destruct x; intros; simpl.
+  - reflexivity.
+  - destruct x; simpl.
+    + lia.
+    + rewrite sub_0_r. reflexivity.
+Qed.
+
+Lemma parity_lt_2 : forall x,
+  ~ 2 <= x -> parity x = x.
+Proof.
+  induction x; intros; simpl.
+  - reflexivity.
+  - destruct x.
+    + reflexivity.
+    + lia.
+Qed.
+
+Theorem parity_outer_triple_valid : forall m,
+  outer_triple_valid (parity_dec m).
+Proof.
+  verify.
+  Admitted.
+
+Definition sqrt_dec (m:nat) : decorated :=
+  <{
+    {{ X = m }} ->>
+    {{ X = m /\ 0 * 0 <= m }}
+      Z := 0
+                   {{ X = m /\ Z * Z <= m }};
+      while ((Z+1)*(Z+1) <= X) do
+                   {{ X = m /\ Z * Z <= m /\ ((Z + 1)*(Z + 1) <= X) }} ->>
+                   {{ X = m /\ (Z + 1) * (Z + 1) <= m }}
+        Z := Z + 1
+                   {{ X = m /\ Z * Z <= m }}
+      end
+    {{ X = m /\ Z * Z <= m /\ ~((Z + 1)*(Z + 1) <= X) }} ->>
+    {{ Z*Z <= m /\ m < (Z+1)*(Z+1) }}
+  }>.
+Theorem sqrt_correct : forall m,
+  outer_triple_valid (sqrt_dec m).
+Proof. verify. Qed.
+
+Definition sqr_dec (m : nat) : decorated :=
+<{
+  {{ X = m }} ->>
+  {{ 0 = 0*m /\ X = m }}
+    Y := 0
+                  {{ 0 = Y*m /\ X = m }};
+    Z := 0
+                  {{ Z = Y*m /\ X = m }};
+    while Y <> X do
+                  {{ Z = Y*m /\ X = m /\ Y <> X }} ->>
+                  {{ Z+X = (Y+1)*m /\ X = m }}
+      Z := Z + X
+                  {{ Z = (Y+1)*m /\ X = m }};
+      Y := Y + 1
+                  {{ Z = Y*m /\ X = m }}
+    end
+  {{ Z = Y*m /\ X = m /\ ~(Y <> X) }} ->>
+  {{ Z = m*m }}
+}>.
+
+Theorem sqr_correct : forall m,
+  outer_triple_valid (sqr_dec m).
+Proof. verify. Qed.
+
+
+
