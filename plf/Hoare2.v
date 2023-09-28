@@ -537,5 +537,38 @@ Theorem sqr_correct : forall m,
   outer_triple_valid (sqr_dec m).
 Proof. verify. Qed.
 
+Fixpoint fact (n : nat) : nat :=
+  match n with
+  | O => 1
+  | S n' => n * (fact n')
+  end.
+
+Definition factorial_dec (m : nat) : decorated :=
+  <{
+    {{ X = m }} ->>
+      {{ 1 * 1 = ap fact 1 }}
+      Z := 1
+          {{ Z * 1 = ap fact Z }};
+      Y := 1
+            {{ Z * Y = ap fact Z }} ;
+      while Z <= X do
+                    {{ Z * Y = ap fact Z /\ (Z <= X) }} ->>
+                    {{ (1 + Z) * Y * Z  = ap fact (1 + Z) }}
+         Y := Y * Z
+                    {{ (1 + Z) * Y  = ap fact (1 + Z) }} ;
+         Z := 1 + Z
+                    {{ Z * Y = ap fact Z }}
+      end
+    {{ Z * Y = ap fact Z /\ ~(Z <= X) }} ->>
+    {{ Y = fact m }}
+  }>.
+  
+Theorem factorial_correct: forall m,
+  outer_triple_valid (factorial_dec m).
+Proof.
+  verify.
+  unfold fact in H.
+  
+
 
 
