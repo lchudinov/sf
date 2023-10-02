@@ -594,8 +594,86 @@ Definition minimum_dec (a b : nat) : decorated :=
   }>.
 Theorem minimum_correct : forall a b,
   outer_triple_valid (minimum_dec a b).
-Proof. verify. Admitted.
-  
+Proof. intros a b. verify. Admitted.
 
+Definition two_loops_dec (a b c : nat) : decorated :=
+  <{
+    {{ True }} ->>
+    {{ c = 0 + c /\ 0 = 0 }}
+      X := 0
+                   {{ c = X + c /\ 0 = 0}};
+      Y := 0
+                   {{ c = X + c /\ Y = 0}};
+      Z := c
+                   {{ Z = X + c /\ Y = 0 }};
+      while X <> a do
+                   {{ Z = X + c /\ Y = 0 /\ (X <> a) }} ->>
+                   {{ (Z + 1) = (X + 1) + c /\ Y = 0}}
+        X := X + 1
+                   {{ (Z + 1) = X + c /\ Y = 0}};
+        Z := Z + 1
+                   {{ Z = X + c /\ Y = 0 }}
+      end
+                   {{ Z = X + c /\ Y = 0 /\ ~(X <> a) }} ->>
+                   {{ Z = a +  Y + c }};
+      while Y <> b do
+                   {{ Z = a + Y + c /\ (Y <> b) }} ->>
+                   {{ Z + 1 = a + (Y + 1) + c }}
+        Y := Y + 1
+                   {{ Z + 1 = a + Y + c }};
+        Z := Z + 1
+                   {{ Z = a + Y + c }}
+      end
+    {{ Z = a + Y + c  /\ ~(Y <> b)}} ->>
+    {{ Z = a + b + c }}
+  }>.
+Theorem two_loops : forall a b c,
+  outer_triple_valid (two_loops_dec a b c).
+Proof. intros a b c. verify.
+Qed.
+
+Fixpoint pow2 n :=
+  match n with
+  | 0 => 1
+  | S n' => 2 * (pow2 n')
+  end.
+Definition dpow2_dec (n : nat) :=
+  <{
+    {{ True }} ->>
+    {{ FILL_IN_HERE }}
+      X := 0
+               {{ FILL_IN_HERE }};
+      Y := 1
+               {{ FILL_IN_HERE }};
+      Z := 1
+               {{ FILL_IN_HERE }};
+      while X <> n do
+               {{ FILL_IN_HERE }} ->>
+               {{ FILL_IN_HERE }}
+        Z := 2 * Z
+               {{ FILL_IN_HERE }};
+        Y := Y + Z
+               {{ FILL_IN_HERE }};
+        X := X + 1
+               {{ FILL_IN_HERE }}
+      end
+    {{ FILL_IN_HERE }} ->>
+    {{ Y = pow2 (n+1) - 1 }}
+  }>.
+Lemma pow2_plus_1 : forall n,
+  pow2 (n+1) = pow2 n + pow2 n.
+Proof.
+  induction n; simpl.
+  - reflexivity.
+  - lia.
+Qed.
+Lemma pow2_le_1 : forall n, pow2 n >= 1.
+Proof.
+  induction n; simpl; [constructor | lia].
+Qed.
+Theorem dpow2_down_correct : forall n,
+  outer_triple_valid (dpow2_dec n).
+Proof.
+  (* FILL IN HERE *) Admitted.
 
 
