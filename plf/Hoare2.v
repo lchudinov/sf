@@ -640,25 +640,25 @@ Fixpoint pow2 n :=
 Definition dpow2_dec (n : nat) :=
   <{
     {{ True }} ->>
-    {{ FILL_IN_HERE }}
+    {{ 1 = pow2 (0 + 1) - 1 /\ 1 = pow2 0 }}
       X := 0
-               {{ FILL_IN_HERE }};
+               {{ 1 = ap pow2 (X + 1) - 1 /\ 1 = ap pow2 X }};
       Y := 1
-               {{ FILL_IN_HERE }};
+               {{ Y = ap pow2 (X + 1) - 1 /\ 1 = ap pow2 X }};
       Z := 1
-               {{ FILL_IN_HERE }};
+               {{ Y = ap pow2 (X + 1) - 1 /\ Z = ap pow2 X }};
       while X <> n do
-               {{ FILL_IN_HERE }} ->>
-               {{ FILL_IN_HERE }}
+               {{ Y = ap pow2 (X + 1) - 1 /\ Z = ap pow2 X /\ (X <> n) }} ->>
+               {{  (Y + (2 * Z)) = ap pow2 ((X + 1) + 1) - 1 /\ 2 * Z = ap pow2 (X + 1) }}
         Z := 2 * Z
-               {{ FILL_IN_HERE }};
+               {{ (Y + Z) = ap pow2 ((X + 1) + 1) - 1 /\ Z = ap pow2 (X + 1) }};
         Y := Y + Z
-               {{ FILL_IN_HERE }};
+               {{ Y = ap pow2 ((X + 1) + 1) - 1 /\ Z = ap pow2 (X + 1) }};
         X := X + 1
-               {{ FILL_IN_HERE }}
+               {{ Y = ap pow2 (X + 1) - 1 /\ Z = ap pow2 X }}
       end
-    {{ FILL_IN_HERE }} ->>
-    {{ Y = pow2 (n+1) - 1 }}
+    {{ Y = ap pow2 (X + 1) - 1 /\ Z = ap pow2 X /\ ~(X <> n) }} ->>
+    {{ Y = ap pow2 (n+1) - 1 }}
   }>.
 Lemma pow2_plus_1 : forall n,
   pow2 (n+1) = pow2 n + pow2 n.
@@ -674,6 +674,9 @@ Qed.
 Theorem dpow2_down_correct : forall n,
   outer_triple_valid (dpow2_dec n).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n.
+  verify.
+  - rewrite pow2_plus_1. 
+Admitted.
 
 
