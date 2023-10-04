@@ -679,4 +679,84 @@ Proof.
   - rewrite pow2_plus_1. 
 Admitted.
 
+Definition is_wp P c Q :=
+  {{P}} c {{Q}} /\
+  forall P', {{P'}} c {{Q}} -> (P' ->> P).
+
+(*
+1) {{ X = 5 }}  skip  {{ X = 5 }}
+
+2) {{ Y + Z = 5 }}  X := Y + Z {{ X = 5 }}
+
+3) {{ True }}  X := Y  {{ X = Y }}
+
+4) {{ X = 0 /\ Z = 4 \/ X <> 0 /\ W = 3 }}
+   if X = 0 then Y := Z + 1 else Y := W + 2 end
+   {{ Y = 5 }}
+
+5) {{ False }}
+   X := 5
+   {{ X = 0 }}
+
+6) {{ False }}
+    while true do X := 0 end
+    {{ X = 0 }}
+*)
+
+Theorem is_wp_example :
+  is_wp (Y <= 4) <{X := Y + 1}> (X <= 5).
+Proof.
+  unfold is_wp.
+  split; unfold hoare_triple; intros.
+  Admitted.
+
+Theorem hoare_asgn_weakest : forall Q X a,
+  is_wp (Q [X |-> a]) <{ X := a }> Q.
+Proof. Admitted.
+
+Fixpoint fib n :=
+  match n with
+  | 0 => 1
+  | S n' => match n' with
+            | 0 => 1
+            | S n'' => fib n' + fib n''
+            end
+  end.
+  
+Lemma fib_eqn : forall n,
+  n > 0 ->
+  fib n + fib (pred n) = fib (1 + n).
+Proof.
+  intros.
+  induction n.
+  - inversion H.
+  - 
+  Admitted.
+  
+Definition T : string := "T".
+Definition dfib (n : nat) : decorated :=
+  <{
+    {{ True }} ->>
+    {{ FILL_IN_HERE }}
+    X := 1
+                {{ FILL_IN_HERE }} ;
+    Y := 1
+                {{ FILL_IN_HERE }} ;
+    Z := 1
+                {{ FILL_IN_HERE }} ;
+    while X <> 1 + n do
+                  {{  FILL_IN_HERE /\ (X <> 1 + n) }} ->>
+                  {{ FILL_IN_HERE }}
+      T := Z
+                  {{ FILL_IN_HERE }};
+      Z := Z + Y
+                  {{ FILL_IN_HERE }};
+      Y := T
+                  {{ FILL_IN_HERE }};
+      X := 1 + X
+                  {{ FILL_IN_HERE }}
+    end
+    {{ FILL_IN_HERE /\ ~(X <> 1 + n) }} ->>
+    {{ Y = fib n }}
+   }>.
 
