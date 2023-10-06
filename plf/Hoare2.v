@@ -737,26 +737,32 @@ Definition T : string := "T".
 Definition dfib (n : nat) : decorated :=
   <{
     {{ True }} ->>
-    {{ FILL_IN_HERE }}
+    {{ 1 + 1 = ap fib (2) }}
     X := 1
-                {{ FILL_IN_HERE }} ;
+                {{ 1 + 1 = ap fib (1 + X) }} ;
     Y := 1
-                {{ FILL_IN_HERE }} ;
+                {{ Y + 1 = ap fib (1 + X) }} ;
     Z := 1
-                {{ FILL_IN_HERE }} ;
+                {{ Y + Z = ap fib (1 + X) }} ;
     while X <> 1 + n do
-                  {{  FILL_IN_HERE /\ (X <> 1 + n) }} ->>
-                  {{ FILL_IN_HERE }}
+                  {{  Y + Z = ap fib (1 + X) /\ (X <> 1 + n) }} ->>
+                  {{ Z + (Z + Y) = ap fib (1 + 1 + X) }}
       T := Z
-                  {{ FILL_IN_HERE }};
+                  {{ T + (Z + Y) = ap fib (1 + 1 + X) }};
       Z := Z + Y
-                  {{ FILL_IN_HERE }};
+                  {{ T + Z = ap fib (1 + 1 + X) }};
       Y := T
-                  {{ FILL_IN_HERE }};
+                  {{ Y + Z = ap fib (1 + 1 + X) }};
       X := 1 + X
-                  {{ FILL_IN_HERE }}
+                  {{ Y + Z = ap fib (1 + X) }}
     end
-    {{ FILL_IN_HERE /\ ~(X <> 1 + n) }} ->>
+    {{ Y + Z = ap fib (1 + X) /\ ~(X <> 1 + n) }} ->>
     {{ Y = fib n }}
    }>.
 
+Theorem dfib_correct : forall n,
+  outer_triple_valid (dfib n).
+ Proof.
+  intro n.
+  verify.
+Admitted.
