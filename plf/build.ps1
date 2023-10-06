@@ -3,3 +3,4 @@ coqc -Q . PLF Imp.v
 coqc -Q . PLF Equiv.v
 coqc -Q . PLF Hoare.v
 coqc -Q . PLF Hoare2.v
+coqc -Q . PLF HoareAsLogic.v
