@@ -61,7 +61,58 @@ Qed.
 Theorem provable_true_post : forall c P,
     derivable P c True.
 Proof.
-  intros.
-  induction c.
+  intros c.
+  induction c; intros P.
+  - eapply H_Consequence_pre.
+    + apply H_Skip.
+    + intros. apply I.
+  - eapply H_Consequence_pre.
+    + apply H_Asgn.
+    + intros. apply I.
+  - eapply H_Consequence_pre.
+    + eapply H_Seq.
+      * apply IHc2.
+      * apply (IHc1 (fun _ => True)).
+    + intros. apply I.
+  - eapply H_Consequence_pre.
+    + apply H_If.
+      * apply IHc1.
+      * apply IHc2.
+    + intros. apply H.
+  - eapply H_Consequence.
+    + apply H_While.
+      * apply IHc.
+    + intros. apply I.
+    + intros. apply I.
+Qed.
+      
+Theorem provable_false_pre : forall c Q,
+  derivable False c Q.
+Proof.
+  intro c.
+  induction c; intro Q.
+  - eapply H_Consequence_pre.
+    + apply H_Skip.
+    + intros. destruct H.
+  - eapply H_Consequence_pre.
+    + apply H_Asgn.
+    + intros. destruct H.
+  - eapply H_Consequence_pre.
+    + eapply H_Seq.
+      * apply IHc2.
+      * apply IHc1.
+    + intros. destruct H.
+  - eapply H_Consequence_pre.
+    + apply H_If.
+      * eapply H_Consequence_pre.
+        ** apply IHc1.
+        ** intro. intros [P Q']. (*** ????????????? *)
   Admitted.
+
+Theorem hoare_sound : forall P c Q,
+  derivable P c Q -> valid P c Q.
+Proof.
+  intros.
+  Admitted.
+
 
