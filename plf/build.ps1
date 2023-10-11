@@ -4,3 +4,4 @@ coqc -Q . PLF Equiv.v
 coqc -Q . PLF Hoare.v
 coqc -Q . PLF Hoare2.v
 coqc -Q . PLF HoareAsLogic.v
+coqc -Q . PLF Smallstep.v
