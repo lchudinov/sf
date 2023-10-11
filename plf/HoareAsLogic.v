@@ -112,7 +112,39 @@ Proof.
 Theorem hoare_sound : forall P c Q,
   derivable P c Q -> valid P c Q.
 Proof.
+  intros. unfold valid.
   intros.
   Admitted.
+  
+Definition wp (c:com) (Q:Assertion) : Assertion :=
+  fun s => forall s', s =[ c ]=> s' -> Q s'.
+  
+Hint Unfold wp : core.
+
+Theorem wp_is_precondition : forall c Q,
+  {{wp c Q}} c {{Q}}.
+Proof. auto. Qed.
+
+Theorem wp_is_weakest : forall c Q P',
+    {{P'}} c {{Q}} ->
+    P' ->> (wp c Q).
+Proof. eauto. Qed.
+
+Lemma wp_seq : forall P Q c1 c2,
+  derivable P c1 (wp c2 Q) -> derivable (wp c2 Q) c2 Q -> derivable P <{c1; c2}> Q.
+Proof.
+  Admitted.
+
+Lemma wp_invariant : forall b c Q,
+    valid (wp <{while b do c end}> Q /\ b) c (wp <{while b do c end}> Q).
+Proof.
+  (* FILL IN HERE *) Admitted.
+
+Theorem hoare_complete: forall P c Q,
+  valid P c Q -> derivable P c Q.
+Proof.
+  unfold valid. intros P c. generalize dependent P.
+  induction c; intros P Q HT.
+  (* FILL IN HERE *) Admitted.
 
 
