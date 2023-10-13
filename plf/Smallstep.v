@@ -132,3 +132,49 @@ Proof.
 Qed.
 
 End SimpleArith3.
+
+Inductive value : tm -> Prop :=
+  | v_const : forall n, value (C n).
+
+Reserved Notation " t '-->' t' " (at level 40).
+Inductive step : tm -> tm -> Prop :=
+  | ST_PlusConstConst : forall v1 v2,
+          P (C v1) (C v2)
+      --> C (v1 + v2)
+  | ST_Plus1 : forall t1 t1' t2,
+        t1 --> t1' ->
+        P t1 t2 --> P t1' t2
+  | ST_Plus2 : forall v1 t2 t2',
+        value v1 -> (* <--- n.b. *)
+        t2 --> t2' ->
+        P v1 t2 --> P v1 t2'
+
+  where " t '-->' t' " := (step t t').
+  
+Theorem step_deterministic :
+  deterministic step.
+Proof.
+  unfold deterministic. intros x y1 y2 Hy1 Hy2.
+  generalize dependent y2.
+  induction Hy1; intros y2 Hy2.
+  - inversion Hy2; subst.
+    + reflexivity.
+    + inversion H2.
+    + inversion H3.
+  - inversion Hy2; subst.
+    + inversion Hy1.
+    + apply IHHy1 in H2. rewrite H2. reflexivity.
+    + inversion H1; subst. inversion Hy1.
+  - inversion Hy2; subst.
+    + inversion Hy1.
+    + inversion H; subst. inversion H3.
+    + apply IHHy1 in H4. rewrite H4. reflexivity.
+Qed.
+
+    
+    
+    
+    
+    
+  
+  
