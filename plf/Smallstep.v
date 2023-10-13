@@ -171,6 +171,79 @@ Proof.
     + apply IHHy1 in H4. rewrite H4. reflexivity.
 Qed.
 
+Theorem strong_progress : forall t,
+  value t \/ (exists t', t --> t').
+Proof.
+  induction t.
+  - (* C *) left. apply v_const.
+  - (* P *) right. destruct IHt1 as [IHt1 | [t1' Ht1] ].
+    + (* l *) destruct IHt2 as [IHt2 | [t2' Ht2] ].
+      * (* l *) inversion IHt1. inversion IHt2.
+        exists (C (n + n0)).
+        apply ST_PlusConstConst.
+      * (* r *)
+        exists (P t1 t2').
+        apply ST_Plus2; auto.
+    + (* r *)
+      exists (P t1' t2).
+      apply ST_Plus1. apply Ht1.
+Qed.
+
+Definition normal_form {X : Type}
+              (R : relation X) (t : X) : Prop :=
+  ~ exists t', R t t'.
+  
+Lemma value_is_nf : forall v,
+  value v -> normal_form step v.
+Proof.
+  unfold normal_form. intros v H. destruct H.
+  intros contra. destruct contra. inversion H.
+Qed.
+
+Lemma nf_is_value : forall t,
+  normal_form step t -> value t.
+Proof. (* a corollary of strong_progress... *)
+  unfold normal_form. intros t H.
+  assert (G : value t \/ exists t', t --> t').
+  { apply strong_progress. }
+  destruct G as [G | G].
+  - (* l *) apply G.
+  - (* r *) contradiction.
+Qed.
+
+Corollary nf_same_as_value : forall t,
+  normal_form step t <-> value t.
+Proof.
+  split.
+  - apply nf_is_value.
+  - apply value_is_nf.
+Qed.
+
+Module Temp1.
+Inductive value : tm -> Prop :=
+  | v_const : forall n, value (C n)
+  | v_funny : forall t1 v2,
+                value (P t1 (C v2)). (* <--- *)
+Reserved Notation " t '-->' t' " (at level 40).
+Inductive step : tm -> tm -> Prop :=
+  | ST_PlusConstConst : forall v1 v2,
+      P (C v1) (C v2) --> C (v1 + v2)
+  | ST_Plus1 : forall t1 t1' t2,
+      t1 --> t1' ->
+      P t1 t2 --> P t1' t2
+  | ST_Plus2 : forall v1 t2 t2',
+      value v1 ->
+      t2 --> t2' ->
+      P v1 t2 --> P v1 t2'
+
+  where " t '-->' t' " := (step t t').
+
+Lemma value_not_same_as_normal_form :
+  exists v, value v /\ ~ normal_form step v.
+Proof.
+  (* FILL IN HERE *) Admitted.
+End Temp1.
+
     
     
     
