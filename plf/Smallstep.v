@@ -241,8 +241,99 @@ Inductive step : tm -> tm -> Prop :=
 Lemma value_not_same_as_normal_form :
   exists v, value v /\ ~ normal_form step v.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists (P (P (C 1) (C 3)) (C 1)).
+  split.
+  - apply v_funny.
+  - unfold normal_form.
+    intros H.
+    unfold not in H.
+    apply H. clear H.
+    exists (P (C 4) (C 1)).
+    apply ST_Plus1.
+    apply ST_PlusConstConst.
+Qed.
 End Temp1.
+
+Module Temp2.
+Inductive value : tm -> Prop :=
+  | v_const : forall n, value (C n). (* Original definition *)
+Reserved Notation " t '-->' t' " (at level 40).
+
+Inductive step : tm -> tm -> Prop :=
+  | ST_Funny : forall n,
+      C n --> P (C n) (C 0) (* <--- NEW *)
+  | ST_PlusConstConst : forall v1 v2,
+      P (C v1) (C v2) --> C (v1 + v2)
+  | ST_Plus1 : forall t1 t1' t2,
+      t1 --> t1' ->
+      P t1 t2 --> P t1' t2
+  | ST_Plus2 : forall v1 t2 t2',
+      value v1 ->
+      t2 --> t2' ->
+      P v1 t2 --> P v1 t2'
+
+  where " t '-->' t' " := (step t t').
+
+Lemma value_not_same_as_normal_form :
+  exists v, value v /\ ~ normal_form step v.
+Proof.
+  exists (C 1).
+  split.
+  - apply v_const.
+  - unfold normal_form.
+    intros H. unfold not in H. apply H. clear H.
+    exists (P (C 1) (C 0)).
+    apply ST_Funny.
+Qed.
+
+End Temp2.
+
+Module Temp3.
+Inductive value : tm -> Prop :=
+  | v_const : forall n, value (C n).
+Reserved Notation " t '-->' t' " (at level 40).
+Inductive step : tm -> tm -> Prop :=
+  | ST_PlusConstConst : forall v1 v2,
+      P (C v1) (C v2) --> C (v1 + v2)
+  | ST_Plus1 : forall t1 t1' t2,
+      t1 --> t1' ->
+      P t1 t2 --> P t1' t2
+
+  where " t '-->' t' " := (step t t').
+
+Lemma value_not_same_as_normal_form :
+  exists t, ~ value t /\ normal_form step t.
+Proof.
+  exists (P (C 1) (P (C 1) (C 1))).
+  split.
+  - intro H. inversion H.
+  - unfold normal_form.
+    intros H.
+    destruct H as [x H].
+    inversion H.
+    inversion H3.
+Qed.
+End Temp3.
+
+Module Temp4.
+Inductive tm : Type :=
+  | tru : tm
+  | fls : tm
+  | test : tm -> tm -> tm -> tm.
+Inductive value : tm -> Prop :=
+  | v_tru : value tru
+  | v_fls : value fls.
+Reserved Notation " t '-->' t' " (at level 40).
+Inductive step : tm -> tm -> Prop :=
+  | ST_IfTrue : forall t1 t2,
+      test tru t1 t2 --> t1
+  | ST_IfFalse : forall t1 t2,
+      test fls t1 t2 --> t2
+  | ST_If : forall t1 t1' t2 t3,
+      t1 --> t1' ->
+      test t1 t2 t3 --> test t1' t2 t3
+
+  where " t '-->' t' " := (step t t').
 
     
     
