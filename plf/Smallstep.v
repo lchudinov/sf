@@ -424,6 +424,27 @@ Proof.
     + exists (test t1' t2 t3). apply ST_If. assumption.
 Qed.
 
+Theorem step_deterministic : deterministic step.
+Proof.
+  unfold deterministic.
+  unfold deterministic. intros x y1 y2 Hy1 Hy2.
+  generalize dependent y2.
+  induction Hy1; intros y2 Hy2.
+  - inversion Hy2; subst.
+    + reflexivity.
+    + inversion H3.
+  - inversion Hy2; subst.
+    + reflexivity.
+    + inversion H3.
+  - inversion Hy2; subst.
+    + inversion Hy1.
+    + inversion Hy1.
+    + apply IHHy1 in H3. rewrite H3. reflexivity.
+Qed.
+Module Temp5.
+
+
+
 
       
       
