@@ -334,8 +334,99 @@ Inductive step : tm -> tm -> Prop :=
       test t1 t2 t3 --> test t1' t2 t3
 
   where " t '-->' t' " := (step t t').
+  
+Definition bool_step_prop1 :=
+  fls --> fls.
+Example bool_step_prop1_ex: ~ bool_step_prop1.
+Proof.
+  unfold bool_step_prop1.
+  intros H. inversion H.
+Qed.
+  
+Definition bool_step_prop2 :=
+     test
+       tru
+       (test tru tru tru)
+       (test fls fls fls)
+  -->
+     tru.
+Example bool_step_prop2_ex: ~ bool_step_prop2.
+Proof.
+  unfold bool_step_prop2.
+  intros H.
+  inversion H.
+Qed.
 
-    
+Definition bool_step_prop3 :=
+     test
+       (test tru tru tru)
+       (test tru tru tru)
+       fls
+   -->
+     test
+       tru
+       (test tru tru tru)
+       fls.
+Example bool_step_prop3_ex: bool_step_prop3.
+Proof.
+  unfold bool_step_prop3.
+  apply ST_If.
+  apply ST_IfTrue.
+Qed.
+
+Theorem strong_progress_bool : forall t,
+  value t \/ (exists t', t --> t').
+Proof.
+  induction t.
+  - left. apply v_tru.
+  - left. apply v_fls.
+  - right. 
+    destruct IHt1 as [IHt1 | [t1' IHt1]];
+    destruct IHt2 as [IHt2 | [t2' IHt2]];
+    destruct IHt3 as [IHt3 | [t3' IHt3]].
+    + inversion IHt1; inversion IHt2; inversion IHt3.
+      * exists tru. apply ST_IfTrue.
+      * exists tru. apply ST_IfTrue.
+      * exists fls. apply ST_IfTrue.
+      * exists fls. apply ST_IfTrue.
+      * exists tru. apply ST_IfFalse.
+      * exists fls. apply ST_IfFalse.
+      * exists tru. apply ST_IfFalse.
+      * exists fls. apply ST_IfFalse.
+    + inversion IHt1; inversion IHt2.
+      * exists tru. apply ST_IfTrue.
+      * exists fls. apply ST_IfTrue.
+      * exists t3. apply ST_IfFalse.
+      * exists t3. apply ST_IfFalse.
+    + inversion IHt1; inversion IHt3.
+      * exists t2. apply ST_IfTrue.
+      * exists t2. apply ST_IfTrue.
+      * exists tru. apply ST_IfFalse.
+      * exists fls. apply ST_IfFalse.
+    + inversion IHt1; inversion IHt2; subst.
+      * exists (test tru t2' t4). apply ST_IfTrue.
+      * exists (test fls t0 t2'). apply ST_IfTrue.
+      * exists (test t0 t4 t5). apply ST_IfTrue.
+      * exists t3. apply ST_IfFalse.
+      * exists t3. apply ST_IfFalse.
+      * exists t3. apply ST_IfFalse.
+    + inversion IHt2; inversion IHt3; subst.
+      * exists (test t1' tru tru). apply ST_If. assumption.
+      * exists (test t1' tru fls). apply ST_If. assumption.
+      * exists (test t1' fls tru). apply ST_If. assumption.
+      * exists (test t1' fls fls). apply ST_If. assumption.
+    + inversion IHt2; subst.
+      * exists (test t1' tru t3). apply ST_If. assumption.
+      * exists (test t1' fls t3). apply ST_If. assumption.
+    + inversion IHt3.
+      * exists (test t1' t2 tru). apply ST_If. assumption.
+      * exists (test t1' t2 fls). apply ST_If. assumption.
+    + exists (test t1' t2 t3). apply ST_If. assumption.
+Qed.
+
+
+      
+      
     
     
     
