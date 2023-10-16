@@ -502,7 +502,12 @@ End Temp5.
 End Temp4.
 
 
-
+Inductive multi {X : Type} (R : relation X) : relation X :=
+  | multi_refl : forall (x : X), multi R x x
+  | multi_step : forall (x y z : X),
+                    R x y ->
+                    multi R y z ->
+                    multi R x z.
 
 
 
