@@ -443,6 +443,67 @@ Proof.
 Qed.
 Module Temp5.
 
+Reserved Notation " t '-->' t' " (at level 40).
+Inductive step : tm -> tm -> Prop :=
+  | ST_IfTrue : forall t1 t2,
+      test tru t1 t2 --> t1
+  | ST_IfFalse : forall t1 t2,
+      test fls t1 t2 --> t2
+  | ST_If : forall t1 t1' t2 t3,
+      t1 --> t1' ->
+      test t1 t2 t3 --> test t1' t2 t3
+  | ST_ShortCircuit : forall t1 t2,
+      value t2 ->
+      test t1 t2 t2 --> t2
+  where " t '-->' t' " := (step t t').
+Definition bool_step_prop4 :=
+         test
+            (test tru tru tru)
+            fls
+            fls
+     -->
+         fls.
+Example bool_step_prop4_holds :
+  bool_step_prop4.
+Proof.
+  unfold bool_step_prop4.
+  apply ST_ShortCircuit.
+  apply v_fls.
+Qed.
+
+Goal ~ forall n1 n2 x, x + 1 = n1 -> x + 2 = n2 -> n1 = n2.
+Proof.
+  intro H.
+  specialize (H 1 2 0 eq_refl eq_refl).
+  discriminate.
+Qed.
+
+Theorem step_deterministic : ~ deterministic step.
+Proof.
+  unfold deterministic.
+  intros H.
+  specialize (H (test (test tru tru tru) tru tru) tru (test tru tru tru)).
+  discriminate H.
+  - apply ST_ShortCircuit. apply v_tru.
+  - apply ST_If. apply ST_IfTrue.
+Qed.
+
+Theorem strong_progress_bool : forall t,
+  value t \/ (exists t', t --> t').
+Proof.
+Admitted.
+
+(*
+In general, is there any way we could cause strong progress to fail if we took away one or more constructors from the original step relation? Write yes or no and briefly (1 sentence) explain your answer.
+Yes, we for example took away ST_If it would cause strong progess to fail.
+*)
+
+End Temp5.
+End Temp4.
+
+
+
+
 
 
 
