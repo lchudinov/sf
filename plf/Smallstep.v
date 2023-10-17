@@ -508,15 +508,121 @@ Inductive multi {X : Type} (R : relation X) : relation X :=
                     R x y ->
                     multi R y z ->
                     multi R x z.
+                    
+Notation " t '-->*' t' " := (multi step t t') (at level 40).
+
+Theorem multi_R : forall (X : Type) (R : relation X) (x y : X),
+    R x y -> (multi R) x y.
+Proof.
+  intros X R x y H.
+  apply multi_step with y.
+  - apply H.
+  - apply multi_refl.
+Qed.
+
+Theorem multi_trans :
+  forall (X : Type) (R : relation X) (x y z : X),
+      multi R x y ->
+      multi R y z ->
+      multi R x z.
+Proof.
+  intros X R x y z G H.
+  induction G.
+    - (* multi_refl *) assumption.
+    - (* multi_step *)
+      apply multi_step with y.
+      + assumption.
+      + apply IHG. assumption.
+Qed.
 
 
+Lemma test_multistep_1:
+      P
+        (P (C 0) (C 3))
+        (P (C 2) (C 4))
+   -->*
+      C ((0 + 3) + (2 + 4)).
+Proof.
+  apply multi_step with 
+          (P (C (0 + 3))
+          (P (C 2) (C 4))).
+  { apply ST_Plus1. apply ST_PlusConstConst. }
+  apply multi_step with 
+          (P (C (0 + 3))
+             (C (2 + 4))).
+  { apply ST_Plus2.
+    - apply v_const.
+    - apply ST_PlusConstConst.
+  }
+  apply multi_R.
+  apply ST_PlusConstConst.
+Qed.
 
+Lemma test_multistep_1':
+      P
+        (P (C 0) (C 3))
+        (P (C 2) (C 4))
+   -->*
+      C ((0 + 3) + (2 + 4)).
+Proof.
+  eapply multi_step. { apply ST_Plus1. apply ST_PlusConstConst. }
+  eapply multi_step. {
+                        apply ST_Plus2.
+                        - apply v_const.
+                        - apply ST_PlusConstConst.
+                     }
+  apply multi_R.
+  apply ST_PlusConstConst.
+Qed.
 
-      
-      
-    
-    
-    
-    
+Lemma test_multistep_2:
+  C 3 -->* C 3.
+Proof.
+  apply multi_refl.
+Qed.
+
+Lemma test_multistep_3:
+      P (C 0) (C 3)
+   -->*
+      P (C 0) (C 3).
+Proof.
+  apply multi_refl.
+Qed.
+
+Lemma test_multistep_4:
+      P
+        (C 0)
+        (P
+          (C 2)
+          (P (C 0) (C 3)))
+  -->*
+      P
+        (C 0)
+        (C (2 + (0 + 3))).
+Proof.
+  eapply multi_step. { apply ST_Plus2.
+                       - apply v_const.
+                       - apply ST_Plus2.
+                         * apply v_const.
+                         * apply ST_PlusConstConst.
+                     }
+  eapply multi_step. { - apply ST_Plus2.
+                         + apply v_const.
+                         + apply ST_PlusConstConst.
+                     }
+  apply multi_refl.
+Qed.
+
+Definition step_normal_form := normal_form step.
+Definition normal_form_of (t t' : tm) :=
+  (t -->* t' /\ step_normal_form t').
   
+Theorem normal_forms_unique:
+  deterministic normal_form_of.
+Proof.
+  (* We recommend using this initial setup as-is! *)
+  unfold deterministic. unfold normal_form_of.
+  intros x y1 y2 P1 P2.
+  destruct P1 as [P11 P12].
+  destruct P2 as [P21 P22].
   
