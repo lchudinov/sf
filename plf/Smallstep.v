@@ -625,4 +625,74 @@ Proof.
   intros x y1 y2 P1 P2.
   destruct P1 as [P11 P12].
   destruct P2 as [P21 P22].
-  
+  unfold step_normal_form in *.
+  apply nf_same_as_value in P12.
+  apply nf_same_as_value in P22.
+  destruct P12 as [v1].
+  destruct P22 as [v2].
+  Admitted.
+
+Definition normalizing {X : Type} (R : relation X) :=
+  forall t, exists t',
+    (multi R) t t' /\ normal_form R t'.
+    
+Lemma multistep_congr_1 : forall t1 t1' t2,
+    t1 -->* t1' ->
+    P t1 t2 -->* P t1' t2.
+Proof.
+ intros t1 t1' t2 H. induction H.
+ - (* multi_refl *) apply multi_refl.
+ - (* multi_step *) apply multi_step with (P y t2).
+   + apply ST_Plus1. apply H.
+   + apply IHmulti.
+Qed.
+
+Lemma multistep_congr_2 : forall v1 t2 t2',
+     value v1 ->
+     t2 -->* t2' ->
+     P v1 t2 -->* P v1 t2'.
+Proof.
+  intros v1 t2 t2' H1 H2. induction H2.
+  - (* multi_refl *) apply multi_refl.
+  - (* multi_step *) apply multi_step with (P v1 y).
+    + apply ST_Plus2.
+      * apply H1.
+      * apply H.
+    + apply IHmulti.
+Qed.
+
+Theorem step_normalizing :
+  normalizing step.
+Proof.
+  unfold normalizing.
+  induction t.
+  - (* C *)
+    exists (C n).
+    split.
+    + (* l *) apply multi_refl.
+    + (* r *)
+      (* We can use rewrite with "iff" statements, not
+           just equalities: *)
+      apply nf_same_as_value. apply v_const.
+  - (* P *)
+    destruct IHt1 as [t1' [Hsteps1 Hnormal1] ].
+    destruct IHt2 as [t2' [Hsteps2 Hnormal2] ].
+    apply nf_same_as_value in Hnormal1.
+    apply nf_same_as_value in Hnormal2.
+    destruct Hnormal1 as [v1].
+    destruct Hnormal2 as [v2].
+    exists (C (v1 + v2)).
+    split.
+    + (* l *)
+      apply multi_trans with (P (C v1) t2).
+      * apply multistep_congr_1. apply Hsteps1.
+      * apply multi_trans with (P (C v1) (C v2)).
+        { apply multistep_congr_2.
+          - apply v_const.
+          - apply Hsteps2. }
+        apply multi_R. apply ST_PlusConstConst.
+    + (* r *)
+      apply nf_same_as_value. apply v_const.
+Qed.
+
+
