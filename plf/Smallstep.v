@@ -695,4 +695,43 @@ Proof.
       apply nf_same_as_value. apply v_const.
 Qed.
 
+Theorem eval__multistep : forall t n,
+  t ==> n -> t -->* C n.
+Proof.
+  intros t tm H.
+  induction H.
+  - apply multi_refl.
+  - apply multi_trans with (P (C v1) t2).
+    + apply multistep_congr_1. assumption.
+    + apply multi_trans with (P (C v1) (C v2)).
+      * apply multistep_congr_2.
+        ** apply v_const.
+        ** assumption.
+      * apply multi_R.
+        apply ST_PlusConstConst.
+Qed.
+
+Lemma step__eval : forall t t' n,
+     t --> t' ->
+     t' ==> n ->
+     t ==> n.
+Proof.
+  intros t t' n Hs. generalize dependent n.
+  induction Hs; intros n H1; inversion H1; subst.
+  - apply E_Plus.
+    + apply E_Const.
+    + apply E_Const.
+  - apply E_Plus.
+    + apply IHHs in H2. assumption.
+    + assumption.
+  - apply E_Plus.
+    + assumption.
+    + apply IHHs in H5. assumption.
+Qed.
+    
+Theorem multistep__eval : forall t t',
+  normal_form_of t t' -> exists n, t' = C n /\ t ==> n.
+Proof.
+  intros t t' H.
+  
 
