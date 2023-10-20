@@ -733,5 +733,57 @@ Theorem multistep__eval : forall t t',
   normal_form_of t t' -> exists n, t' = C n /\ t ==> n.
 Proof.
   intros t t' H.
+  unfold normal_form_of in H.
+  unfold step_normal_form in H.
+  destruct H as [H1 H2].
+  apply nf_is_value in H2.
+  inversion H2.
+  Admitted.
   
+Theorem evalF_eval : forall t n,
+  evalF t = n <-> t ==> n.
+Proof.
+  (* FILL IN HERE *) Admitted.
+  
+Module Combined.
+Inductive tm : Type :=
+  | C : nat -> tm
+  | P : tm -> tm -> tm
+  | tru : tm
+  | fls : tm
+  | test : tm -> tm -> tm -> tm.
+Inductive value : tm -> Prop :=
+  | v_const : forall n, value (C n)
+  | v_tru : value tru
+  | v_fls : value fls.
+Reserved Notation " t '-->' t' " (at level 40).
+Inductive step : tm -> tm -> Prop :=
+  | ST_PlusConstConst : forall v1 v2,
+      P (C v1) (C v2) --> C (v1 + v2)
+  | ST_Plus1 : forall t1 t1' t2,
+      t1 --> t1' ->
+      P t1 t2 --> P t1' t2
+  | ST_Plus2 : forall v1 t2 t2',
+      value v1 ->
+      t2 --> t2' ->
+      P v1 t2 --> P v1 t2'
+  | ST_IfTrue : forall t1 t2,
+      test tru t1 t2 --> t1
+  | ST_IfFalse : forall t1 t2,
+      test fls t1 t2 --> t2
+  | ST_If : forall t1 t1' t2 t3,
+      t1 --> t1' ->
+      test t1 t2 t3 --> test t1' t2 t3
 
+  where " t '-->' t' " := (step t t').
+  
+Theorem combined_step_deterministic: (deterministic step) \/ ~ (deterministic step).
+Proof.
+  (* FILL IN HERE *) Admitted.
+  
+Theorem combined_strong_progress :
+  (forall t, value t \/ (exists t', t --> t'))
+  \/ ~ (forall t, value t \/ (exists t', t --> t')).
+Proof.
+  (* FILL IN HERE *) Admitted.
+End Combined.
