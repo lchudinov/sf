@@ -894,3 +894,103 @@ Inductive cstep : (com * state) -> (com * state) -> Prop :=
       <{ if b1 then c1; while b1 do c1 end else skip end }> / st
 
   where " t '/' st '-->' t' '/' st' " := (cstep (t,st) (t',st')).
+  
+Module CImp.
+Inductive com : Type :=
+  | CSkip : com
+  | CAsgn : string -> aexp -> com
+  | CSeq : com -> com -> com
+  | CIf : bexp -> com -> com -> com
+  | CWhile : bexp -> com -> com
+  | CPar : com -> com -> com. (* <--- NEW *)
+Notation "x || y" :=
+         (CPar x y)
+           (in custom com at level 90, right associativity).
+Notation "'skip'" :=
+         CSkip (in custom com at level 0).
+Notation "x := y" :=
+         (CAsgn x y)
+            (in custom com at level 0, x constr at level 0,
+             y at level 85, no associativity).
+Notation "x ; y" :=
+         (CSeq x y)
+           (in custom com at level 90, right associativity).
+Notation "'if' x 'then' y 'else' z 'end'" :=
+         (CIf x y z)
+           (in custom com at level 89, x at level 99,
+            y at level 99, z at level 99).
+Notation "'while' x 'do' y 'end'" :=
+         (CWhile x y)
+            (in custom com at level 89, x at level 99, y at level 99).
+Inductive cstep : (com * state) -> (com * state) -> Prop :=
+    (* Old part: *)
+  | CS_AsgnStep : forall st i a1 a1',
+      a1 / st -->a a1' ->
+      <{ i := a1 }> / st --> <{ i := a1' }> / st
+  | CS_Asgn : forall st i (n : nat),
+      <{ i := n }> / st --> <{ skip }> / (i !-> n ; st)
+  | CS_SeqStep : forall st c1 c1' st' c2,
+      c1 / st --> c1' / st' ->
+      <{ c1 ; c2 }> / st --> <{ c1' ; c2 }> / st'
+  | CS_SeqFinish : forall st c2,
+      <{ skip ; c2 }> / st --> c2 / st
+  | CS_IfStep : forall st b1 b1' c1 c2,
+      b1 / st -->b b1' ->
+      <{ if b1 then c1 else c2 end }> / st
+      -->
+      <{ if b1' then c1 else c2 end }> / st
+  | CS_IfTrue : forall st c1 c2,
+      <{ if true then c1 else c2 end }> / st --> c1 / st
+  | CS_IfFalse : forall st c1 c2,
+      <{ if false then c1 else c2 end }> / st --> c2 / st
+  | CS_While : forall st b1 c1,
+      <{ while b1 do c1 end }> / st
+      -->
+      <{ if b1 then c1; while b1 do c1 end else skip end }> / st
+    (* New part: *)
+  | CS_Par1 : forall st c1 c1' c2 st',
+      c1 / st --> c1' / st' ->
+      <{ c1 || c2 }> / st --> <{ c1' || c2 }> / st'
+  | CS_Par2 : forall st c1 c2 c2' st',
+      c2 / st --> c2' / st' ->
+      <{ c1 || c2 }> / st --> <{ c1 || c2' }> / st'
+  | CS_ParDone : forall st,
+      <{ skip || skip }> / st --> <{ skip }> / st
+
+  where " t '/' st '-->' t' '/' st' " := (cstep (t,st) (t',st')).
+Definition cmultistep := multi cstep.
+Notation " t '/' st '-->*' t' '/' st' " :=
+   (multi cstep (t,st) (t',st'))
+   (at level 40, st at level 39, t' at level 39).
+   
+Definition par_loop : com :=
+ <{
+     Y := 1
+   ||
+     while (Y = 0) do X := X + 1 end
+  }>.
+
+Example par_loop_example_0:
+  exists st',
+       par_loop / empty_st -->* <{skip}> / st'
+    /\ st' X = 0.
+Proof.
+  unfold par_loop.
+  eexists. split.
+  - eapply multi_step.
+    + apply CS_Par1. apply CS_Asgn.
+    + eapply multi_step.
+      * apply CS_Par2. apply CS_While.
+      * eapply multi_step.
+        -- apply CS_Par2. apply CS_IfStep.
+           apply BS_Eq1. apply AS_Id.
+        -- eapply multi_step.
+           ++ apply CS_Par2. apply CS_IfStep.
+              apply BS_Eq.
+           ++ simpl. eapply multi_step.
+              ** apply CS_Par2. apply CS_IfFalse.
+              ** eapply multi_step.
+               --- apply CS_ParDone.
+               --- eapply multi_refl.
+  - reflexivity.
+Qed.
