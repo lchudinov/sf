@@ -994,3 +994,237 @@ Proof.
                --- eapply multi_refl.
   - reflexivity.
 Qed.
+
+Example par_loop_example_2:
+  exists st',
+       par_loop / empty_st -->* <{skip}> / st'
+    /\ st' X = 2.
+Proof.
+  unfold par_loop.
+  eexists. split.
+  - eapply multi_step.
+    + apply CS_Par2. apply CS_While.
+    + eapply multi_step.
+      * apply CS_Par2. apply CS_IfStep.
+        apply BS_Eq1. apply AS_Id.
+      * eapply multi_step.
+        -- apply CS_Par2. apply CS_IfStep.
+           apply BS_Eq.
+        -- simpl. eapply multi_step.
+           ++ apply CS_Par2. apply CS_IfTrue.
+           ++ eapply multi_step.
+              ** apply CS_Par2. apply CS_SeqStep.
+                 apply CS_AsgnStep. apply AS_Plus1. apply AS_Id.
+              ** eapply multi_step.
+                 --- apply CS_Par2. apply CS_SeqStep.
+                     apply CS_AsgnStep. apply AS_Plus.
+                 --- eapply multi_step.
+                     +++ apply CS_Par2. apply CS_SeqStep.
+                         apply CS_Asgn.
+                     +++ eapply multi_step.
+                         *** apply CS_Par2. apply CS_SeqFinish.
+                         *** eapply multi_step.
+                             ---- apply CS_Par2. apply CS_While.
+                             ---- eapply multi_step.
+                                  ++++ apply CS_Par2. apply CS_IfStep.
+                                       apply BS_Eq1. apply AS_Id.
+                                  ++++ eapply multi_step.
+                                       **** apply CS_Par2. apply CS_IfStep.
+                                            apply BS_Eq.
+                                       **** simpl.
+                                            eapply multi_step.
+                                            ----- apply CS_Par2. apply CS_IfTrue.
+                                            ----- eapply multi_step.
+                                            +++++ apply CS_Par2. apply CS_SeqStep.
+                                            apply CS_AsgnStep. apply AS_Plus1. apply AS_Id.
+                                            +++++ eapply multi_step.
+                                            ***** apply CS_Par2. apply CS_SeqStep.
+                                            apply CS_AsgnStep. apply AS_Plus.
+                                            ***** eapply multi_step.
+                                            ------ apply CS_Par2. apply CS_SeqStep.
+                                            apply CS_Asgn.
+                                            ------ eapply multi_step.
+                                            ++++++ apply CS_Par1. apply CS_Asgn.
+                                            ++++++ eapply multi_step.
+                                            ****** apply CS_Par2. apply CS_SeqFinish.
+                                            ****** eapply multi_step.
+                                            ------- apply CS_Par2. apply CS_While.
+                                            ------- eapply multi_step.
+                                            +++++++ apply CS_Par2. apply CS_IfStep.
+                                            apply BS_Eq1. apply AS_Id.
+                                            +++++++ eapply multi_step.
+                                            ******* apply CS_Par2. apply CS_IfStep.
+                                            apply BS_Eq.
+                                            ******* simpl. eapply multi_step.
+                                            -------- apply CS_Par2. apply CS_IfFalse.
+                                            -------- eapply multi_step.
+                                            ++++++++ apply CS_ParDone.
+                                            ++++++++ eapply multi_refl.
+  - reflexivity. Qed.
+  
+Lemma par_body_n__Sn : forall n st,
+  st X = n /\ st Y = 0 ->
+  par_loop / st -->* par_loop / (X !-> S n ; st).
+Proof.
+  (* FILL IN HERE *) Admitted.
+  
+Lemma par_body_n : forall n st,
+  st X = 0 /\ st Y = 0 ->
+  exists st',
+    par_loop / st -->* par_loop / st' /\ st' X = n /\ st' Y = 0.
+Proof.
+  (* FILL IN HERE *) Admitted.
+  
+Theorem par_loop_any_X:
+  forall n, exists st',
+    par_loop / empty_st -->* <{skip}> / st'
+    /\ st' X = n.
+Proof.
+Proof.
+intros n.
+destruct (par_body_n n empty_st).
+- split; reflexivity.
+- rename x into st.
+inversion H as [H' [HX HY] ]; clear H.
+exists (Y !-> 1 ; st). split.
+  + eapply multi_trans with (par_loop,st).
+    * apply H'.
+    * eapply multi_step.
+      -- apply CS_Par1. apply CS_Asgn.
+      -- eapply multi_step.
+         ++ apply CS_Par2. apply CS_While.
+         ++ eapply multi_step.
+            ** apply CS_Par2. apply CS_IfStep.
+               apply BS_Eq1. apply AS_Id.
+            ** rewrite t_update_eq.
+               eapply multi_step.
+               --- apply CS_Par2. apply CS_IfStep.
+                   apply BS_Eq.
+               --- simpl. eapply multi_step.
+                   +++ apply CS_Par2. apply CS_IfFalse.
+                   +++ eapply multi_step.
+                       *** apply CS_ParDone.
+                       *** apply multi_refl.
+  + rewrite t_update_neq.
+    * assumption.
+    * intro X; inversion X.
+Qed.
+
+End CImp.
+
+Definition stack := list nat.
+Definition prog := list sinstr.
+Inductive stack_step (st : state) : prog * stack -> prog * stack -> Prop :=
+  | SS_Push : forall stk n p,
+    stack_step st (SPush n :: p, stk) (p, n :: stk)
+  | SS_Load : forall stk i p,
+    stack_step st (SLoad i :: p, stk) (p, st i :: stk)
+  | SS_Plus : forall stk n m p,
+    stack_step st (SPlus :: p, n::m::stk) (p, (m+n)::stk)
+  | SS_Minus : forall stk n m p,
+    stack_step st (SMinus :: p, n::m::stk) (p, (m-n)::stk)
+  | SS_Mult : forall stk n m p,
+    stack_step st (SMult :: p, n::m::stk) (p, (m*n)::stk).
+
+Theorem stack_step_deterministic : forall st,
+  deterministic (stack_step st).
+Proof.
+  unfold deterministic. intros st x y1 y2 H1 H2.
+  induction H1; inversion H2; reflexivity.
+Qed.
+
+Definition stack_multistep st := multi (stack_step st).
+
+Fixpoint s_compile (e : aexp) : list sinstr :=
+  match e with
+  | ANum n => [SPush n]
+  | AId x => [SLoad x]
+  | APlus a1 a2 => (s_compile a1) ++ (s_compile a2) ++ [SPlus]
+  | AMinus a1 a2 => (s_compile a1) ++ (s_compile a2) ++ [SMinus]
+  | AMult a1 a2 => (s_compile a1) ++ (s_compile a2) ++ [SMult]
+  end.
+  
+Definition compiler_is_correct_statement : Prop := 
+  forall (st : state) (e : aexp),
+  stack_multistep st (s_compile e, []) ([], [aeval st e]).
+Theorem compiler_is_correct : compiler_is_correct_statement.
+Proof.
+  unfold compiler_is_correct_statement.
+  intros.
+  induction e; simpl; apply multi_R; try constructor.
+  - apply multi_R in IHe1. apply multi_R in IHe2.
+  
+(* FILL IN HERE *) Admitted.
+
+Example step_example1 :
+  (P (C 3) (P (C 3) (C 4)))
+  -->* (C 10).
+Proof.
+  apply multi_step with (P (C 3) (C 7)).
+  - apply ST_Plus2.
+    + apply v_const.
+    + apply ST_PlusConstConst.
+  - apply multi_step with (C 10).
+    + apply ST_PlusConstConst.
+    + apply multi_refl.
+Qed.
+
+Hint Constructors step value : core.
+Example step_example1' :
+  (P (C 3) (P (C 3) (C 4)))
+  -->* (C 10).
+Proof.
+  eapply multi_step; auto. simpl.
+  eapply multi_step; auto. simpl.
+  apply multi_refl.
+Qed.
+
+Tactic Notation "print_goal" :=
+  match goal with |- ?x => idtac x end.
+Tactic Notation "normalize" :=
+  repeat (print_goal; eapply multi_step ;
+            [ (eauto 10; fail) | simpl]);
+  apply multi_refl.
+Example step_example1'' :
+  (P (C 3) (P (C 3) (C 4)))
+  -->* (C 10).
+Proof.
+  normalize.
+  (* The print_goal in the normalize tactic shows
+     a trace of how the expression reduced...
+         (P (C 3) (P (C 3) (C 4)) -->* C 10)
+         (P (C 3) (C 7) -->* C 10)
+         (C 10 -->* C 10)
+  *)
+Qed.
+
+Example step_example1''' : exists e',
+  (P (C 3) (P (C 3) (C 4)))
+  -->* e'.
+Proof.
+  eexists. normalize.
+Qed.
+
+Theorem normalize_ex : exists e',
+  (P (C 3) (P (C 2) (C 1)))
+  -->* e' /\ value e'.
+Proof.
+  eexists.
+  split.
+  - normalize.
+  - apply v_const.
+Qed.
+
+Theorem normalize_ex' : exists e',
+  (P (C 3) (P (C 2) (C 1)))
+  -->* e' /\ value e'.
+Proof.
+  exists (C 6).
+  split.
+  - apply multi_step with (P (C 3) (C 3)).
+    + apply ST_Plus2.
+      * apply v_const.
+      * apply ST_PlusConstConst.
+    + apply multi_R. apply ST_PlusConstConst.
+  - apply v_const.
+Qed.
