@@ -102,19 +102,100 @@ Proof.
       unfold not. intros. destruct H0 as [t1 H0].
       inversion H0.
       + unfold step_normal_form.
-      unfold not. intros. destruct H0 as [t1 H0].
-      inversion H0.
-      - induction H0.
-      + unfold step_normal_form.
         unfold not. intros. destruct H0 as [t1 H0].
         inversion H0.
-      + unfold step_normal_form.
-        unfold not. intros.
-        inversion H0. 
-        * destruct H1 as [t' H1].
-          rewrite <- H2 in H1. inversion H1. inversion H4.
-        * destruct H1 as [t' H1]. clear H1.
-          inversion H2; clear H2.
-          ** rewrite <- H1 in H3.
-          rewrite <- H3 in IHnvalue.
+      - induction t; try inversion H0.
+        + unfold step_normal_form, not. intros.
+          destruct H1 as [t' H1].
+          inversion H1.
+        + unfold step_normal_form, not. intros.
+          destruct H3 as [t' H3].
 Admitted.
+
+Theorem step_deterministic:
+  deterministic step.
+Proof with eauto.
+  unfold deterministic. intros x y1 y2 H1 H2.
+  induction x.
+  - inversion H1; inversion H2; subst.
+  - inversion H1; inversion H2; subst.
+  - inversion H1; inversion H2; subst; clear H1; clear H2.
+Admitted.
+
+Inductive ty : Type :=
+  | Bool : ty
+  | Nat : ty.
+  
+  Reserved Notation "'|--' t '\in' T" (at level 40).
+
+  Inductive has_type : tm -> ty -> Prop :=
+    | T_True :
+         |-- <{ true }> \in Bool
+    | T_False :
+         |-- <{ false }> \in Bool
+    | T_If : forall t1 t2 t3 T,
+         |-- t1 \in Bool ->
+         |-- t2 \in T ->
+         |-- t3 \in T ->
+         |-- <{ if t1 then t2 else t3 }> \in T
+    | T_0 :
+         |-- <{ 0 }> \in Nat
+    | T_Succ : forall t1,
+         |-- t1 \in Nat ->
+         |-- <{ succ t1 }> \in Nat
+    | T_Pred : forall t1,
+         |-- t1 \in Nat ->
+         |-- <{ pred t1 }> \in Nat
+    | T_Iszero : forall t1,
+         |-- t1 \in Nat ->
+         |-- <{ iszero t1 }> \in Bool
+  
+  where "'|--' t '\in' T" := (has_type t T).
+  
+  Hint Constructors has_type : core.
+  
+Example has_type_1 :
+  |-- <{ if false then 0 else (succ 0) }> \in Nat.
+Proof.
+  apply T_If.
+    - apply T_False.
+    - apply T_0.
+    - apply T_Succ. apply T_0.
+Qed.
+
+Example has_type_not :
+  ~ ( |-- <{ if false then 0 else true}> \in Bool ).
+Proof.
+  intros Contra. solve_by_inverts 2.
+Qed.
+
+Example succ_hastype_nat__hastype_nat : forall t,
+  |-- <{succ t}> \in Nat ->
+  |-- t \in Nat.
+Proof. 
+  intros t H.
+  inversion H.
+  assumption.
+Qed.
+
+Lemma bool_canonical : forall t,
+  |-- t \in Bool -> value t -> bvalue t.
+Proof.
+  intros t HT [Hb | Hn].
+  - assumption.
+  - destruct Hn as [ | Hs].
+    + inversion HT.
+    + inversion HT.
+Qed.
+
+Lemma nat_canonical : forall t,
+  |-- t \in Nat -> value t -> nvalue t.
+Proof.
+  intros t HT [Hb | Hn].
+  - inversion Hb; subst; inversion HT.
+  - assumption.
+Qed.
+
+
+  
+  
