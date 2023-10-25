@@ -97,13 +97,13 @@ Lemma value_is_nf : forall t,
   value t -> step_normal_form t.
 Proof.
   intros t H. inversion H.
-  - destruct H0.
+  - inversion H0.
     + unfold step_normal_form.
-      unfold not. intros. destruct H0 as [t1 H0].
-      inversion H0.
+      unfold not. intros. destruct H2 as [t1 H2].
+      inversion H2.
       + unfold step_normal_form.
-        unfold not. intros. destruct H0 as [t1 H0].
-        inversion H0.
+        unfold not. intros. destruct H2 as [t1 H2].
+        inversion H2.
       - induction t; try inversion H0.
         + unfold step_normal_form, not. intros.
           destruct H1 as [t' H1].
