@@ -196,6 +196,47 @@ Proof.
   - assumption.
 Qed.
 
+Theorem progress : forall t T,
+  |-- t \in T ->
+  value t \/ exists t', t --> t'.
+Proof.
+  intros t T HT.
+  induction HT; auto.
+  (* The cases that were obviously values, like T_True and
+     T_False, are eliminated immediately by auto *)
+  - (* T_If *)
+    right. destruct IHHT1.
+    + (* t1 is a value *)
+    apply (bool_canonical t1 HT1) in H.
+    destruct H.
+      * exists t2. auto.
+      * exists t3. auto.
+    + (* t1 can take a step *)
+      destruct H as [t1' H1].
+      exists (<{ if t1' then t2 else t3 }>). auto.
+  - inversion IHHT; clear IHHT.
+    + inversion H; clear H.
+      * solve_by_inverts 2.
+      * left. right. constructor. assumption.
+    + right. inversion H. exists (<{ succ x }>). constructor. assumption.
+  - right. inversion IHHT; clear IHHT.
+    + inversion H; clear H.
+      * solve_by_inverts 2.
+      * inversion H0; clear H0.
+        ** exists <{ 0 }>. constructor.
+        ** exists <{ t }>. constructor. assumption.
+    + inversion H; clear H.
+      * exists <{ pred x}>. constructor. assumption.
+  - right. inversion IHHT; clear IHHT.
+    + inversion H; clear H.
+      * solve_by_inverts 2.
+      * inversion H0; clear H0.
+        ** exists <{ true }>. constructor.
+        ** exists <{ false }>. constructor. assumption.
+    + inversion H.
+      exists <{ iszero x}>. constructor. assumption.
+Qed.
+        
 
-  
+      
   
