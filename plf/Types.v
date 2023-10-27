@@ -236,7 +236,80 @@ Proof.
     + inversion H.
       exists <{ iszero x}>. constructor. assumption.
 Qed.
-        
+
+Theorem preservation : forall t t' T,
+  |-- t \in T ->
+  t --> t' ->
+  |-- t' \in T.
+Proof.
+  intros t t' T HT HE.
+  generalize dependent t'.
+  induction HT;
+         (* every case needs to introduce a couple of things *)
+         intros t' HE;
+         (* and we can deal with several impossible
+            cases all at once *)
+         try solve_by_invert.
+    - (* T_If *) inversion HE; subst; clear HE.
+      + (* ST_IFTrue *) assumption.
+      + (* ST_IfFalse *) assumption.
+      + (* ST_If *) apply T_If; try assumption.
+        apply IHHT1; assumption.
+    - inversion HE; subst; clear HE.
+      apply T_Succ. apply IHHT. assumption.
+    - inversion HE; subst; clear HE.
+      + assumption.
+      + inversion HT; subst. assumption.
+      + apply T_Pred. apply IHHT. assumption.
+    - inversion HE; subst; clear HE.
+      + constructor.
+      + constructor.
+      + constructor. apply IHHT. assumption.
+Qed.
+
+Theorem preservation' : forall t t' T,
+  |-- t \in T ->
+  t --> t' ->
+  |-- t' \in T.
+Proof with eauto.
+  intros t t' T HT HE.
+  generalize dependent T.
+  induction HE; intros T HT.
+  - inversion HT; subst; clear HT.
+    assumption.
+  - inversion HT; subst; clear HT.
+    assumption.
+  - inversion HT; subst; clear HT.
+    apply T_If; try assumption.
+    apply IHHE. assumption.
+  - inversion HT; subst; clear HT.
+    apply IHHE in H0. apply T_Succ in H0. assumption.
+  - inversion HT; subst; clear HT. assumption.
+  - inversion HT; subst.
+    inversion H1; subst. assumption.
+  - inversion HT; subst.
+    apply T_Pred. apply IHHE. assumption.
+  - inversion HT; subst. constructor.
+  - inversion HT; subst. constructor.
+  - inversion HT; subst. constructor. apply IHHE. assumption.
+Qed.
+
+Definition multistep := (multi step).
+Notation "t1 '-->*' t2" := (multistep t1 t2) (at level 40).
+Corollary soundness : forall t t' T,
+  |-- t \in T ->
+  t -->* t' ->
+  ~(stuck t').
+Proof.
+  intros t t' T HT P. induction P; intros [R S].
+  - apply progress in HT. destruct HT; auto.
+  - apply IHP.
+    + apply preservation with (t := x); auto.
+    + unfold stuck. split; auto.
+Qed.
+
+  
+
 
       
   
