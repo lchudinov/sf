@@ -308,6 +308,19 @@ Proof.
     + unfold stuck. split; auto.
 Qed.
 
+Theorem subject_expansion:
+  (forall t t' T, t --> t' /\ |-- t' \in T -> |-- t \in T)
+  \/
+  ~ (forall t t' T, t --> t' /\ |-- t' \in T -> |-- t \in T).
+Proof with eauto.
+  right.
+  intros contra.
+  specialize contra with (t:= <{ if true then true else 0 }>).
+  specialize contra with (t' := <{ true }>).
+  specialize contra with (T := Bool).
+  Admitted.
+  
+
   
 
 
