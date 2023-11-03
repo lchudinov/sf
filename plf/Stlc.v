@@ -122,6 +122,25 @@ Proof.
       * apply eqb_eq in Exs0; subst; constructor.
       * apply eqb_neq in Exs0. apply s_var2. auto.
     + simpl in H; subst.
+      apply s_app.
+      * apply IHt1. reflexivity.
+      * apply IHt2. reflexivity.
+    + simpl in H; subst.
+      destruct (String.eqb x s0) eqn:Exs0.
+      * apply eqb_eq in Exs0; subst; constructor.
+      * apply eqb_neq in Exs0; subst; constructor.
+        ** apply Exs0.
+        ** apply IHt. reflexivity.
+    + simpl in H; subst; constructor.
+    + simpl in H; subst; constructor.
+    + simpl in H; subst.
+      apply s_if; auto.
+  - generalize dependent t'.
+    induction t; intros t' H.
+    + simpl. destruct (String.eqb x s0) eqn:Exs0.
+      * apply eqb_eq in Exs0.
+ 
+
       
       
     
