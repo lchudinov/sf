@@ -81,9 +81,47 @@ Check <{[x:=true] x}>.
 Inductive substi (s : tm) (x : string) : tm -> tm -> Prop :=
   | s_var1 :
       substi s x (tm_var x) s
+  | s_var2 :
+      forall y,
+      y <> x ->
+      substi s x (tm_var y) (tm_var y)
+  | s_abs1 :
+      forall T t,
+      substi s x <{\x:T, t}> <{\x:T, t}>
+  | s_abs2 :
+      forall y T t t',
+      x <> y ->
+      substi s x t t' ->
+      substi s x <{\y:T, t}> <{\y:T, t' }>
+  | s_app :
+      forall t1 t2 t1' t2',
+      substi s x t1 t1' ->
+      substi s x t2 t2' ->
+      substi s x <{ t1 t2 }> <{ t1' t2' }>
+  | s_true :
+    substi s x <{ true }> <{ true }>
+  |   s_false :
+      substi s x <{ false }> <{ false }>
+  | s_if :
+      forall t1 t1' t2 t2' t3 t3',
+      substi s x t1 t1' ->
+      substi s x t2 t2' ->
+      substi s x t3 t3' ->
+    substi s x <{ if t1 then t2 else t3 }> <{if t1' then t2' else t3' }>
 .
+
 Hint Constructors substi : core.
 Theorem substi_correct : forall s x t t',
   <{ [x:=s]t }> = t' <-> substi s x t t'.
 Proof.
-  (* FILL IN HERE *) Admitted.      
+  intros s x t t'. split. 
+  - generalize dependent t'.
+    induction t; intros t' H.
+    + simpl in H; subst.
+      destruct (String.eqb x s0) eqn:Exs0.
+      * apply eqb_eq in Exs0; subst; constructor.
+      * apply eqb_neq in Exs0. apply s_var2. auto.
+    + simpl in H; subst.
+      
+      
+    
