@@ -135,10 +135,32 @@ Proof.
     + simpl in H; subst; constructor.
     + simpl in H; subst.
       apply s_if; auto.
-  - generalize dependent t'.
-    induction t; intros t' H.
-    + simpl. destruct (String.eqb x s0) eqn:Exs0.
-      * apply eqb_eq in Exs0.
+  - intros H. induction H.
+    + simpl. 
+      destruct (String.eqb x x) eqn:Ex.
+      * reflexivity.
+      * apply eqb_neq in Ex; subst. contradiction.
+    + simpl.
+      destruct (String.eqb x y0) eqn:Exy0.
+      * apply eqb_eq in Exy0; subst. contradiction.
+      * reflexivity.
+    + simpl.
+      destruct (String.eqb x x) eqn:Ex.
+      * reflexivity.
+      * apply eqb_neq in Ex; subst. contradiction.
+    + simpl. 
+      destruct (String.eqb x y0) eqn:Exy0.
+      * apply eqb_eq in Exy0; subst. contradiction.
+      * rewrite IHsubsti. reflexivity.
+    + simpl. rewrite IHsubsti1. rewrite IHsubsti2. reflexivity.
+    + simpl. reflexivity.
+    + simpl. reflexivity.
+    + simpl. rewrite IHsubsti1. rewrite IHsubsti2. rewrite IHsubsti3.
+      reflexivity.
+Qed.
+
+    
+    
  
 
       
