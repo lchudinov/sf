@@ -159,10 +159,108 @@ Proof.
       reflexivity.
 Qed.
 
-    
-    
- 
+Reserved Notation "t '-->' t'" (at level 40).
+Inductive step : tm -> tm -> Prop :=
+  | ST_AppAbs : forall x T2 t1 v2,
+         value v2 ->
+         <{(\x:T2, t1) v2}> --> <{ [x:=v2]t1 }>
+  | ST_App1 : forall t1 t1' t2,
+         t1 --> t1' ->
+         <{t1 t2}> --> <{t1' t2}>
+  | ST_App2 : forall v1 t2 t2',
+         value v1 ->
+         t2 --> t2' ->
+         <{v1 t2}> --> <{v1 t2'}>
+  | ST_IfTrue : forall t1 t2,
+      <{if true then t1 else t2}> --> t1
+  | ST_IfFalse : forall t1 t2,
+      <{if false then t1 else t2}> --> t2
+  | ST_If : forall t1 t1' t2 t3,
+      t1 --> t1' ->
+      <{if t1 then t2 else t3}> --> <{if t1' then t2 else t3}>
 
+where "t '-->' t'" := (step t t').
+Hint Constructors step : core.
+Notation multistep := (multi step).
+Notation "t1 '-->*' t2" := (multistep t1 t2) (at level 40).
+
+Lemma step_example1 :
+  <{idBB idB}> -->* idB.
+Proof.
+  eapply multi_step.
+  - apply ST_AppAbs.
+    apply v_abs.
+  - simpl.
+    apply multi_refl.
+Qed.
+
+Lemma step_example2 :
+  <{idBB (idBB idB)}> -->* idB.
+Proof.
+  eapply multi_step.
+  - apply ST_App2.
+    + auto.
+    + apply ST_AppAbs. auto.
+  - eapply multi_step.
+    + apply ST_AppAbs. simpl. auto.
+    + simpl. apply multi_refl. Qed.
+    
+Lemma step_example3 :
+  <{idBB notB true}> -->* <{false}>.
+Proof.
+  eapply multi_step.
+  - apply ST_App1. apply ST_AppAbs. auto.
+  - simpl. eapply multi_step.
+    + apply ST_AppAbs. auto.
+    + simpl. eapply multi_step.
+      * apply ST_IfTrue.
+      * apply multi_refl.
+Qed.
+
+Lemma step_example4 :
+  <{idBB (notB true)}> -->* <{false}>.
+Proof.
+  eapply multi_step.
+  - apply ST_App2; auto.
+  - eapply multi_step.
+    + apply ST_App2; auto.
+      apply ST_IfTrue.
+    + eapply multi_step.
+      * apply ST_AppAbs. auto.
+      * simpl. apply multi_refl.
+Qed.
+
+Lemma step_example1' :
+  <{idBB idB}> -->* idB.
+Proof. normalize. Qed.
+Lemma step_example2' :
+  <{idBB (idBB idB)}> -->* idB.
+Proof. normalize. Qed.
+Lemma step_example3' :
+  <{idBB notB true}> -->* <{false}>.
+Proof. normalize. Qed.
+Lemma step_example4' :
+  <{idBB (notB true)}> -->* <{false}>.
+Proof. normalize. Qed.
+ 
+Lemma step_example5 :
+       <{idBBBB idBB idB}>
+  -->* idB.
+Proof.
+  eapply multi_step.
+  - apply ST_App1.
+    + apply ST_AppAbs. auto.
+  - simpl. eapply multi_step.
+    + apply ST_AppAbs. auto.
+    + simpl. apply multi_refl.
+Qed.
+  
+Lemma step_example5_with_normalize :
+       <{idBBBB idBB idB}>
+  -->* idB.
+Proof.
+  normalize.
+Qed.
       
       
     
