@@ -261,6 +261,70 @@ Lemma step_example5_with_normalize :
 Proof.
   normalize.
 Qed.
-      
-      
-    
+
+Definition context := partial_map ty.
+
+Reserved Notation "Gamma '|--' t '\in' T"
+            (at level 101,
+             t custom stlc, T custom stlc at level 0).
+ Print Grammar constr.
+Inductive has_type : context -> tm -> ty -> Prop :=
+  | T_Var : forall Gamma x T1,
+      Gamma x = Some T1 ->
+      Gamma |-- x \in T1
+  | T_Abs : forall Gamma x T1 T2 t1,
+      x |-> T2 ; Gamma |-- t1 \in T1 ->
+      Gamma |-- \x:T2, t1 \in (T2 -> T1)
+  | T_App : forall T1 T2 Gamma t1 t2,
+      Gamma |-- t1 \in (T2 -> T1) ->
+      Gamma |-- t2 \in T2 ->
+      Gamma |-- t1 t2 \in T1
+  | T_True : forall Gamma,
+       Gamma |-- true \in Bool
+  | T_False : forall Gamma,
+       Gamma |-- false \in Bool
+  | T_If : forall t1 t2 t3 T1 Gamma,
+       Gamma |-- t1 \in Bool ->
+       Gamma |-- t2 \in T1 ->
+       Gamma |-- t3 \in T1 ->
+       Gamma |-- if t1 then t2 else t3 \in T1
+
+where "Gamma '|--' t '\in' T" := (has_type Gamma t T).
+Hint Constructors has_type : core.
+
+Example typing_example_1 :
+  empty |-- \x:Bool, x \in (Bool -> Bool).
+Proof. eauto. Qed.
+
+Example typing_example_2 :
+  empty |--
+    \x:Bool,
+       \y:Bool->Bool,
+          (y (y x)) \in
+    (Bool -> (Bool -> Bool) -> Bool).
+Proof. eauto 20. Show Proof. Qed.
+
+Example typing_example_2_full :
+  empty |--
+    \x:Bool,
+       \y:Bool->Bool,
+          (y (y x)) \in
+    (Bool -> (Bool -> Bool) -> Bool).
+Proof.
+  apply T_Abs. apply T_Abs. eapply T_App.
+  - apply T_Var. apply update_eq.
+  - eapply T_App.
+    + apply T_Var. apply update_eq.
+    + apply T_Var. apply eq_refl.
+Qed.
+
+Example typing_example_3 :
+  exists T,
+    empty |--
+      \x:Bool->Bool,
+         \y:Bool->Bool,
+            \z:Bool,
+               (y (x z)) \in
+      T.
+Proof.
+Admitted.
