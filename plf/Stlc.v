@@ -328,3 +328,15 @@ Example typing_example_3 :
       T.
 Proof.
 Admitted.
+
+Example typing_example_3_mine :
+    empty |--
+      \x:Bool->Bool,
+         \y:Bool->Bool,
+            \z:Bool,
+               (y (x z)) \in
+  ((Bool -> Bool) -> (Bool -> Bool) -> Bool).
+Proof.
+  apply T_Abs. apply T_Abs.
+  (* eapply T_App with (t1:=  *)
+  Admitted.
