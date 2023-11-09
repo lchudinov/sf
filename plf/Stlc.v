@@ -335,8 +335,12 @@ Example typing_example_3_mine :
          \y:Bool->Bool,
             \z:Bool,
                (y (x z)) \in
-  ((Bool -> Bool) -> (Bool -> Bool) -> Bool).
+  ((Bool -> Bool) -> (Bool -> Bool) -> (Bool -> Bool)).
 Proof.
-  apply T_Abs. apply T_Abs.
-  (* eapply T_App with (t1:=  *)
-  Admitted.
+  apply T_Abs. apply T_Abs. apply T_Abs.
+  eapply T_App.
+  - apply T_Var. apply eq_refl.
+  - eapply T_App.
+    + apply T_Var. apply eq_refl.
+    + apply T_Var. apply eq_refl.
+Qed.
