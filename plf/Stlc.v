@@ -344,3 +344,5 @@ Proof.
     + apply T_Var. apply eq_refl.
     + apply T_Var. apply eq_refl.
 Qed.
+
+End STLC.
