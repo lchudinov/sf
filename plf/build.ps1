@@ -7,3 +7,5 @@ coqc -Q . PLF HoareAsLogic.v
 coqc -Q . PLF Smallstep.v
 coqc -Q . PLF Types.v
 coqc -Q . PLF Stlc.v 
+coqc -Q . PLF StlcProp.v 
+
