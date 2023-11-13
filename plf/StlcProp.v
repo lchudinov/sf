@@ -67,9 +67,30 @@ Proof.
   intros t.
   induction t; intros T Ht; auto.
 Admitted.
+
+Lemma weakening : forall Gamma Gamma' t T,
+     includedin Gamma Gamma' ->
+     Gamma |-- t \in T ->
+     Gamma' |-- t \in T.
+Proof.
+  intros Gamma Gamma' t T H Ht.
+  generalize dependent Gamma'.
+  induction Ht; eauto using includedin_update.
+Qed.
+
+Lemma weakening_empty : forall Gamma t T,
+     empty |-- t \in T ->
+     Gamma |-- t \in T.
+Proof.
+  intros Gamma t T.
+  eapply weakening.
+  discriminate.
+Qed.
   
-        
-  
-  
+Lemma substitution_preserves_typing : ∀ Gamma x U t v T,
+  x ⊢> U ; Gamma |-- t \in T ->
+  empty |-- v \in U ->
+  Gamma |-- [x:=v]t \in T.
+
 End STLCProp.
 
