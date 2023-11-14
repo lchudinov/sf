@@ -87,10 +87,74 @@ Proof.
   discriminate.
 Qed.
   
-Lemma substitution_preserves_typing : ∀ Gamma x U t v T,
-  x ⊢> U ; Gamma |-- t \in T ->
+Lemma substitution_preserves_typing : forall Gamma x U t v T,
+  x |-> U ; Gamma |-- t \in T ->
   empty |-- v \in U ->
   Gamma |-- [x:=v]t \in T.
+Proof.
+  intros Gamma x U t v T Ht Hv.
+  generalize dependent Gamma. generalize dependent T.
+  induction t; intros T Gamma H;
+  (* in each case, we'll want to get at the derivation of H *)
+    inversion H; clear H; subst; simpl; eauto.
+  - (* var *)
+    rename s into y. destruct (eqb_spec x y); subst.
+    + (* x=y *)
+      rewrite update_eq in H2.
+      injection H2 as H2; subst.
+      apply weakening_empty. assumption.
+    + (* x<>y *)
+      apply T_Var. rewrite update_neq in H2; auto.
+  - (* abs *)
+    rename s into y, t into S.
+    destruct (eqb_spec x y); subst; apply T_Abs.
+    + (* x=y *)
+      rewrite update_shadow in H5. assumption.
+    + (* x<>y *)
+      apply IHt.
+      rewrite update_permute; auto.
+Qed.
 
+Lemma substitution_preserves_typing_from_typing_ind : forall Gamma x U t v T,
+  x |-> U ; Gamma |-- t \in T ->
+  empty |-- v \in U ->
+  Gamma |-- [x:=v]t \in T.
+Proof.
+  intros Gamma x U t v T Ht Hv.
+  remember (x |-> U; Gamma) as Gamma'.
+  generalize dependent Gamma.
+  induction Ht; intros Gamma' G; simpl; eauto.
+  - destruct (eqb_spec x x0); subst.
+    + rewrite update_eq in H.
+      injection H as H; subst.
+      apply weakening_empty. assumption.
+    + apply T_Var.
+      rewrite update_neq in H; auto.
+  - destruct (eqb_spec x x0); subst; apply T_Abs.
+    + rewrite update_shadow in *. assumption.
+    + apply IHHt. rewrite update_permute; auto.
+Qed.
+
+Theorem preservation : forall t t' T,
+  empty |-- t \in T ->
+  t --> t' ->
+  empty |-- t' \in T.
+Proof with eauto.
+  intros t t' T HT. generalize dependent t'.
+  remember empty as Gamma.
+  induction HT; intros t' HE; subst; try solve [inversion HE; subst; auto].
+  - (* T_App *)
+    inversion HE; subst...
+    (* Most of the cases are immediate by induction,
+       and eauto takes care of them *)
+    + (* ST_AppAbs *)
+      apply substitution_preserves_typing with T2...
+      inversion HT1...
+Qed.
+
+Theorem not_subject_expansion:
+  exists t t' T, t --> t' /\ (empty |-- t' \in T) /\ ~ (empty |-- t \in T).
+Proof.
+  Admitted.
 End STLCProp.
 
