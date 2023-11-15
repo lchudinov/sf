@@ -156,5 +156,34 @@ Theorem not_subject_expansion:
   exists t t' T, t --> t' /\ (empty |-- t' \in T) /\ ~ (empty |-- t \in T).
 Proof.
   Admitted.
+  
+Definition stuck (t:tm) : Prop :=
+  (normal_form step) t /\ ~ value t.
+Corollary type_soundness : forall t t' T,
+  empty |-- t \in T ->
+  t -->* t' ->
+  ~(stuck t').
+Proof.
+  intros t t' T Hhas_type Hmulti. unfold stuck.
+  intros [Hnf Hnot_val]. unfold normal_form in Hnf.
+  induction Hmulti.
+  - apply progress in Hhas_type.
+    destruct Hhas_type as [Hv | He]; auto.
+  - apply IHHmulti.
+    + apply preservation with (t' := y0) in Hhas_type.
+      * assumption.
+      * assumption.
+    + assumption.
+    + assumption.
+Qed.
+
+Theorem unique_types : forall Gamma e T T',
+  Gamma |-- e \in T ->
+  Gamma |-- e \in T' ->
+  T = T'.
+Proof.
+  intros Gamma e T T' H1 H2.
+  Admitted.
+    
 End STLCProp.
 
