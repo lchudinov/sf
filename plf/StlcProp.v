@@ -184,6 +184,45 @@ Theorem unique_types : forall Gamma e T T',
 Proof.
   intros Gamma e T T' H1 H2.
   Admitted.
+  
+Inductive appears_free_in (x : string) : tm -> Prop :=
+  | afi_var : appears_free_in x <{x}>
+  | afi_app1 : forall t1 t2,
+      appears_free_in x t1 ->
+      appears_free_in x <{t1 t2}>
+  | afi_app2 : forall t1 t2,
+      appears_free_in x t2 ->
+      appears_free_in x <{t1 t2}>
+  | afi_abs : forall y T1 t1,
+      y <> x ->
+      appears_free_in x t1 ->
+      appears_free_in x <{\y:T1, t1}>
+  | afi_if1 : forall t1 t2 t3,
+      appears_free_in x t1 ->
+      appears_free_in x <{if t1 then t2 else t3}>
+  | afi_if2 : forall t1 t2 t3,
+      appears_free_in x t2 ->
+      appears_free_in x <{if t1 then t2 else t3}>
+  | afi_if3 : forall t1 t2 t3,
+      appears_free_in x t3 ->
+      appears_free_in x <{if t1 then t2 else t3}>.
+      
+Hint Constructors appears_free_in : core.
+
+Definition closed (t:tm) := forall x, ~ appears_free_in x t.
+
+Lemma free_in_context : forall x t T Gamma,
+  appears_free_in x t ->
+  Gamma |-- t \in T ->
+  exists T', Gamma x = Some T'.
+  intros x t T Gamma H H0. generalize dependent Gamma.
+  generalize dependent T.
+  induction H as [| | |y T1 t1 H H0 IHappears_free_in| | |];
+         intros; try solve [inversion H0; eauto].
+  (* apply IHappears_free_in with (T := T1). *)
+  
+  
+
     
 End STLCProp.
 
