@@ -218,11 +218,18 @@ Lemma free_in_context : forall x t T Gamma,
   intros x t T Gamma H H0. generalize dependent Gamma.
   generalize dependent T.
   induction H as [| | |y T1 t1 H H0 IHappears_free_in| | |];
-         intros; try solve [inversion H0; eauto].
-  (* apply IHappears_free_in with (T := T1). *)
-  
-  
-
+         intros.
+         (* try solve [inversion H0; eauto]. *)
+  - inversion H0. exists T. assumption.
+  - inversion H0. apply IHappears_free_in in H4. assumption.
+  - inversion H0. apply IHappears_free_in in H6. assumption.
+  - inversion H1; subst. apply IHappears_free_in in H7.
+    apply update_neq with (A := ty) (m := Gamma) (x1 := x) (x2 := y) (v := T1) in H.
+    rewrite -> H in H7. assumption.
+  - inversion H0. apply IHappears_free_in in H5. assumption.
+  - inversion H0. apply IHappears_free_in in H7. assumption.
+  - inversion H0. apply IHappears_free_in in H8. assumption.
+Qed.
     
 End STLCProp.
 
