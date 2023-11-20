@@ -215,6 +215,7 @@ Lemma free_in_context : forall x t T Gamma,
   appears_free_in x t ->
   Gamma |-- t \in T ->
   exists T', Gamma x = Some T'.
+Proof.
   intros x t T Gamma H H0. generalize dependent Gamma.
   generalize dependent T.
   induction H as [| | |y T1 t1 H H0 IHappears_free_in| | |];
@@ -230,6 +231,16 @@ Lemma free_in_context : forall x t T Gamma,
   - inversion H0. apply IHappears_free_in in H7. assumption.
   - inversion H0. apply IHappears_free_in in H8. assumption.
 Qed.
-    
+
+Corollary typable_empty__closed : forall t T,
+  empty |-- t \in T ->
+  closed t.
+Proof.
+  intros t T H x contra.
+  apply free_in_context with (T:= T) (Gamma := empty) in contra.
+  - solve_by_inverts 2.
+  - assumption.
+Qed.  
+  
 End STLCProp.
 
