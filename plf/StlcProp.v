@@ -240,7 +240,37 @@ Proof.
   apply free_in_context with (T:= T) (Gamma := empty) in contra.
   - solve_by_inverts 2.
   - assumption.
-Qed.  
+Qed.
+
+Lemma context_invariance : forall Gamma Gamma' t T,
+  Gamma |-- t \in T ->
+  (forall x, appears_free_in x t -> Gamma x = Gamma' x) ->
+  Gamma' |-- t \in T.
+Proof with eauto.
+  intros.
+  generalize dependent Gamma'.
+  induction H as [| ? x0 ????? | | | |]; intros; auto.
+  - apply T_Var. rewrite <- H0.
+    + assumption.
+    + constructor.
+  - apply T_Abs. apply IHhas_type.
+    intros x1 Hafi.
+    Admitted.
+    
+Theorem progress_my : forall t T,
+  empty |-- t \in T ->
+  value t \/ exists t', t --> t'.
+Proof. Admitted.
+
+Theorem preservation_my : forall t t' T,
+  empty |-- t \in T ->
+  t --> t' ->
+  empty |-- t' \in T.
+Proof. Admitted.
+  
+Qed.
+
+
   
 End STLCProp.
 
