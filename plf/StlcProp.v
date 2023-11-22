@@ -268,9 +268,82 @@ Theorem preservation_my : forall t t' T,
   empty |-- t' \in T.
 Proof. Admitted.
   
-Qed.
+Module STLCArith.
+Import STLC.
 
-
+Inductive ty : Type :=
+  | Ty_Arrow : ty -> ty -> ty
+  | Ty_Nat : ty.
+Inductive tm : Type :=
+  | tm_var : string -> tm
+  | tm_app : tm -> tm -> tm
+  | tm_abs : string -> ty -> tm -> tm
+  | tm_const : nat -> tm
+  | tm_succ : tm -> tm
+  | tm_pred : tm -> tm
+  | tm_mult : tm -> tm -> tm
+  | tm_if0 : tm -> tm -> tm -> tm.
   
+Notation "{ x }" := x (in custom stlc at level 1, x constr).
+Notation "<{ e }>" := e (e custom stlc at level 99).
+Notation "( x )" := x (in custom stlc, x at level 99).
+Notation "x" := x (in custom stlc at level 0, x constr at level 0).
+Notation "S -> T" := (Ty_Arrow S T) (in custom stlc at level 50, right associativity).
+Notation "x y" := (tm_app x y) (in custom stlc at level 1, left associativity).
+Notation "\ x : t , y" :=
+  (tm_abs x t y) (in custom stlc at level 90, x at level 99,
+                     t custom stlc at level 99,
+                     y custom stlc at level 99,
+                     left associativity).
+Coercion tm_var : string >-> tm.
+Notation "'Nat'" := Ty_Nat (in custom stlc at level 0).
+Notation "'succ' x" := (tm_succ x) (in custom stlc at level 0,
+                                     x custom stlc at level 0).
+Notation "'pred' x" := (tm_pred x) (in custom stlc at level 0,
+                                     x custom stlc at level 0).
+Notation "x * y" := (tm_mult x y) (in custom stlc at level 1,
+                                      left associativity).
+Notation "'if0' x 'then' y 'else' z" :=
+  (tm_if0 x y z) (in custom stlc at level 89,
+                    x custom stlc at level 99,
+                    y custom stlc at level 99,
+                    z custom stlc at level 99,
+                    left associativity).
+Coercion tm_const : nat >-> tm.
+
+Reserved Notation "'[' x ':=' s ']' t" (in custom stlc at level 20, x constr).
+
+Fixpoint subst (x : string) (s : tm) (t : tm) : tm
+  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Inductive value : tm -> Prop :=
+  (* FILL IN HERE *)
+.
+Hint Constructors value : core.
+Reserved Notation "t '-->' t'" (at level 40).
+Inductive step : tm -> tm -> Prop :=
+  (* FILL IN HERE *)
+where "t '-->' t'" := (step t t').
+Notation multistep := (multi step).
+Notation "t1 '-->*' t2" := (multistep t1 t2) (at level 40).
+Hint Constructors step : core.
+(* An example *)
+Example Nat_step_example : exists t,
+<{(\x: Nat, \y: Nat, x * y ) 3 2 }> -->* t.
+Proof. (* FILL IN HERE *) Admitted.
+
+(* Typing *)
+Definition context := partial_map ty.
+Reserved Notation "Gamma '|--' t '∈' T" (at level 101, t custom stlc, T custom stlc at level 0).
+Inductive has_type : context -> tm -> ty -> Prop :=
+  (* FILL IN HERE *)
+where "Gamma '|--' t '∈' T" := (has_type Gamma t T).
+Hint Constructors has_type : core.
+(* An example *)
+Example Nat_typing_example :
+   empty |-- ( \x: Nat, \y: Nat, x * y ) 3 2 \in Nat.
+Proof.
+  (* FILL IN HERE *) Admitted.
+  
+End STLCArith.
 End STLCProp.
 
