@@ -313,8 +313,22 @@ Coercion tm_const : nat >-> tm.
 
 Reserved Notation "'[' x ':=' s ']' t" (in custom stlc at level 20, x constr).
 
-Fixpoint subst (x : string) (s : tm) (t : tm) : tm
+Fixpoint subst' (x : string) (s : tm) (t : tm) : tm
   (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+  Fixpoint subst (x : string) (s : tm) (t : tm) : tm :=
+    match t with
+    | tm_var y => if String.eqb x y then s else t
+    | <{\y:T, t1}> => if String.eqb x y then <{\y:T, t1}> else <{\y:T, [x:=s] t1}> 
+    | <{ t1 t2 }> => <{ ([x:=s] t1) ([x:=s] t2) }>
+    (* | <{ x }> => <{ x }>  how to deal with constants???? *)
+    | <{ succ t }> => <{ succ ([x:=s] t) }>
+    | <{ pred t }> => <{ pred ([x:=s] t) }>
+    (* | <{ true }> => <{ true }> *)
+    (* | <{ false }> => <{ false }> *)
+    (* | <{ if t1 then t2 else t3 }> => <{ if ([x:=s] t1) then ([x:=s] t2) else ([x:=s] t3) }> *)
+    | <{ x }> => <{ x }>  (* how to deal with constants???? *)
+    end
+  where "'[' x ':=' s ']' t" := (subst x s t) (in custom stlc).
 Inductive value : tm -> Prop :=
   (* FILL IN HERE *)
 .
