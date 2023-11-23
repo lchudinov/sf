@@ -320,22 +320,59 @@ Fixpoint subst' (x : string) (s : tm) (t : tm) : tm
     | tm_var y => if String.eqb x y then s else t
     | <{\y:T, t1}> => if String.eqb x y then <{\y:T, t1}> else <{\y:T, [x:=s] t1}> 
     | <{ t1 t2 }> => <{ ([x:=s] t1) ([x:=s] t2) }>
-    (* | <{ x }> => <{ x }>  how to deal with constants???? *)
+    | tm_const t => tm_const t
     | <{ succ t }> => <{ succ ([x:=s] t) }>
     | <{ pred t }> => <{ pred ([x:=s] t) }>
-    (* | <{ true }> => <{ true }> *)
-    (* | <{ false }> => <{ false }> *)
-    (* | <{ if t1 then t2 else t3 }> => <{ if ([x:=s] t1) then ([x:=s] t2) else ([x:=s] t3) }> *)
-    | <{ x }> => <{ x }>  (* how to deal with constants???? *)
+    | <{ t1 * t2 }> => <{ ([x:=s] t1) * ([x:=s] t2) }>
+    | <{ if0 t1 then t2 else t3 }> => <{ if0 ([x:=s] t1) then ([x:=s] t2) else ([x:=s] t3) }>
     end
   where "'[' x ':=' s ']' t" := (subst x s t) (in custom stlc).
+
 Inductive value : tm -> Prop :=
-  (* FILL IN HERE *)
-.
+  | v_abs : forall x T2 t1, value <{ \x:T2, t1 }>
+  | v_const : forall t, value (tm_const t)
+  .
 Hint Constructors value : core.
 Reserved Notation "t '-->' t'" (at level 40).
-Inductive step : tm -> tm -> Prop :=
+Inductive step' : tm -> tm -> Prop :=
   (* FILL IN HERE *)
+where "t '-->' t'" := (step t t').
+
+Inductive step : tm -> tm -> Prop :=
+  | ST_AppAbs : forall x T2 t1 v2,
+         value v2 ->
+         <{(\x:T2, t1) v2}> --> <{ [x:=v2]t1 }>
+  | ST_App1 : forall t1 t1' t2,
+         t1 --> t1' ->
+         <{t1 t2}> --> <{t1' t2}>
+  | ST_App2 : forall v1 t2 t2',
+         value v1 ->
+         t2 --> t2' ->
+         <{v1 t2}> --> <{v1 t2'}>
+  | ST_Succ : forall t t',
+         t --> t' ->
+         <{ succ t }> --> <{ succ t' }>
+  | ST_SuccConst : forall t n,
+         t = tm_const n ->
+         <{ succ t }> --> <{ n }>
+  | ST_Pred : forall t t',
+         t --> t' ->
+         <{ pred t }> --> <{ pred t' }>
+  | ST_PredConstS : forall t n,
+         t = tm_const (S n) ->
+         <{ pred t }> --> <{ n }>
+  | ST_PredConstZ : forall t,
+         t = tm_const 0 ->
+         <{ pred t }> --> <{ 0 }>
+  | ST_If0True : forall t1 t2 t3 n,
+      t1 = tm_const (S n) ->
+      <{if0 t1 then t2 else t3}> --> t2
+  | ST_If0False : forall t1 t2 t3,
+      t1 = tm_const 0 -> 
+      <{if0 t1 then t2 else t3}> --> t3
+  | ST_If0 : forall t1 t1' t2 t3,
+      t1 --> t1' ->
+      <{if0 t1 then t2 else t3}> --> <{if0 t1' then t2 else t3}>
 where "t '-->' t'" := (step t t').
 Notation multistep := (multi step).
 Notation "t1 '-->*' t2" := (multistep t1 t2) (at level 40).
