@@ -364,6 +364,16 @@ Inductive step : tm -> tm -> Prop :=
   | ST_PredConstZ : forall t,
          t = tm_const 0 ->
          <{ pred t }> --> <{ 0 }>
+  | ST_Mult1 : forall t1 t1' t2,
+         t1 --> t1' ->
+        <{ t1 * t2 }> --> <{ t1' * t2 }>
+  | ST_Mult2 : forall t1 t2 t2',
+         t2 --> t2' ->
+        <{ t1 * t2 }> --> <{ t1 * t2' }>
+  | ST_Mult3 : forall t1 t2 n1 n2,
+        t1 = tm_const n1 ->
+        t2 = tm_const n2 ->
+        <{ t1 * t2 }> --> tm_const (n1*n2)
   | ST_If0True : forall t1 t2 t3 n,
       t1 = tm_const (S n) ->
       <{if0 t1 then t2 else t3}> --> t2
@@ -380,20 +390,34 @@ Hint Constructors step : core.
 (* An example *)
 Example Nat_step_example : exists t,
 <{(\x: Nat, \y: Nat, x * y ) 3 2 }> -->* t.
-Proof. (* FILL IN HERE *) Admitted.
-
+Proof.
+  exists (tm_const 6).
+  eapply multi_step.
+  - eapply ST_App1.
+    apply ST_AppAbs.
+    constructor.
+  - simpl.
+    eapply multi_step.
+    + eapply ST_AppAbs.
+      constructor.
+    + simpl. eapply multi_step.
+      * apply ST_Mult3.
+        ** auto.
+        ** auto.
+      * simpl. auto.
+Qed.
 (* Typing *)
 Definition context := partial_map ty.
-Reserved Notation "Gamma '|--' t '∈' T" (at level 101, t custom stlc, T custom stlc at level 0).
+Reserved Notation "Gamma '|--' t '\in' T" (at level 101, t custom stlc, T custom stlc at level 0).
 Inductive has_type : context -> tm -> ty -> Prop :=
   (* FILL IN HERE *)
-where "Gamma '|--' t '∈' T" := (has_type Gamma t T).
+where "Gamma '|--' t 'in' T" := (has_type Gamma t T).
 Hint Constructors has_type : core.
 (* An example *)
 Example Nat_typing_example :
    empty |-- ( \x: Nat, \y: Nat, x * y ) 3 2 \in Nat.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  
   
 End STLCArith.
 End STLCProp.
