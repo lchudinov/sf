@@ -431,7 +431,7 @@ Inductive has_type : context -> tm -> ty -> Prop :=
   | T_Mult : forall Gamma t1 t2,
     Gamma |-- t1 \in Nat ->
     Gamma |-- t2 \in Nat ->
-    Gamma |-- <{ t1 t2 }> \in Nat
+    Gamma |-- t1 * t2 \in Nat
   | T_If : forall t1 t2 t3 T1 Gamma,
     Gamma |-- t1 \in Nat ->
     Gamma |-- t2 \in T1 ->
@@ -443,11 +443,16 @@ Hint Constructors has_type : core.
 Example Nat_typing_example :
    empty |-- ( \x: Nat, \y: Nat, x * y ) 3 2 \in Nat.
 Proof.
-  apply T_Mult.
+  eapply T_App.
   - eapply T_App.
-    * apply T_Abs.
-      apply T_Var.
-  
+    + eapply T_Abs.
+      eapply T_Abs.
+      eapply T_Mult.
+      * apply T_Const.
+      * apply T_Const.
+    + apply T_Const.
+  - apply T_Const.
+Qed.
   
 End STLCArith.
 End STLCProp.
