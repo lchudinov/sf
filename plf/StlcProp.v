@@ -353,7 +353,7 @@ Inductive step : tm -> tm -> Prop :=
          t --> t' ->
          <{ succ t }> --> <{ succ t' }>
   | ST_SuccConst : forall t n,
-         t = tm_const n ->
+         t = tm_const (S n) ->
          <{ succ t }> --> <{ n }>
   | ST_Pred : forall t t',
          t --> t' ->
@@ -420,8 +420,11 @@ Inductive has_type : context -> tm -> ty -> Prop :=
     Gamma |-- t1 \in (T2 -> T1) ->
     Gamma |-- t2 \in T2 ->
     Gamma |-- t1 t2 \in T1
-  | T_Const : forall Gamma n,
-    Gamma |-- n \in Nat
+  (* | T_Const : forall Gamma t1 n,
+      t1 = (tm_const n) ->
+      Gamma |-- t1 \in Nat *)
+  | T_Const : forall Gamma (n: nat),
+      Gamma |-- n \in Nat
   | T_Succ : forall Gamma t1,
     Gamma |-- t1 \in Nat ->
     Gamma |-- succ t1 \in Nat
@@ -442,16 +445,14 @@ Hint Constructors has_type : core.
 (* An example *)
 Example Nat_typing_example :
    empty |-- ( \x: Nat, \y: Nat, x * y ) 3 2 \in Nat.
-Proof.
+Proof with eauto.
   eapply T_App.
   - eapply T_App.
     + eapply T_Abs.
       eapply T_Abs.
-      eapply T_Mult.
-      * apply T_Const.
-      * apply T_Const.
-    + apply T_Const.
-  - apply T_Const.
+      eapply T_Mult...
+    + apply T_Const with (n := 3).
+  - apply T_Const with (n := 2).
 Qed.
 
 Lemma weakening : forall Gamma Gamma' t T,
@@ -565,7 +566,11 @@ Proof with eauto.
         destruct H0 as [t2' Hstp]. exists (<{ t1 t2' }>)...
     + (* t1 steps *)
       destruct H as [t1' Hstp]. exists (<{ t1' t2 }>)...
-  - (* T_Const*)
+  - (* T_Succ*)
+    right. destruct IHHt as [IHHt1 | IHHt2].
+    + reflexivity.
+    + inversion IHHt1; subst.
+      * 
     
   - (* TIf *)
     right. destruct IHHt1...
