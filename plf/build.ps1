@@ -8,4 +8,5 @@ coqc -Q . PLF Smallstep.v
 coqc -Q . PLF Types.v
 coqc -Q . PLF Stlc.v 
 coqc -Q . PLF StlcProp.v 
+coqc -Q . PLF MoreStlc.v 
 
