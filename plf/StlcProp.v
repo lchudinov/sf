@@ -330,7 +330,7 @@ Fixpoint subst' (x : string) (s : tm) (t : tm) : tm
 
 Inductive value : tm -> Prop :=
   | v_abs : forall x T2 t1, value <{ \x:T2, t1 }>
-  | v_const : forall t, value (tm_const t)
+  | v_const : forall (n: nat), value <{n}>
   .
 Hint Constructors value : core.
 Reserved Notation "t '-->' t'" (at level 40).
@@ -352,37 +352,32 @@ Inductive step : tm -> tm -> Prop :=
   | ST_Succ : forall t t',
          t --> t' ->
          <{ succ t }> --> <{ succ t' }>
-  | ST_SuccConst : forall t n,
-         t = tm_const (S n) ->
-         <{ succ t }> --> <{ n }>
+  | ST_SuccConst : forall (n: nat),
+         <{ succ n }> --> <{ {S n} }>
   | ST_Pred : forall t t',
          t --> t' ->
          <{ pred t }> --> <{ pred t' }>
-  | ST_PredConstS : forall t n,
-         t = tm_const (S n) ->
-         <{ pred t }> --> <{ n }>
+  | ST_PredConstS : forall (n: nat),
+         <{ pred n }> --> <{ {n - 1} }>
   | ST_PredConstZ : forall t,
          t = tm_const 0 ->
          <{ pred t }> --> <{ 0 }>
+  | ST_MultConst : forall n1 n2: nat,
+        <{ n1 * n2 }> --> <{ {n1*n2} }>
   | ST_Mult1 : forall t1 t1' t2,
          t1 --> t1' ->
         <{ t1 * t2 }> --> <{ t1' * t2 }>
-  | ST_Mult2 : forall t1 t2 t2',
+  | ST_Mult2 : forall v1 t2 t2',
+         value v1 -> 
          t2 --> t2' ->
-        <{ t1 * t2 }> --> <{ t1 * t2' }>
-  | ST_Mult3 : forall t1 t2 n1 n2,
-        t1 = tm_const n1 ->
-        t2 = tm_const n2 ->
-        <{ t1 * t2 }> --> tm_const (n1*n2)
-  | ST_If0True : forall t1 t2 t3 n,
-      t1 = tm_const (S n) ->
-      <{if0 t1 then t2 else t3}> --> t2
-  | ST_If0False : forall t1 t2 t3,
-      t1 = tm_const 0 -> 
-      <{if0 t1 then t2 else t3}> --> t3
+        <{ v1 * t2 }> --> <{ v1 * t2' }>
   | ST_If0 : forall t1 t1' t2 t3,
-      t1 --> t1' ->
-      <{if0 t1 then t2 else t3}> --> <{if0 t1' then t2 else t3}>
+          t1 --> t1' ->
+          <{if0 t1 then t2 else t3}> --> <{if0 t1' then t2 else t3}>
+  | ST_If0True : forall n t2 t3,
+      <{if0 {S n} then t2 else t3}> --> t2
+  | ST_If0False : forall t2 t3,
+      <{if0 0 then t2 else t3}> --> t3
 where "t '-->' t'" := (step t t').
 Notation multistep := (multi step).
 Notation "t1 '-->*' t2" := (multistep t1 t2) (at level 40).
@@ -401,10 +396,8 @@ Proof.
     + eapply ST_AppAbs.
       constructor.
     + simpl. eapply multi_step.
-      * apply ST_Mult3.
-        ** auto.
-        ** auto.
-      * simpl. auto.
+      * apply ST_MultConst.
+      * auto.
 Qed.
 (* Typing *)
 Definition context := partial_map ty.
@@ -420,9 +413,6 @@ Inductive has_type : context -> tm -> ty -> Prop :=
     Gamma |-- t1 \in (T2 -> T1) ->
     Gamma |-- t2 \in T2 ->
     Gamma |-- t1 t2 \in T1
-  (* | T_Const : forall Gamma t1 n,
-      t1 = (tm_const n) ->
-      Gamma |-- t1 \in Nat *)
   | T_Const : forall Gamma (n: nat),
       Gamma |-- n \in Nat
   | T_Succ : forall Gamma t1,
@@ -569,8 +559,10 @@ Proof with eauto.
   - (* T_Succ*)
     destruct IHHt as [IHHt1 | IHHt2].
     + reflexivity.
-    + apply T_Succ in Ht.
-      left.
+    + inversion Ht; subst; clear Ht.
+      * right. 
+      
+      
       inversion IHHt1; subst.
     Admitted.
   (* - TIf
