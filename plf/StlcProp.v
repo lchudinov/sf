@@ -567,18 +567,20 @@ Proof with eauto.
     + (* t1 steps *)
       destruct H as [t1' Hstp]. exists (<{ t1' t2 }>)...
   - (* T_Succ*)
-    right. destruct IHHt as [IHHt1 | IHHt2].
+    destruct IHHt as [IHHt1 | IHHt2].
     + reflexivity.
-    + inversion IHHt1; subst.
-      * 
-    
-  - (* TIf *)
+    + apply T_Succ in Ht.
+      left.
+      inversion IHHt1; subst.
+    Admitted.
+  (* - TIf
     right. destruct IHHt1...
     + (* t1 is a value *)
       destruct (canonical_forms_bool t1); subst; eauto.
     + (* t1 also steps *)
-      destruct H as [t1' Hstp]. exists (<{ if t1' then t2 else t3 }>)...
+      destruct H as [t1' Hstp]. exists (<{ if t1' then t2 else t3 }>)... 
 Qed.
+*)
   
 End STLCArith.
 End STLCProp.
