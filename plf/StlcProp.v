@@ -567,7 +567,8 @@ Proof with eauto.
       exists <{ succ t1' }>.
       apply ST_Succ.
       assumption.
-  - destruct IHHt as [IHHt1 | IHHt2].
+  - (* T_Pred *)
+      destruct IHHt as [IHHt1 | IHHt2].
     + reflexivity.
     + right.
       inversion IHHt1; subst.
@@ -579,7 +580,8 @@ Proof with eauto.
       destruct IHHt2 as [t1' IHHt2].
       exists <{ pred t1' }>.
       constructor. assumption.
-  - right.
+  - (* T_Mult *)
+    right.
     destruct IHHt1; destruct IHHt2; auto.
     * inversion H; inversion H0; subst; try inversion Ht1.
       + 
