@@ -359,9 +359,6 @@ Inductive step : tm -> tm -> Prop :=
          <{ pred t }> --> <{ pred t' }>
   | ST_PredConstS : forall (n: nat),
          <{ pred n }> --> <{ {n - 1} }>
-  | ST_PredConstZ : forall t,
-         t = tm_const 0 ->
-         <{ pred t }> --> <{ 0 }>
   | ST_MultConst : forall n1 n2: nat,
         <{ n1 * n2 }> --> <{ {n1*n2} }>
   | ST_Mult1 : forall t1 t1' t2,
@@ -559,10 +556,33 @@ Proof with eauto.
   - (* T_Succ*)
     destruct IHHt as [IHHt1 | IHHt2].
     + reflexivity.
-    + inversion Ht; subst; clear Ht.
-      * right. 
-      
-      
+    + inversion IHHt1; subst.
+      * inversion Ht.
+      * inversion Ht.
+        right.
+        exists <{ {S n} }>.
+        apply ST_SuccConst.
+    + right.
+      destruct IHHt2 as [t1' IHHt2].
+      exists <{ succ t1' }>.
+      apply ST_Succ.
+      assumption.
+  - destruct IHHt as [IHHt1 | IHHt2].
+    + reflexivity.
+    + right.
+      inversion IHHt1; subst.
+      * inversion Ht.
+      * inversion Ht.
+        exists <{ {n-1} }>.
+        apply ST_PredConstS.
+    + right.
+      destruct IHHt2 as [t1' IHHt2].
+      exists <{ pred t1' }>.
+      constructor. assumption.
+  - right.
+    destruct IHHt1; destruct IHHt2; auto.
+    * inversion H; inversion H0; subst; try inversion Ht1.
+      + 
       inversion IHHt1; subst.
     Admitted.
   (* - TIf
