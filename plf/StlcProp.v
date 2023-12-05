@@ -507,17 +507,18 @@ Proof with eauto.
 Qed.
 
 
-(*
- Lemma canonical_forms_const : forall t,
+
+Lemma canonical_forms_const : forall t,
   empty |-- t \in Nat ->
   value t ->
-  (t = <{true}>) \/ (t = <{false}>).
+  exists (n: nat), t = <{ {n} }>.
 Proof.
   intros t HT HVal.
-  destruct HVal; auto.
+  destruct HVal; auto;
   inversion HT.
+  exists n0. auto.
 Qed.
- *)
+
 
 Lemma canonical_forms_fun : forall t T1 T2,
   empty |-- t \in (T1 -> T2) ->
@@ -582,19 +583,28 @@ Proof with eauto.
       constructor. assumption.
   - (* T_Mult *)
     right.
-    destruct IHHt1; destruct IHHt2; auto.
-    * inversion H; inversion H0; subst; try inversion Ht1.
-      + 
-      inversion IHHt1; subst.
-    Admitted.
-  (* - TIf
+    destruct IHHt1 as [Hv1 | [t1'  H1]];
+    destruct IHHt2 as [Hv2 | [t2'  H2]];
+    auto.
+    + eapply canonical_forms_const in Hv1; eapply canonical_forms_const in Hv2; auto.
+      destruct Hv1 as [n1 Hv1].
+      destruct Hv2 as [n2 Hv2].
+      subst.
+      exists <{ {n1 * n2} }>.
+      apply ST_MultConst.
+    + exists <{ t1 * t2' }>. apply ST_Mult2; auto.
+    + exists <{ t1' * t2 }>. apply ST_Mult1; auto.
+    + destruct Ht2...
+  - (* TIf0 *)
     right. destruct IHHt1...
     + (* t1 is a value *)
-      destruct (canonical_forms_bool t1); subst; eauto.
+      destruct (canonical_forms_const t1); subst; eauto.
+      destruct x0 as [|x0].
+      * exists t3. apply ST_If0False.
+      * exists t2. apply ST_If0True.
     + (* t1 also steps *)
-      destruct H as [t1' Hstp]. exists (<{ if t1' then t2 else t3 }>)... 
+      destruct H as [t1' Hstp]. exists (<{ if0 t1' then t2 else t3 }>)... 
 Qed.
-*)
   
 End STLCArith.
 End STLCProp.
