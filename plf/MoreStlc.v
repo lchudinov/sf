@@ -177,7 +177,8 @@ Fixpoint subst (x : string) (s : tm) (t : tm) : tm :=
   (* pairs *)
   | <{ ( t1, t2 ) }> => <{ (([x:=s] t1), ([x:=s] t2)) }>
   (* let *)
-  (* FILL IN HERE *)
+  | <{ let y = t1 in t2}> =>
+      <{ let y = ([x:=s] t1) in { if String.eqb x y then t2 else <{ ([x:=s] t2)}> } }>
   (* fix *)
   (* FILL IN HERE *)
   | _ => t (* ... and delete this line when you finish the exercise *)
