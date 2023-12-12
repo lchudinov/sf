@@ -178,9 +178,14 @@ Fixpoint subst (x : string) (s : tm) (t : tm) : tm :=
   | <{ ( t1, t2 ) }> => <{ (([x:=s] t1), ([x:=s] t2)) }>
   (* let *)
   | <{ let y = t1 in t2}> =>
-      <{ let y = ([x:=s] t1) in { if String.eqb x y then t2 else <{ ([x:=s] t2)}> } }>
+    if String.eqb x y then
+      <{ t2 }> else 
+      <{ let y = ([x:=s] t1) in ([x:=s] t2) }>
   (* fix *)
+  | <{ fix t }> => <{ fix([x:=s] t) }>
+  | <{ t.fst }> => <{ ([x:=s] t).fst }>
+  | <{ t.snd }> => <{ ([x:=s] t).snd }>
   (* FILL IN HERE *)
-  | _ => t (* ... and delete this line when you finish the exercise *)
+  (* | _ => t ... and delete this line when you finish the exercise *)
   end
 where "'[' x ':=' s ']' t" := (subst x s t) (in custom stlc).
