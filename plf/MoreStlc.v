@@ -189,3 +189,138 @@ Fixpoint subst (x : string) (s : tm) (t : tm) : tm :=
   (* | _ => t ... and delete this line when you finish the exercise *)
   end
 where "'[' x ':=' s ']' t" := (subst x s t) (in custom stlc).
+
+Inductive value : tm -> Prop :=
+  (* In pure STLC, function abstractions are values: *)
+  | v_abs : forall x T2 t1, value <{ \x:T2, t1}>
+  (* Numbers are values: *)
+  | v_nat : forall n : nat, value <{ n }>
+  (* A tagged value is a value:  *)
+  | v_inl : forall v T1, value v -> value <{ inl T1 v}>
+  | v_inr : forall v T1, value v -> value <{ inr T1 v}>
+  (* A list is a value iff its head and tail are values: *)
+  | v_lnil : forall T1, value <{ nil T1 }>
+  | v_cons : forall v1 v2, value v1 -> value v2 -> value <{ v1 :: v2 }>
+  (* A unit is always a value *)
+  | v_unit : value <{ unit }>
+  (* A pair is a value if both components are: *)
+  | v_pair : forall v1 v2, value v1 -> value v2 -> value <{ (v1, v2) }>.
+  
+Inductive step : tm -> tm -> Prop :=
+(* pure STLC *)
+| ST_AppAbs : forall x T2 t1 v2,
+       value v2 ->
+       <{(\x:T2, t1) v2}> --> <{ [x:=v2]t1 }>
+| ST_App1 : forall t1 t1' t2,
+       t1 --> t1' ->
+       <{t1 t2}> --> <{t1' t2}>
+| ST_App2 : forall v1 t2 t2',
+       value v1 ->
+       t2 --> t2' ->
+       <{v1 t2}> --> <{v1 t2'}>
+(* numbers *)
+| ST_Succ : forall t1 t1',
+       t1 --> t1' ->
+       <{succ t1}> --> <{succ t1'}>
+| ST_SuccNat : forall n : nat,
+       <{succ n}> --> <{ {S n} }>
+| ST_Pred : forall t1 t1',
+       t1 --> t1' ->
+       <{pred t1}> --> <{pred t1'}>
+| ST_PredNat : forall n:nat,
+       <{pred n}> --> <{ {n - 1} }>
+| ST_Mulconsts : forall n1 n2 : nat,
+       <{n1 * n2}> --> <{ {n1 * n2} }>
+| ST_Mult1 : forall t1 t1' t2,
+       t1 --> t1' ->
+       <{t1 * t2}> --> <{t1' * t2}>
+| ST_Mult2 : forall v1 t2 t2',
+       value v1 ->
+       t2 --> t2' ->
+       <{v1 * t2}> --> <{v1 * t2'}>
+| ST_If0 : forall t1 t1' t2 t3,
+       t1 --> t1' ->
+       <{if0 t1 then t2 else t3}> --> <{if0 t1' then t2 else t3}>
+| ST_If0_Zero : forall t2 t3,
+       <{if0 0 then t2 else t3}> --> t2
+| ST_If0_Nonzero : forall n t2 t3,
+       <{if0 {S n} then t2 else t3}> --> t3
+(* sums *)
+| ST_Inl : forall t1 t1' T2,
+      t1 --> t1' ->
+      <{inl T2 t1}> --> <{inl T2 t1'}>
+| ST_Inr : forall t2 t2' T1,
+      t2 --> t2' ->
+      <{inr T1 t2}> --> <{inr T1 t2'}>
+| ST_Case : forall t0 t0' x1 t1 x2 t2,
+      t0 --> t0' ->
+      <{case t0 of | inl x1 => t1 | inr x2 => t2}> -->
+      <{case t0' of | inl x1 => t1 | inr x2 => t2}>
+| ST_CaseInl : forall v0 x1 t1 x2 t2 T2,
+      value v0 ->
+      <{case inl T2 v0 of | inl x1 => t1 | inr x2 => t2}> --> <{ [x1:=v0]t1 }>
+| ST_CaseInr : forall v0 x1 t1 x2 t2 T1,
+      value v0 ->
+      <{case inr T1 v0 of | inl x1 => t1 | inr x2 => t2}> --> <{ [x2:=v0]t2 }>
+(* lists *)
+| ST_Cons1 : forall t1 t1' t2,
+     t1 --> t1' ->
+     <{t1 :: t2}> --> <{t1' :: t2}>
+| ST_Cons2 : forall v1 t2 t2',
+     value v1 ->
+     t2 --> t2' ->
+     <{v1 :: t2}> --> <{v1 :: t2'}>
+| ST_Lcase1 : forall t1 t1' t2 x1 x2 t3,
+     t1 --> t1' ->
+     <{case t1 of | nil => t2 | x1 :: x2 => t3}> -->
+     <{case t1' of | nil => t2 | x1 :: x2 => t3}>
+| ST_LcaseNil : forall T1 t2 x1 x2 t3,
+     <{case nil T1 of | nil => t2 | x1 :: x2 => t3}> --> t2
+| ST_LcaseCons : forall v1 vl t2 x1 x2 t3,
+     value v1 ->
+     value vl ->
+     <{case v1 :: vl of | nil => t2 | x1 :: x2 => t3}>
+       --> <{ [x2 := vl] ([x1 := v1] t3) }>
+  (* Add rules for the following extensions. *)
+
+  (* pairs *)
+| ST_Pair1 : forall t1 t1' t2,
+    t1 --> t1' ->
+    <{ (t1, t2) }> --> <{ (t1', t2) }>
+| ST_Pair2 : forall v1 t2 t2',
+    value v1 ->
+    t2 --> t2' ->
+    <{ (v1, t2) }> --> <{ (v1, t2') }>
+| ST_Fst1 : forall t1 t1',
+    t1 --> t1' ->
+    <{ t1.fst }> --> <{ t1'.fst }>
+| ST_FstPair : forall v1 v2,
+    value v1 ->
+    value v2 ->
+    <{ (v1, v2).fst }> --> <{ v1 }>
+| ST_Snd1 : forall t1 t1',
+    t1 --> t1' ->
+    <{ t1.snd }> --> <{ t1'.snd }>
+| ST_SndPair : forall v1 v2,
+    value v1 ->
+    value v2 ->
+    <{ (v1, v2).snd }> --> <{ v2 }>
+  (* let *)
+| ST_Let1 : forall y t1 t1' t2,
+    t1 --> t1' ->
+    <{ let y = t1 in t2}> --> <{ let y = t1' in t2}>
+| ST_LetValue : forall y v1 t2,
+    value v1 ->
+    <{ let y = v1 in t2}> --> <{ ([y := v1] t2) }>
+  (* fix *)
+| ST_fix1: forall t1 t1',
+    t1 --> t1' ->
+    <{ fix t1 }> --> <{ fix t1' }>
+| ST_FixAbs: forall xf T t1 F,
+  F = <{ (\x:T, t1) }> ->
+  <{ fix F }> --> <{ [ xf:= <{ fix F}> ]t1 }>
+where "t '-->' t'" := (step t t').
+  
+Notation multistep := (multi step).
+Notation "t1 '-->*' t2" := (multistep t1 t2) (at level 40).
+Hint Constructors step : core.
