@@ -324,3 +324,158 @@ where "t '-->' t'" := (step t t').
 Notation multistep := (multi step).
 Notation "t1 '-->*' t2" := (multistep t1 t2) (at level 40).
 Hint Constructors step : core.
+
+Definition context := partial_map ty.
+
+Reserved Notation "Gamma '|--' t '\in' T" (at level 40, t custom stlc, T custom stlc_ty at level 0).
+
+Inductive has_type : context -> tm -> ty -> Prop :=
+  (* pure STLC *)
+  | T_Var : forall Gamma x T1,
+      Gamma x = Some T1 ->
+      Gamma |-- x \in T1
+  | T_Abs : forall Gamma x T1 T2 t1,
+    (x |-> T2 ; Gamma) |-- t1 \in T1 ->
+      Gamma |-- \x:T2, t1 \in (T2 -> T1)
+  | T_App : forall T1 T2 Gamma t1 t2,
+      Gamma |-- t1 \in (T2 -> T1) ->
+      Gamma |-- t2 \in T2 ->
+      Gamma |-- t1 t2 \in T1
+  (* numbers *)
+  | T_Nat : forall Gamma (n : nat),
+      Gamma |-- n \in Nat
+  | T_Succ : forall Gamma t,
+      Gamma |-- t \in Nat ->
+      Gamma |-- succ t \in Nat
+  | T_Pred : forall Gamma t,
+      Gamma |-- t \in Nat ->
+      Gamma |-- pred t \in Nat
+  | T_Mult : forall Gamma t1 t2,
+      Gamma |-- t1 \in Nat ->
+      Gamma |-- t2 \in Nat ->
+      Gamma |-- t1 * t2 \in Nat
+  | T_If0 : forall Gamma t1 t2 t3 T0,
+      Gamma |-- t1 \in Nat ->
+      Gamma |-- t2 \in T0 ->
+      Gamma |-- t3 \in T0 ->
+      Gamma |-- if0 t1 then t2 else t3 \in T0
+  (* sums *)
+  | T_Inl : forall Gamma t1 T1 T2,
+      Gamma |-- t1 \in T1 ->
+      Gamma |-- (inl T2 t1) \in (T1 + T2)
+  | T_Inr : forall Gamma t2 T1 T2,
+      Gamma |-- t2 \in T2 ->
+      Gamma |-- (inr T1 t2) \in (T1 + T2)
+  | T_Case : forall Gamma t0 x1 T1 t1 x2 T2 t2 T3,
+      Gamma |-- t0 \in (T1 + T2) ->
+      (x1 |-> T1 ; Gamma) |-- t1 \in T3 ->
+      (x2 |-> T2 ; Gamma) |-- t2 \in T3 ->
+      Gamma |-- (case t0 of | inl x1 => t1 | inr x2 => t2) \in T3
+  (* lists *)
+  | T_Nil : forall Gamma T1,
+      Gamma |-- (nil T1) \in (List T1)
+  | T_Cons : forall Gamma t1 t2 T1,
+      Gamma |-- t1 \in T1 ->
+      Gamma |-- t2 \in (List T1) ->
+      Gamma |-- (t1 :: t2) \in (List T1)
+  | T_Lcase : forall Gamma t1 T1 t2 x1 x2 t3 T2,
+      Gamma |-- t1 \in (List T1) ->
+      Gamma |-- t2 \in T2 ->
+      (x1 |-> T1 ; x2 |-> <{{List T1}}> ; Gamma) |-- t3 \in T2 ->
+      Gamma |-- (case t1 of | nil => t2 | x1 :: x2 => t3) \in T2
+  (* unit *)
+  | T_Unit : forall Gamma,
+      Gamma |-- unit \in Unit
+
+  (* Add rules for the following extensions. *)
+
+  (* pairs *)
+  | T_Pair : forall Gamma t1 T1 t2 T2,
+      Gamma |-- t1 \in T1 ->
+      Gamma |-- t2 \in T2 ->
+      Gamma |-- (t1, t2) \in (T1*T2)
+  | T_Fst : forall Gamma t0 T1 T2,
+      Gamma |-- t0 \in (T1*T2) ->
+      Gamma |-- t0.fst \in T1
+  | T_Snd : forall Gamma t0 T1 T2,
+      Gamma |-- t0 \in (T1*T2) ->
+      Gamma |-- t0.snd \in T2
+  (* let *)
+  | T_Let : forall Gamma t1 T1 t2 T2,
+    Gamma |-- t1 \in T1 ->
+    (x |-> T1 ; Gamma) |-- t2 \in T2 ->
+    Gamma |-- let x = t1 in t2 \in T2
+  (* fix *)
+  | T_Fix : forall Gamma t1 T1,
+    Gamma |-- t1 \in (T1 -> T1) ->
+    Gamma |-- fix t1 \in T1
+where "Gamma '|--' t '\in' T" := (has_type Gamma t T).
+
+Hint Constructors has_type : core.
+
+Module Examples.
+
+Open Scope string_scope.
+Notation x := "x".
+Notation y := "y".
+Notation a := "a".
+Notation f := "f".
+Notation g := "g".
+Notation l := "l".
+Notation k := "k".
+Notation i1 := "i1".
+Notation i2 := "i2".
+Notation processSum := "processSum".
+Notation n := "n".
+Notation eq := "eq".
+Notation m := "m".
+Notation evenodd := "evenodd".
+Notation even := "even".
+Notation odd := "odd".
+Notation eo := "eo".
+
+Hint Extern 2 (has_type _ (tm_app _ _) _) =>
+  eapply T_App; auto : core.
+Hint Extern 2 (has_type _ (tm_lcase _ _ _ _ _) _) =>
+  eapply T_Lcase; auto : core.
+Hint Extern 2 (_ = _) => compute; reflexivity : core.
+
+Module Numtest.
+(* tm_test0 (pred (succ (pred (2 * 0))) then 5 else 6 *)
+Definition tm_test :=
+  <{if0
+    (pred
+      (succ
+        (pred
+          (2 * 0))))
+    then 5
+    else 6}>.
+Example typechecks :
+  empty |-- tm_test \in Nat.
+Proof.
+  unfold tm_test.
+  (* This typing derivation is quite deep, so we need
+     to increase the max search depth of auto from the
+     default 5 to 10. *)
+  auto 10.
+Qed.
+Example reduces :
+  tm_test -->* 5.
+Proof.
+  unfold tm_test. normalize.
+Qed.
+End Numtest.
+
+Module ProdTest.
+(* ((5,6),7).fst.tm_snd *)
+Definition tm_test :=
+  <{((5,6),7).fst.snd}>.
+Example typechecks :
+  empty |-- tm_test \in Nat.
+Proof. unfold tm_test. eauto 15. Qed.
+Example reduces :
+  tm_test -->* 6.
+Proof.
+  unfold tm_test. normalize.
+Qed.
+End ProdTest.
