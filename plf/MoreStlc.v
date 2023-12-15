@@ -476,6 +476,28 @@ Proof. unfold tm_test. eauto 15. Qed.
 Example reduces :
   tm_test -->* 6.
 Proof.
-  unfold tm_test. normalize.
+  unfold tm_test.
+  eapply multi_step.
+  - apply ST_Snd1.
+    apply ST_FstPair; constructor; constructor.
+  - eapply multi_step.
+    + apply ST_SndPair; constructor.
+    + eauto.
+    (* normalize  didn't work for some reason *)
 Qed.
 End ProdTest.
+
+Module LetTest.
+(* let x = pred 6 in succ x *)
+Definition tm_test :=
+  <{let x = (pred 6) in
+    (succ x)}>.
+Example typechecks :
+  empty |-- tm_test \in Nat.
+Proof. unfold tm_test. eauto 15. Qed.
+Example reduces :
+  tm_test -->* 6.
+Proof.
+  unfold tm_test. normalize.
+(* FILL IN HERE *) Admitted.
+End LetTest.
