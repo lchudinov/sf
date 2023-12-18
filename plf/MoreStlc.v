@@ -306,12 +306,12 @@ Inductive step : tm -> tm -> Prop :=
     value v2 ->
     <{ (v1, v2).snd }> --> <{ v2 }>
   (* let *)
-| ST_Let1 : forall y t1 t1' t2,
+| ST_Let1 : forall x t1 t1' t2,
     t1 --> t1' ->
-    <{ let y = t1 in t2}> --> <{ let y = t1' in t2}>
-| ST_LetValue : forall y v1 t2,
+    <{ let x = t1 in t2}> --> <{ let x = t1' in t2}>
+| ST_LetValue : forall x v1 t2,
     value v1 ->
-    <{ let y = v1 in t2}> --> <{ ([y := v1] t2) }>
+    <{ let x = v1 in t2}> --> <{ ([x := v1] t2) }>
   (* fix *)
 | ST_fix1: forall t1 t1',
     t1 --> t1' ->
