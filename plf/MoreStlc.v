@@ -498,6 +498,54 @@ Proof. unfold tm_test. eauto 15. Qed.
 Example reduces :
   tm_test -->* 6.
 Proof.
-  unfold tm_test. normalize.
+  (* unfold tm_test. normalize. *)
 (* FILL IN HERE *) Admitted.
 End LetTest.
+
+Module Sumtest1.
+Definition tm_test :=
+  <{case (inl Nat 5) of
+    | inl x => x
+    | inr y => y}>.
+Example typechecks :
+  empty |-- tm_test \in Nat.
+Proof. unfold tm_test. eauto 15. Qed.
+Example reduces :
+  tm_test -->* 5.
+Proof.
+(* 
+  unfold tm_test. normalize.
+*)
+  unfold tm_test.
+  eapply multi_step.
+  - eapply ST_CaseInl; constructor.
+  - eapply multi_step.
+    + simpl. .
+    + 
+(* FILL IN HERE *) Admitted.
+End Sumtest1.
+Module Sumtest2.
+(* let processSum =
+     \x:Nat+Nat.
+        case x of
+          inl n => n
+          inr n => tm_test0 n then 1 else 0 in
+   (processSum (inl Nat 5), processSum (inr Nat 5))    *)
+Definition tm_test :=
+  <{let processSum =
+    (\x:Nat + Nat,
+      case x of
+       | inl n => n
+       | inr n => (if0 n then 1 else 0)) in
+    (processSum (inl Nat 5), processSum (inr Nat 5))}>.
+Example typechecks :
+  empty |-- tm_test \in (Nat × Nat).
+Proof. unfold tm_test. eauto 15. (* FILL IN HERE *) Admitted.
+Example reduces :
+  tm_test -->* <{(5, 0)}>.
+Proof.
+(* 
+  unfold tm_test. normalize.
+*)
+(* FILL IN HERE *) Admitted.
+End Sumtest2.
