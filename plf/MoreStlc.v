@@ -519,10 +519,8 @@ Proof.
   unfold tm_test.
   eapply multi_step.
   - eapply ST_CaseInl; constructor.
-  - eapply multi_step.
-    + simpl. .
-    + 
-(* FILL IN HERE *) Admitted.
+  - simpl. auto.
+Qed.
 End Sumtest1.
 Module Sumtest2.
 (* let processSum =
@@ -539,7 +537,7 @@ Definition tm_test :=
        | inr n => (if0 n then 1 else 0)) in
     (processSum (inl Nat 5), processSum (inr Nat 5))}>.
 Example typechecks :
-  empty |-- tm_test \in (Nat × Nat).
+  empty |-- tm_test \in (Nat * Nat).
 Proof. unfold tm_test. eauto 15. (* FILL IN HERE *) Admitted.
 Example reduces :
   tm_test -->* <{(5, 0)}>.
@@ -549,3 +547,144 @@ Proof.
 *)
 (* FILL IN HERE *) Admitted.
 End Sumtest2.
+
+Module ListTest.
+(* let l = cons 5 (cons 6 (nil Nat)) in
+   case l of
+     nil => 0
+   | x::y => x*x *)
+Definition tm_test :=
+  <{let l = (5 :: 6 :: (nil Nat)) in
+    case l of
+    | nil => 0
+    | x :: y => (x * x)}>.
+Example typechecks :
+  empty |-- tm_test \in Nat.
+Proof. unfold tm_test. eauto 20. (* FILL IN HERE *) Admitted.
+Example reduces :
+  tm_test -->* 25.
+Proof.
+(* 
+  unfold tm_test. normalize.
+*)
+(* FILL IN HERE *) Admitted.
+End ListTest.
+
+Module FixTest1.
+(* fact := fix
+             (\f:nat->nat.
+                \a:nat.
+                   test a=0 then 1 else a * (f (pred a))) *)
+Definition fact :=
+  <{fix
+      (\f:Nat->Nat,
+        \a:Nat,
+         if0 a then 1 else (a * (f (pred a))))}>.
+
+Example typechecks :
+  empty |-- fact \in (Nat -> Nat).
+Proof. unfold fact. auto 10. Qed.
+Example reduces :
+  <{fact 4}> -->* 24.
+Proof.
+(* 
+  unfold fact. normalize.
+*)
+(* FILL IN HERE *) Admitted.
+End FixTest1.
+Module FixTest2.
+(* map :=
+     \g:nat->nat.
+       fix
+         (\f:nat->nat.
+            \l:nat.
+               case l of
+               |  -> 
+               | x::l -> (g x)::(f l)) *)
+Definition map :=
+  <{ \g:Nat->Nat,
+       fix
+         (\f:(List Nat)->(List Nat),
+            \l:List Nat,
+               case l of
+               | nil => nil Nat
+               | x::l => ((g x)::(f l)))}>.
+Example typechecks :
+  empty |-- map \in
+    ((Nat -> Nat) -> ((List Nat) -> (List Nat))).
+Proof. unfold map. auto 10. Qed.
+Example reduces :
+  <{map (\a:Nat, succ a) (1 :: 2 :: (nil Nat))}>
+  -->* <{2 :: 3 :: (nil Nat)}>.
+Proof.
+(* 
+  unfold map. normalize.
+*)
+(* FILL IN HERE *) Admitted.
+End FixTest2.
+Module FixTest3.
+(* equal =
+      fix
+        (\eq:Nat->Nat->Bool.
+           \m:Nat. \n:Nat.
+             tm_test0 m then (tm_test0 n then 1 else 0)
+             else tm_test0 n then 0
+             else eq (pred m) (pred n))   *)
+Definition equal :=
+  <{fix
+        (\eq:Nat->Nat->Nat,
+           \m:Nat, \n:Nat,
+             if0 m then (if0 n then 1 else 0)
+             else (if0 n
+                   then 0
+                   else (eq (pred m) (pred n))))}>.
+Example typechecks :
+  empty |-- equal \in (Nat -> Nat -> Nat).
+Proof. unfold equal. auto 10. Qed.
+Example reduces :
+  <{equal 4 4}> -->* 1.
+Proof.
+(* 
+  unfold equal. normalize.
+*)
+(* FILL IN HERE *) Admitted.
+Example reduces2 :
+  <{equal 4 5}> -->* 0.
+Proof.
+(* 
+  unfold equal. normalize.
+*)
+(* FILL IN HERE *) Admitted.
+End FixTest3.
+Module FixTest4.
+(* let evenodd =
+         fix
+           (\eo: (Nat->Nat * Nat->Nat).
+              let e = \n:Nat. tm_test0 n then 1 else eo.tm_snd (pred n) in
+              let o = \n:Nat. tm_test0 n then 0 else eo.tm_fst (pred n) in
+              (e,o)) in
+    let even = evenodd.tm_fst in
+    let odd  = evenodd.tm_snd in
+    (even 3, even 4)
+*)
+Definition eotest :=
+<{let evenodd =
+         fix
+           (\eo: ((Nat -> Nat) * (Nat -> Nat)),
+              (\n:Nat, if0 n then 1 else (eo.snd (pred n)),
+               \n:Nat, if0 n then 0 else (eo.fst (pred n)))) in
+    let even = evenodd.fst in
+    let odd = evenodd.snd in
+    (even 3, even 4)}>.
+Example typechecks :
+  empty |-- eotest \in (Nat * Nat).
+Proof. unfold eotest. eauto 30. (* FILL IN HERE *) Admitted.
+Example reduces :
+  eotest -->* <{(0, 1)}>.
+Proof.
+(* 
+  unfold eotest. eauto 10. normalize.
+*)
+(* FILL IN HERE *) Admitted.
+End FixTest4.
+End Examples.
