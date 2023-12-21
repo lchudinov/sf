@@ -688,3 +688,286 @@ Proof.
 (* FILL IN HERE *) Admitted.
 End FixTest4.
 End Examples.
+
+Theorem progress : forall t T,
+     empty |-- t \in T ->
+     value t \/ exists t', t --> t'.
+Proof with eauto.
+  intros t T Ht.
+  remember empty as Gamma.
+  generalize dependent HeqGamma.
+  induction Ht; intros HeqGamma; subst.
+  - (* T_Var *)
+    (* The final rule in the given typing derivation cannot be
+       T_Var, since it can never be the case that
+       empty |-- x \in T (since the context is empty). *)
+    discriminate H.
+  - (* T_Abs *)
+    (* If the T_Abs rule was the last used, then
+       t = \ x0 : T2, t1, which is a value. *)
+    left...
+  - (* T_App *)
+    (* If the last rule applied was T_App, then t = t1 t2,
+       and we know from the form of the rule that
+         empty |-- t1 \in T1 -> T2
+         empty |-- t2 \in T1
+       By the induction hypothesis, each of t1 and t2 either is
+       a value or can take a step. *)
+    right.
+    destruct IHHt1; subst...
+    + (* t1 is a value *)
+      destruct IHHt2; subst...
+      * (* t2 is a value *)
+        (* If both t1 and t2 are values, then we know that
+           t1 = \x0 : T0, t11, since abstractions are the
+           only values that can have an arrow type.  But
+           (\x0 : T0, t11) t2 --> [x:=t2]t11 by ST_AppAbs. *)
+        destruct H; try solve_by_invert.
+        exists <{ [x0 := t2]t1 }>...
+      * (* t2 steps *)
+        (* If t1 is a value and t2 --> t2',
+           then t1 t2 --> t1 t2' by ST_App2. *)
+        destruct H0 as [t2' Hstp]. exists <{t1 t2'}>...
+    + (* t1 steps *)
+      (* Finally, If t1 --> t1', then t1 t2 --> t1' t2
+         by ST_App1. *)
+      destruct H as [t1' Hstp]. exists <{t1' t2}>...
+  - (* T_Nat *)
+    left...
+  - (* T_Succ *)
+    right.
+    destruct IHHt...
+    + (* t1 is a value *)
+      destruct H; try solve_by_invert.
+      exists <{ {S n} }>...
+    + (* t1 steps *)
+      destruct H as [t' Hstp].
+      exists <{succ t'}>...
+  - (* T_Pred *)
+    right.
+    destruct IHHt...
+    + (* t1 is a value *)
+      destruct H; try solve_by_invert.
+      exists <{ {n - 1} }>...
+    + (* t1 steps *)
+      destruct H as [t' Hstp].
+      exists <{pred t'}>...
+  - (* T_Mult *)
+    right.
+    destruct IHHt1...
+    + (* t1 is a value *)
+      destruct IHHt2...
+      * (* t2 is a value *)
+        destruct H; try solve_by_invert.
+        destruct H0; try solve_by_invert.
+        exists <{ {n * n0} }>...
+      * (* t2 steps *)
+        destruct H0 as [t2' Hstp].
+        exists <{t1 * t2'}>...
+    + (* t1 steps *)
+      destruct H as [t1' Hstp].
+      exists <{t1' * t2}>...
+  - (* T_Test0 *)
+    right.
+    destruct IHHt1...
+    + (* t1 is a value *)
+      destruct H; try solve_by_invert.
+      destruct n as [|n'].
+      * (* n1=0 *)
+        exists t2...
+      * (* n1<>0 *)
+        exists t3...
+    + (* t1 steps *)
+      destruct H as [t1' H0].
+      exists <{if0 t1' then t2 else t3}>...
+  - (* T_Inl *)
+    destruct IHHt...
+    + (* t1 steps *)
+      right. destruct H as [t1' Hstp]...
+      (* exists (tm_inl _ t1')... *)
+  - (* T_Inr *)
+    destruct IHHt...
+    + (* t1 steps *)
+      right. destruct H as [t1' Hstp]...
+      (* exists (tm_inr _ t1')... *)
+  - (* T_Case *)
+    right.
+    destruct IHHt1...
+    + (* t0 is a value *)
+      destruct H; try solve_by_invert.
+      * (* t0 is inl *)
+        exists <{ [x1:=v]t1 }>...
+      * (* t0 is inr *)
+        exists <{ [x2:=v]t2 }>...
+    + (* t0 steps *)
+      destruct H as [t0' Hstp].
+      exists <{case t0' of | inl x1 => t1 | inr x2 => t2}>...
+  - (* T_Nil *)
+    left...
+  - (* T_Cons *)
+    destruct IHHt1...
+    + (* head is a value *)
+      destruct IHHt2...
+      * (* tail steps *)
+        right. destruct H0 as [t2' Hstp].
+        exists <{t1 :: t2'}>...
+    + (* head steps *)
+      right. destruct H as [t1' Hstp].
+      exists <{t1' :: t2}>...
+  - (* T_Lcase *)
+    right.
+    destruct IHHt1...
+    + (* t1 is a value *)
+      destruct H; try solve_by_invert.
+      * (* t1=tm_nil *)
+        exists t2...
+      * (* t1=tm_cons v1 v2 *)
+        exists <{ [x2:=v2]([x1:=v1]t3) }>...
+    + (* t1 steps *)
+      destruct H as [t1' Hstp].
+      exists <{case t1' of | nil => t2 | x1 :: x2 => t3}>...
+  - (* T_Unit *)
+    left...
+  (* Complete the proof. *)
+  (* pairs *)
+  (* FILL IN HERE *)
+  (* let *)
+  (* FILL IN HERE *)
+  (* fix *)
+  (* FILL IN HERE *)
+(* FILL IN HERE *) Admitted.
+
+Lemma weakening : forall Gamma Gamma' t T,
+     includedin Gamma Gamma' ->
+     Gamma |-- t \in T ->
+     Gamma' |-- t \in T.
+Proof.
+  intros Gamma Gamma' t T H Ht.
+  generalize dependent Gamma'.
+  induction Ht; eauto 7 using includedin_update.
+Qed.
+
+Lemma weakening_empty : forall Gamma t T,
+     empty |-- t \in T ->
+     Gamma |-- t \in T.
+Proof.
+  intros Gamma t T.
+  eapply weakening.
+  discriminate.
+Qed.
+
+Lemma substitution_preserves_typing : forall Gamma x U t v T,
+  (x |-> U ; Gamma) |-- t \in T ->
+  empty |-- v \in U ->
+  Gamma |-- [x:=v]t \in T.
+Proof with eauto.
+  intros Gamma x U t v T Ht Hv.
+  generalize dependent Gamma. generalize dependent T.
+  (* Proof: By induction on the term t.  Most cases follow
+     directly from the IH, with the exception of var
+     and abs. These aren't automatic because we must
+     reason about how the variables interact. The proofs
+     of these cases are similar to the ones in STLC.
+     We refer the reader to StlcProp.v for explanations. *)
+  induction t; intros T Gamma H;
+  (* in each case, we'll want to get at the derivation of H *)
+    inversion H; clear H; subst; simpl; eauto.
+  - (* var *)
+    rename s into y. destruct (eqb_spec x y); subst.
+    + (* x=y *)
+      rewrite update_eq in H2.
+      injection H2 as H2; subst.
+      apply weakening_empty. assumption.
+    + (* x<>y *)
+      apply T_Var. rewrite update_neq in H2; auto.
+  - (* abs *)
+    rename s into y, t into S.
+    destruct (eqb_spec x y); subst; apply T_Abs.
+    + (* x=y *)
+      rewrite update_shadow in H5. assumption.
+    + (* x<>y *)
+      apply IHt.
+      rewrite update_permute; auto.
+  - (* tm_case *)
+    rename s into x1, s0 into x2.
+    eapply T_Case...
+    + (* left arm *)
+      destruct (eqb_spec x x1); subst.
+      * (* x = x1 *)
+        rewrite update_shadow in H8. assumption.
+      * (* x <> x1 *)
+        apply IHt2.
+        rewrite update_permute; auto.
+    + (* right arm *)
+      destruct (eqb_spec x x2); subst.
+      * (* x = x2 *)
+        rewrite update_shadow in H9. assumption.
+      * (* x <> x2 *)
+        apply IHt3.
+        rewrite update_permute; auto.
+  - (* tm_lcase *)
+    rename s into y1, s0 into y2.
+    eapply T_Lcase...
+    destruct (eqb_spec x y1); subst.
+    + (* x=y1 *)
+      destruct (eqb_spec y2 y1); subst.
+      * (* y2=y1 *)
+        repeat rewrite update_shadow in H9.
+        rewrite update_shadow.
+        assumption.
+      * rewrite update_permute in H9; [|assumption].
+        rewrite update_shadow in H9.
+        rewrite update_permute; assumption.
+    + (* x<>y1 *)
+      destruct (eqb_spec x y2); subst.
+      * (* x=y2 *)
+        rewrite update_shadow in H9.
+        assumption.
+      * (* x<>y2 *)
+        apply IHt3.
+        rewrite (update_permute _ _ _ _ _ _ n0) in H9.
+        rewrite (update_permute _ _ _ _ _ _ n) in H9.
+        assumption.
+  (* Complete the proof. *)
+  (* FILL IN HERE *) Admitted.
+  
+Theorem preservation : forall t t' T,
+  empty |-- t \in T ->
+  t --> t' ->
+  empty |-- t' \in T.
+Proof with eauto.
+intros t t' T HT. generalize dependent t'.
+remember empty as Gamma.
+(* Proof: By induction on the given typing derivation.  Many
+  cases are contradictory (T_Var, T_Abs).  We show just
+  the interesting ones. Again, we refer the reader to
+  StlcProp.v for explanations. *)
+induction HT;
+ intros t' HE; subst; inversion HE; subst...
+- (* T_App *)
+ inversion HE; subst...
+ + (* ST_AppAbs *)
+   apply substitution_preserves_typing with T2...
+   inversion HT1...
+(* T_Case *)
+- (* ST_CaseInl *)
+ inversion HT1; subst.
+ eapply substitution_preserves_typing...
+- (* ST_CaseInr *)
+ inversion HT1; subst.
+ eapply substitution_preserves_typing...
+- (* T_Lcase *)
+ + (* ST_LcaseCons *)
+   inversion HT1; subst.
+   apply substitution_preserves_typing with <{{List T1}}>...
+   apply substitution_preserves_typing with T1...
+(* Complete the proof. *)
+(* fst and snd *)
+(* FILL IN HERE *)
+(* let *)
+(* FILL IN HERE *)
+(* fix *)
+(* FILL IN HERE *)
+(* FILL IN HERE *) Admitted.
+
+End STLCExtended.
