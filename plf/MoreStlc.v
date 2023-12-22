@@ -702,6 +702,7 @@ Theorem progress : forall t T,
      empty |-- t \in T ->
      value t \/ exists t', t --> t'.
 Proof with eauto.
+(*
   intros t T Ht.
   remember empty as Gamma.
   generalize dependent HeqGamma.
@@ -837,6 +838,7 @@ Proof with eauto.
       exists <{case t1' of | nil => t2 | x1 :: x2 => t3}>...
   - (* T_Unit *)
     left...
+*)
   (* Complete the proof. *)
   (* pairs *)
   (* FILL IN HERE *)
