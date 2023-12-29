@@ -10,9 +10,9 @@ Set Default Goal Selector "!".
   Top->U <: S->Top - true
   (C->C) -> (A*B) <: (C->C) -> (Top*B) - true
   T->T->U <: S->S->V - false
-  (T->T)->U <: (S->S)->V - 
-  ((T->S)->T)->U <: ((S->T)->S)->V
-  S*V <: T*U
+  (T->T)->U <: (S->S)->V - true
+  ((T->S)->T)->U <: ((S->T)->S)->V - false
+  S*V <: T*U - false
 *)
 
 (*
@@ -58,7 +58,7 @@ Set Default Goal Selector "!".
   exists S,
    S->S <: S  
    
-   true
+   false
   
   forall S T1 T2,
    S <: T1*T2 ->
@@ -77,4 +77,16 @@ Set Default Goal Selector "!".
   There exists an arrow type that is a subtype of every other arrow type. - false
   There is an infinite descending chain of distinct types in the subtype relation---that is, an infinite sequence of types S0, S1, etc., such that all the Si's are different and each S(i+1) is a subtype of Si. - true
   There is an infinite ascending chain of distinct types in the subtype relation---that is, an infinite sequence of types S0, S1, etc., such that all the Si's are different and each S(i+1) is a supertype of Si. - false
+*)
+
+(*
+forall T,
+         ~(T = Bool \/ exists n, T = Base n) ->
+         exists S,
+            S <: T  \/  S <> T
+  false, Unit
+*)
+
+(*
+empty |-- (\p:T*Top. p.fst) ((\z:A.z), unit) \in A->A
 *)
