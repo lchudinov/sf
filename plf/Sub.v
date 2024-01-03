@@ -233,6 +233,28 @@ Inductive step : tm -> tm -> Prop :=
   | ST_If : forall t1 t1' t2 t3,
       t1 --> t1' ->
       <{if t1 then t2 else t3}> --> <{if t1' then t2 else t3}>
+      | ST_Pair1 : forall t1 t1' t2,
+      t1 --> t1' ->
+      <{ (t1, t2) }> --> <{ (t1', t2) }>
+  | ST_Pair2 : forall v1 t2 t2',
+      value v1 ->
+      t2 --> t2' ->
+      <{ (v1, t2) }> --> <{ (v1, t2') }>
+  | ST_Fst1 : forall t1 t1',
+      t1 --> t1' ->
+      <{ t1.fst }> --> <{ t1'.fst }>
+  | ST_FstPair : forall v1 v2,
+      value v1 ->
+      value v2 ->
+      <{ (v1, v2).fst }> --> <{ v1 }>
+  | ST_Snd1 : forall t1 t1',
+      t1 --> t1' ->
+      <{ t1.snd }> --> <{ t1'.snd }>
+  | ST_SndPair : forall v1 v2,
+      value v1 ->
+      value v2 ->
+      <{ (v1, v2).snd }> --> <{ v2 }>
+
 where "t '-->' t'" := (step t t').
 Hint Constructors step : core.
 
@@ -300,4 +322,60 @@ Example subtyping_example_2 :
   auto.
 Qed.
 End Examples.
+
+Definition context := partial_map ty.
+Reserved Notation "Gamma '|--' t '\in' T" (at level 40,
+                                          t custom stlc, T custom stlc at level 0).
+Inductive has_type : context -> tm -> ty -> Prop :=
+  (* Same as before: *)
+  (* pure STLC *)
+  | T_Var : forall Gamma x T1,
+      Gamma x = Some T1 ->
+      Gamma |-- x \in T1
+  | T_Abs : forall Gamma x T1 T2 t1,
+      (x |-> T2 ; Gamma) |-- t1 \in T1 ->
+      Gamma |-- \x:T2, t1 \in (T2 -> T1)
+  | T_App : forall T1 T2 Gamma t1 t2,
+      Gamma |-- t1 \in (T2 -> T1) ->
+      Gamma |-- t2 \in T2 ->
+      Gamma |-- t1 t2 \in T1
+  | T_True : forall Gamma,
+       Gamma |-- true \in Bool
+  | T_False : forall Gamma,
+       Gamma |-- false \in Bool
+  | T_If : forall t1 t2 t3 T1 Gamma,
+       Gamma |-- t1 \in Bool ->
+       Gamma |-- t2 \in T1 ->
+       Gamma |-- t3 \in T1 ->
+       Gamma |-- if t1 then t2 else t3 \in T1
+  | T_Unit : forall Gamma,
+      Gamma |-- unit \in Unit
+  (* New rule of subsumption: *)
+  | T_Sub : forall Gamma t1 T1 T2,
+      Gamma |-- t1 \in T1 ->
+      T1 <: T2 ->
+      Gamma |-- t1 \in T2
+  | T_Pair : forall Gamma t1 T1 t2 T2,
+      Gamma |-- t1 \in T1 ->
+      Gamma |-- t2 \in T2 ->
+      Gamma |-- (t1, t2) \in (T1 * T2)
+  | T_Fst : forall Gamma t0 T1 T2,
+      Gamma |-- t0 \in (T1*T2) ->
+      Gamma |-- t0.fst \in T1
+  | T_Snd : forall Gamma t0 T1 T2,
+      Gamma |-- t0 \in (T1*T2) ->
+      Gamma |-- t0.snd \in T2
+
+where "Gamma '|--' t '\in' T" := (has_type Gamma t T).
+Hint Constructors has_type : core.
+Module Examples2.
+Import Examples.
+
+Example typing_example_0:
+  empty |-- ((\z:A, z), (\z:B, z)) \in (A->A * B->B).
+Proof with eauto.
+  Admitted.
+Qed.
+
+
 
