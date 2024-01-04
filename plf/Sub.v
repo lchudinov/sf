@@ -209,6 +209,10 @@ Inductive value : tm -> Prop :=
       value <{true}>
   | v_false :
       value <{false}>
+  | v_pair : forall v1 v2,
+    value v1 ->
+    value v2 ->
+    value <{ (v1, v2)}>
   | v_unit :
       value <{unit}>
 .
@@ -371,11 +375,53 @@ Hint Constructors has_type : core.
 Module Examples2.
 Import Examples.
 
-Example typing_example_0:
-  empty |-- ((\z:A, z), (\z:B, z)) \in (A->A * B->B).
+Example typing_example_neg_one:
+  empty |-- (\z:A, z) \in (A->A).
 Proof with eauto.
-  Admitted.
+  auto.
 Qed.
 
+Example typing_example_neg_two:
+  empty |-- (true, true) \in (Bool * Bool).
+Proof with eauto.
+  auto.
+Qed.
+
+Example typing_example_0:
+  forall A B,
+  empty |-- ((\z:A, z), (\z:B, z)) \in (A->A * B->B).
+Proof with eauto.
+  intros.
+  (* eapply T_Pair. *)
+  Admitted.
+  
+Example typing_example_almost_1:
+  forall B,
+  empty |-- (\x:(Top * B->B), x.snd) \in (B->B).
+Proof with eauto.
+  intros. 
+  (* eapply T_Snd. *)
+  Admitted.
+  
+(* empty |-- (\x:(Top * B->B). x.snd) ((\z:A.z), (\z:B.z))
+         ∈ B->B *)
+(* FILL IN HERE *)
+
+(* empty |-- (\z:(C->C)->(Top * B->B). (z (\x:C.x)).snd)
+              (\z:C->C. ((\z:A.z), (\z:B.z)))
+         ∈ B->B *)
+(* FILL IN HERE *)
+
+End Examples2.
+
+Lemma sub_inversion_Bool : forall U,
+     U <: <{Bool}> ->
+     U = <{Bool}>.
+Proof with auto.
+  intros U Hs.
+  remember <{Bool}> as V.
+  induction Hs; try solve_by_invert...
+  assert (U = T)... subst...
+Qed.
 
 
