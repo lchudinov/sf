@@ -424,4 +424,23 @@ Proof with auto.
   assert (U = T)... subst...
 Qed.
 
+Lemma sub_inversion_arrow : forall U V1 V2,
+     U <: <{V1->V2}> ->
+     exists U1 U2,
+     U = <{U1->U2}> /\ V1 <: U1 /\ U2 <: V2.
+Proof with eauto.
+  intros U V1 V2 Hs.
+  remember <{V1->V2}> as V.
+  generalize dependent V2. generalize dependent V1.
+  induction Hs; intros; try solve_by_invert...
+  - apply IHHs2 in HeqV. destruct HeqV as [T1 [T2 [H1 [H2 H3]]]].
+    apply IHHs1 in H1. destruct H1 as [T1' [T2' [H1' [H2' H3']]]].
+    exists T1', T2'...
+  - inversion HeqV. subst...
+Qed.
+
+
+    
+    
+
 
