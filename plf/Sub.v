@@ -439,8 +439,45 @@ Proof with eauto.
   - inversion HeqV. subst...
 Qed.
 
+Lemma sub_inversion_Unit : forall U,
+     U <: <{Unit}> ->
+     U = <{Unit}>.
+Proof with auto.
+  intros U Hs.
+  remember <{Unit}> as V.
+  induction Hs; subst...
+  - try solve_by_invert.
+    eauto.
+ Admitted.
+ 
+ Lemma sub_inversion_Base : forall U s,
+  U <: <{Base s}> ->
+  U = <{Base s}>.
+Proof.
+  intros U s Hs.
+  remember <{Base s}> as V.
+  (* FILL IN HERE *) Admitted.
 
-    
-    
+  Lemma sub_inversion_Top : forall U,
+  <{ Top }> <: U ->
+  U = <{ Top }>.
+Proof with auto.
+  intros U Hs.
+  remember <{Top}> as V.
+  induction Hs...
+  Admitted.
+  
+  
+Lemma canonical_forms_of_arrow_types : forall Gamma s T1 T2,
+  Gamma |-- s \in (T1->T2) ->
+  value s ->
+  exists x S1 s2,
+     s = <{\x:S1,s2}>.
+Proof with eauto.
+  intros.
+  induction H; try solve_by_invert.
+ Admitted.
+  
+
 
 
