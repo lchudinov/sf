@@ -464,9 +464,9 @@ Proof.
 Proof with auto.
   intros U Hs.
   remember <{Top}> as V.
-  induction Hs...
+  induction Hs; try solve_by_invert...
+  - subst.
   Admitted.
-  
   
 Lemma canonical_forms_of_arrow_types : forall Gamma s T1 T2,
   Gamma |-- s \in (T1->T2) ->
@@ -478,6 +478,47 @@ Proof with eauto.
   induction H; try solve_by_invert.
  Admitted.
   
+Lemma canonical_forms_of_Bool : forall Gamma s,
+  Gamma |-- s \in Bool ->
+  value s ->
+  s = tm_true \/ s = tm_false.
+Proof with eauto.
+  intros Gamma s Hty Hv.
+  remember <{Bool}> as T.
+  induction Hty; try solve_by_invert...
+  - (* T_Sub *)
+    subst. apply sub_inversion_Bool in H. subst...
+Qed.
 
 
+Theorem progress : forall t T,
+     empty |-- t \in T ->
+     value t \/ exists t', t --> t'.
+Proof with eauto.
+  intros t T Ht.
+  remember empty as Gamma.
+  induction Ht; subst Gamma; auto.
+  - (* T_Var *)
+    discriminate.
+  - (* T_App *)
+    right.
+    destruct IHHt1; subst...
+    + (* t1 is a value *)
+      destruct IHHt2; subst...
+      * (* t2 is a value *)
+        eapply canonical_forms_of_arrow_types in Ht1; [|assumption].
+        destruct Ht1 as [x [S1 [s2 H1]]]. subst.
+        exists (<{ [x:=t2]s2 }>)...
+      * (* t2 steps *)
+        destruct H0 as [t2' Hstp]. exists <{ t1 t2' }>...
+    + (* t1 steps *)
+      destruct H as [t1' Hstp]. exists <{ t1' t2 }>...
+  - (* T_If *)
+    right.
+    destruct IHHt1.
+    + (* t1 is a value *) eauto.
+    + apply canonical_forms_of_Bool in Ht1; [|assumption].
+      destruct Ht1; subst...
+    + destruct H. rename x into t1'. eauto.
+Qed.
 
