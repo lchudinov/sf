@@ -520,5 +520,9 @@ Proof with eauto.
     + apply canonical_forms_of_Bool in Ht1; [|assumption].
       destruct Ht1; subst...
     + destruct H. rename x into t1'. eauto.
-Qed.
+  - (* ST_Pair2 *)
+    right.
+    destruct IHHt1; subst...
+    + destruct H; subst...
+    Admitted.
 
