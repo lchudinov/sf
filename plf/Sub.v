@@ -526,3 +526,28 @@ Proof with eauto.
     + destruct H; subst...
     Admitted.
 
+Lemma typing_inversion_abs : forall Gamma x S1 t2 T,
+  Gamma |-- \x:S1,t2 \in T ->
+  exists S2,
+    <{S1->S2}> <: T
+    /\ (x |-> S1 ; Gamma) |-- t2 \in S2.
+Proof with eauto.
+ intros Gamma x S1 t2 T H.
+ remember <{\x:S1,t2}> as t.
+ induction H;
+   inversion Heqt; subst; intros; try solve_by_invert.
+ - (* T_Abs *)
+   exists T1...
+ - (* T_Sub *)
+   destruct IHhas_type as [S2 [Hsub Hty]]...
+ Qed.
+ 
+Lemma typing_inversion_var : forall Gamma (x:string) T,
+  Gamma |-- x \in T ->
+  exists S,
+    Gamma x = Some S /\ S <: T.
+Proof with eauto.
+  intros Gamma x T H.
+  induction H.
+  (* FILL IN HERE *) Admitted.
+
