@@ -548,6 +548,85 @@ Lemma typing_inversion_var : forall Gamma (x:string) T,
     Gamma x = Some S /\ S <: T.
 Proof with eauto.
   intros Gamma x T H.
-  induction H.
-  (* FILL IN HERE *) Admitted.
+  Admitted.
 
+Lemma typing_inversion_app : forall Gamma t1 t2 T2,
+  Gamma |-- t1 t2 \in T2 ->
+  exists T1,
+    Gamma |-- t1 \in (T1->T2) /\
+    Gamma |-- t2 \in T1.
+Proof with eauto.
+  (* FILL IN HERE *) Admitted.
+  
+Lemma typing_inversion_unit : forall Gamma T,
+  Gamma |-- unit \in T ->
+    <{Unit}> <: T.
+Proof with eauto.
+  intros Gamma T Htyp. remember <{ unit }> as tu.
+  induction Htyp;
+    inversion Heqtu; subst; intros...
+Qed.
+
+Lemma abs_arrow : forall x S1 s2 T1 T2,
+  empty |-- \x:S1,s2 \in (T1->T2) ->
+     T1 <: S1
+  /\ (x |-> S1 ; empty) |-- s2 \in T2.
+Proof with eauto.
+  intros x S1 s2 T1 T2 Hty.
+  apply typing_inversion_abs in Hty.
+  destruct Hty as [S2 [Hsub Hty1]].
+  apply sub_inversion_arrow in Hsub.
+  destruct Hsub as [U1 [U2 [Heq [Hsub1 Hsub2]]]].
+  injection Heq as Heq; subst... Qed.
+  
+  
+Lemma weakening : forall Gamma Gamma' t T,
+  includedin Gamma Gamma' ->
+  Gamma |-- t \in T ->
+  Gamma' |-- t \in T.
+Proof.
+intros Gamma Gamma' t T H Ht.
+generalize dependent Gamma'.
+induction Ht; eauto using includedin_update.
+Qed.
+
+Corollary weakening_empty : forall Gamma t T,
+  empty |-- t \in T ->
+  Gamma |-- t \in T.
+Proof.
+intros Gamma t T.
+eapply weakening.
+discriminate.
+Qed.
+
+Lemma substitution_preserves_typing : forall Gamma x U t v T,
+   (x |-> U ; Gamma) |-- t \in T ->
+   empty |-- v \in U ->
+   Gamma |-- [x:=v]t \in T.
+Proof.
+  intros Gamma x U t v T Ht Hv.
+  remember (x |-> U; Gamma) as Gamma'.
+  generalize dependent Gamma.
+  induction Ht; intros Gamma' G; simpl; eauto.
+ (* FILL IN HERE *) Admitted.
+ 
+ 
+Theorem preservation : forall t t' T,
+ empty |-- t \in T ->
+ t --> t' ->
+ empty |-- t' \in T.
+Proof with eauto.
+intros t t' T HT. generalize dependent t'.
+remember empty as Gamma.
+induction HT;
+   intros t' HE; subst;
+   try solve [inversion HE; subst; eauto].
+- (* T_App *)
+inversion HE; subst...
+(* Most of the cases are immediate by induction,
+   and eauto takes care of them *)
++ (* ST_AppAbs *)
+  destruct (abs_arrow _ _ _ _ _ HT1) as [HA1 HA2].
+  apply substitution_preserves_typing with T0...
+  Admitted.
+  
