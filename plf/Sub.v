@@ -630,3 +630,46 @@ inversion HE; subst...
   apply substitution_preserves_typing with T0...
   Admitted.
   
+Module FormalThoughtExercises.
+Import Examples.
+Notation p := "p".
+Notation a := "a".
+Definition TF P := P \/ ~P.
+  
+Theorem formal_subtype_instances_tf_1a:
+  TF (forall S T U V, S <: T -> U <: V ->
+         <{T->S}> <: <{T->S}>).
+Proof.
+  unfold TF. left.
+  intros.
+  apply S_Arrow; apply S_Refl.
+Qed.
+
+Theorem formal_subtype_instances_tf_1b:
+  TF (forall S T U V, S <: T -> U <: V ->
+         <{Top->U}> <: <{S->Top}>).
+Proof.
+  unfold TF. left. intros.
+  apply S_Arrow; apply S_Top.
+Qed.
+
+Theorem formal_subtype_instances_tf_1c:
+  TF (forall S T U V, S <: T -> U <: V ->
+         <{(C->C)->(A*B)}> <: <{(C->C)->(Top*B)}>).
+Proof.
+  unfold TF. left. intros.
+  apply S_Arrow.
+  - apply S_Refl.
+  - apply S_Prod.
+    + apply S_Top.
+    + apply S_Refl.
+Qed.
+
+Theorem formal_subtype_instances_tf_1d:
+  TF (forall S T U V, S <: T -> U <: V ->
+         <{T->(T->U)}> <: <{S->(S->V)}>).
+Proof.
+  unfold TF. right. unfold not. intros contra.
+  specialize contra with ()
+  
+
