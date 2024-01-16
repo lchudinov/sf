@@ -10,4 +10,5 @@ coqc -Q . PLF Stlc.v
 coqc -Q . PLF StlcProp.v 
 coqc -Q . PLF MoreStlc.v 
 coqc -Q . PLF Sub.v 
+coqc -Q . PLF Typechecking.v 
 
