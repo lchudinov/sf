@@ -10,8 +10,8 @@ Set Default Goal Selector "!".
   Top->U <: S->Top - true
   (C->C) -> (A*B) <: (C->C) -> (Top*B) - true
   T->T->U <: S->S->V - false
-  (T->T)->U <: (S->S)->V - true
-  ((T->S)->T)->U <: ((S->T)->S)->V - false
+  (T->T)->U <: (S->S)->V - false
+  ((T->S)->T)->U <: ((S->T)->S)->V - true
   S*V <: T*U - false
 *)
 
@@ -670,6 +670,37 @@ Theorem formal_subtype_instances_tf_1d:
          <{T->(T->U)}> <: <{S->(S->V)}>).
 Proof.
   unfold TF. right. unfold not. intros contra.
-  specialize contra with ()
+  specialize contra with (T := <{Top}>).
+  specialize contra with (V := <{Top}>).
+  specialize contra with (U := <{Bool}>).
+  specialize contra with (S := <{Unit}>).
+  Admitted.
+
+Theorem formal_subtype_instances_tf_1e:
+  TF (forall S T U V, S <: T -> U <: V ->
+         <{(T->T)->U}> <: <{(S->S)->V}>).
+Proof with eauto.
+Admitted.
+
+Theorem formal_subtype_instances_tf_1f:
+  TF (forall S T U V, S <: T -> U <: V ->
+         <{((T->S)->T)->U}> <: <{((S->T)->S)->V}>).
+Proof with eauto.
+  unfold TF. left. intros.
+  apply S_Arrow...
+Qed.
+
+
+Theorem formal_subtype_instances_tf_1g:
+  TF (forall S T U V, S <: T -> U <: V ->
+         <{S*V}> <: <{T*U}>).
+Proof with eauto.
+Admitted.
+
+End FormalThoughtExercises.
+End STLCSub.
+  
+
+
   
 
