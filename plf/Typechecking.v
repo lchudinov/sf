@@ -212,7 +212,111 @@ Proof.
          apply IHT1_1 in Hbeq1; apply IHT1_2 in Hbeq2; subst; auto);
     try (apply IHT1 in Hbeq; subst; auto).
  Qed.
- 
+
+Fixpoint type_check (Gamma : context) (t : tm) : option ty :=
+  match t with
+  | tm_var x =>
+      match Gamma x with
+      | Some T => return T
+      | None => fail
+      end
+  | <{ \ x1 : T1, t2 }> =>
+      T2 <- type_check (x1 |-> T1 ; Gamma) t2 ;;
+      return <{{T1 -> T2}}>
+  | <{ t1 t2 }> =>
+      T1 <- type_check Gamma t1 ;;
+      T2 <- type_check Gamma t2 ;;
+      match T1 with
+      | <{{T11 -> T12}}> =>
+          if eqb_ty T11 T2 then return T12 else fail
+      | _ => fail
+      end
+  | tm_const _ =>
+      return <{{Nat}}>
+  | <{ succ t1 }> =>
+      T1 <- type_check Gamma t1 ;;
+      match T1 with
+      | <{{Nat}}> => return <{{Nat}}>
+      | _ => fail
+      end
+  | <{ pred t1 }> =>
+      T1 <- type_check Gamma t1 ;;
+      match T1 with
+      | <{{Nat}}> => return <{{Nat}}>
+      | _ => fail
+      end
+  | <{ t1 * t2 }> =>
+      T1 <- type_check Gamma t1 ;;
+      T2 <- type_check Gamma t2 ;;
+      match T1, T2 with
+      | <{{Nat}}>, <{{Nat}}> => return <{{Nat}}>
+      | _,_ => fail
+      end
+  | <{ if0 guard then t else f }> =>
+      Tguard <- type_check Gamma guard ;;
+      T1 <- type_check Gamma t ;;
+      T2 <- type_check Gamma f ;;
+      match Tguard with
+      | <{{Nat}}> => if eqb_ty T1 T2 then return T1 else fail
+      | _ => fail
+      end
+
+  (* Complete the following cases. *)
+  
+  (* sums *)
+  | <{ inl T2 t }> =>
+    T1 <- type_check Gamma t ;;
+    return <{{ T1 + T2 }}>
+  | <{ inr T1 t }> =>
+    T2 <- type_check Gamma t ;;
+    return <{{ T1 + T2 }}>
+  | <{case t of | inl x1 => t1 | inr x2 => t2}> =>
+      match type_check Gamma t with
+      | Some <{{ T1 + T2 }}> => 
+        TR1 <- type_check (x1 |-> T1; Gamma) t1 ;;
+        TR2 <- type_check (x2 |-> T2; Gamma) t2 ;;
+        if eqb_ty TR1 TR2 then return TR1 else fail
+      | _ => fail
+      end
+  (* lists (the tm_lcase is given for free) *)
+  | <{ nil T }> => return <{{ List T }}>
+  | <{ h :: t }> =>
+    Th <- type_check Gamma h ;;
+    match type_check Gamma t with
+    | Some <{{ List T }}> => if eqb_ty T Th then return <{{ List T }}> else fail
+    | _ => fail
+    end
+  | <{ case t0 of | nil => t1 | x21 :: x22 => t2 }> =>
+      T0 <- type_check Gamma t0 ;;
+      match T0 with
+      | <{{List T}}> =>
+          T1 <- type_check Gamma t1 ;;
+          T2 <- type_check (x21 |-> T ; x22 |-> <{{List T}}> ; Gamma) t2 ;;
+          if eqb_ty T1 T2 then return T1 else fail
+      | _ => fail
+      end
+  (* unit *)
+  | <{ unit }> => return <{{ Unit }}>
+  (* pairs *)
+  | <{ (t1, t2) }> =>
+    T1 <- type_check Gamma t1 ;;
+    T2 <- type_check Gamma t2 ;;
+    return <{{ (T1*T2) }}>
+  (* let *)
+  | <{let x = v in t}> => 
+    T <- type_check Gamma v ;;
+    type_check (x |-> T; Gamma) t
+  (* fix *)
+  | <{ fix t }> => 
+    match type_check Gamma t with
+    | Some <{{ T -> T' }}> => if eqb_ty T T' then return T else fail
+    | _ => fail
+    end
+  | _ => None (* ... and delete this line when you complete the exercise. *)
+  end.
+(* Do not modify the following line: *)
+Definition manual_grade_for_type_check_defn : option (nat*string) := None. 
+
  
  
  
