@@ -317,7 +317,135 @@ Fixpoint type_check (Gamma : context) (t : tm) : option ty :=
 (* Do not modify the following line: *)
 Definition manual_grade_for_type_check_defn : option (nat*string) := None. 
 
- 
- 
- 
+Ltac invert_typecheck Gamma t T :=
+  remember (type_check Gamma t) as TO;
+  destruct TO as [T|];
+  try solve_by_invert; try (inversion H0; eauto); try (subst; eauto).
+Ltac analyze T T1 T2 :=
+  destruct T as [T1 T2| |T1 T2|T1| |T1 T2]; try solve_by_invert.
+Ltac fully_invert_typecheck Gamma t T T1 T2 :=
+  let TX := fresh T in
+  remember (type_check Gamma t) as TO;
+  destruct TO as [TX|]; try solve_by_invert;
+  destruct TX as [T1 T2| |T1 T2|T1| |T1 T2];
+  try solve_by_invert; try (inversion H0; eauto); try (subst; eauto).
+Ltac case_equality S T :=
+  destruct (eqb_ty S T) eqn: Heqb;
+  inversion H0; apply eqb_ty__eq in Heqb; subst; subst; eauto.
+  
+Theorem type_checking_sound : forall Gamma t T,
+  type_check Gamma t = Some T ->
+  has_type Gamma t T.
+Proof with eauto.
+  intros Gamma t. generalize dependent Gamma.
+  induction t; intros Gamma T Htc; inversion Htc.
+  - (* var *) rename s into x. destruct (Gamma x) eqn:H.
+    rename t into T'. inversion H0. subst. eauto. solve_by_invert.
+  - (* app *)
+    invert_typecheck Gamma t1 T1.
+    invert_typecheck Gamma t2 T2.
+    analyze T1 T11 T12.
+    case_equality T11 T2.
+  - (* abs *)
+    rename s into x, t into T1.
+    remember (x |-> T1 ; Gamma) as Gamma'.
+    invert_typecheck Gamma' t0 T0.
+  - (* const *) eauto.
+  - (* scc *)
+    rename t into t1.
+    fully_invert_typecheck Gamma t1 T1 T11 T12.
+  - (* prd *)
+    rename t into t1.
+    fully_invert_typecheck Gamma t1 T1 T11 T12.
+  - (* mlt *)
+    invert_typecheck Gamma t1 T1.
+    invert_typecheck Gamma t2 T2.
+    analyze T1 T11 T12; analyze T2 T21 T22.
+    inversion H0. subst. eauto.
+  - (* test0 *)
+    invert_typecheck Gamma t1 T1.
+    invert_typecheck Gamma t2 T2.
+    invert_typecheck Gamma t3 T3.
+    destruct T1; try solve_by_invert.
+    case_equality T2 T3.
+  (* Complete the following cases. *)
+  (* sums *)
+  - (* inl *)
+  rename t into T2.
+  invert_typecheck Gamma t0 T1.
+  - (* inr *)
+    rename t into T1.
+    invert_typecheck Gamma t0 T2.
+  - (* sum case *)
+    invert_typecheck Gamma t1 T12.
+    analyze T12 T1 T2.
+    rename s into x1. rename s0 into x2.
+    rename t1 into t0. rename t2 into t1. rename t3 into t2.
+    invert_typecheck (x1 |-> T1; Gamma) t1 HT3.
+    invert_typecheck (x2 |-> T2; Gamma) t2 HT3'.
+    case_equality HT3 HT3'.
+  (* lists (the tm_lcase is given for free) *)
+  (* nil *)
+  - eauto.
+  - (* cons *)
+    invert_typecheck Gamma t1 T1.
+    invert_typecheck Gamma t2 T2.
+    analyze T2 T2' T2''.
+    case_equality T2' T1.  
+  (* FILL IN HERE *)
+  - (* tlcase *)
+    rename s into x31, s0 into x32.
+    fully_invert_typecheck Gamma t1 T1 T11 T12.
+    invert_typecheck Gamma t2 T2.
+    remember (x31 |-> T11 ; x32 |-> <{{List T11}}> ; Gamma) as Gamma'2.
+    invert_typecheck Gamma'2 t3 T3.
+    case_equality T2 T3.
+  - (* unit *)
+    eauto.
+  (* pairs *)
+  - (* pair *)
+  invert_typecheck Gamma t1 T1.
+  invert_typecheck Gamma t2 T2.
+  - (* fst *)
+    (* invert_typecheck Gamma t T'.
+    analyze T' T'1 T'2.
+    inversion H0. subst. eauto. *)
+  - (* snd *)
+    (* invert_typecheck Gamma t T'.
+    analyze T' T'1 T'2.
+    inversion H0. subst. eauto. *)
+  - (* let *)
+    (* invert_typecheck Gamma t1 T'. *)
+  - (* fix *)
+    (* invert_typecheck Gamma t T'.
+    analyze T' T'1 T'2.
+    case_equality T'1 T'2. *)
+Admitted.
+
+Theorem type_checking_complete : forall Gamma t T,
+  has_type Gamma t T ->
+  type_check Gamma t = Some T.
+Proof.
+  intros Gamma t T Hty.
+  induction Hty; simpl;
+    try (rewrite IHHty);
+    try (rewrite IHHty1);
+    try (rewrite IHHty2);
+    try (rewrite IHHty3);
+    try (rewrite (eqb_ty_refl T0));
+    try (rewrite (eqb_ty_refl T1));
+    try (rewrite (eqb_ty_refl T2));
+    try (rewrite (eqb_ty_refl T3));
+    eauto.
+    - destruct (Gamma _); [assumption| solve_by_invert].
+  (* The above proof script suffices for the reference solution. *)
+  (* FILL IN HERE *) Admitted.
+
+End TypecheckerExtensions.
+
+Module StepFunction.
+Import MoreStlc.
+Import STLCExtended.
+
+
 End STLCTypes.
