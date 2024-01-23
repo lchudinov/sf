@@ -447,5 +447,37 @@ Module StepFunction.
 Import MoreStlc.
 Import STLCExtended.
 
+(* We must first also redefine value as a function. *)
+Fixpoint valuef (t : tm) : bool :=
+  match t with
+  | tm_var _ => false
+  | <{ \_:_, _ }> => true
+  | <{ _ _ }> => false
+  | tm_const _ => true
+  | <{ succ _ }> | <{ pred _ }> | <{ _ * _ }> | <{ if0 _ then _ else _ }> => false
+  (* Complete the following cases *)
+  (* sums *)
+  | <{ (t1, t2) }> => (valuef t1) && (valuef t2)
+  | <{ t1.fst }> => false
+  | <{ t1.snd }> => false
+  | <{ let _ = _ in _ }> => false
+  | <{inl _ t1}> => valuef t1
+  | <{inr _ t1}> => valuef t1
+  | <{ case _ of | inl _ => _ | inr _ => _ }> => false
+  | <{ nil _ }> => true
+  | <{ x :: xs }> => (valuef x) && (valuef xs)
+  | <{ case _ of | nil => _ | _ :: _ => _ }> => false
+  | <{ unit }> => true
+  | <{ fix _ }> => false
+  (* | _ => false  *)
+  (* ... and delete this line when you complete the exercise. *)
+  end.
+(* Do not modify the following line: *)
+Definition manual_grade_for_valuef_defn : option (nat*string) := None.
+
+(* A little helper to concisely check some boolean properties
+   (in this case, that some term is a value, with valuef). *)
+Definition assert (b : bool) (a : option tm) : option tm :=
+  if b then a else None.
 
 End STLCTypes.
