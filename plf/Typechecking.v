@@ -479,5 +479,109 @@ Definition manual_grade_for_valuef_defn : option (nat*string) := None.
    (in this case, that some term is a value, with valuef). *)
 Definition assert (b : bool) (a : option tm) : option tm :=
   if b then a else None.
+  
+(* Operational semantics as a Coq function. *)
+Fixpoint stepf (t : tm) : option tm :=
+  match t with
+  (* pure STLC *)
+  | tm_var x => None (* We only define step for closed terms *)
+  | <{ \x1:T1, t2 }> => None (* Abstraction is a value *)
+  | <{ t1 t2 }> =>
+    match stepf t1, stepf t2, t1 with
+    | Some t1', _, _ => Some <{ t1' t2 }>
+    (* otherwise t1 is a normal form *)
+    | None, Some t2', _ => assert (valuef t1) (Some <{ t1 t2' }>)
+    (* otherwise t1, t2 are normal forms *)
+    | None, None, <{ \x:T, t11 }> =>
+      assert (valuef t2) (Some <{ [x:=t2]t11 }>)
+    | _, _, _ => None
+    end
+  (* numbers *)
+  | tm_const _ => None (* number value *)
+  | <{ succ t1 }> =>
+    match stepf t1, t1 with
+    | Some t1', _ => Some <{ succ t1' }>
+    (* otherwise t1 is a normal form *)
+    | None, tm_const n => Some (tm_const (S n))
+    | None, _ => None
+    end
+  | <{ pred t1 }> =>
+    match stepf t1, t1 with
+    | Some t1', _ => Some <{ pred t1' }>
+    (* otherwise t1 is a normal form *)
+    | None, tm_const n => Some (tm_const (n - 1))
+    | _, _ => None
+    end
+  | <{ t1 * t2 }> =>
+    match stepf t1, stepf t2, t1, t2 with
+    | Some t1', _, _, _ => Some <{ t1' * t2 }>
+    (* otherwise t1 is a normal form *)
+    | None, Some t2', _, _ =>
+      assert (valuef t1) (Some <{ t1 * t2' }>)
+    | None, None, tm_const n1, tm_const n2 => Some (tm_const (mult n1 n2))
+    | _, _, _, _ => None
+    end
+  | <{ if0 guard then t else f }> =>
+    match stepf guard, guard with
+    | Some guard', _ => Some <{ if0 guard' then t else f }>
+    (* otherwise guard is a normal form *)
+    | None, tm_const 0 => Some t
+    | None, tm_const (S _) => Some f
+    | _, _ => None
+    end
+  (* Complete the following cases. *)
+  (* sums *)
+    | <{ (t1, t2) }> => 
+      match stepf t1, stepf t2, t1, t2 with
+      | Some t1', _, _, _ => Some <{ (t1', t2) }>
+      | None, Some t2', _, _ => assert (valuef t1) (Some <{ (t1, t2') }>)
+      | _, _, _, _ => None 
+      end
+    | <{ t.fst }> => 
+      match stepf t, t with
+      | Some t', _ => Some <{ t'.fst }>
+      | None, <{ (t1, t2) }> => assert ((valuef t1) && (valuef t2)) (Some t1)
+      | _, _ => None 
+      end
+    | <{ t.snd }> => 
+      match stepf t, t with
+      | Some t', _ => Some <{ t'.snd }>
+      | None, <{ (t1, t2) }> => assert ((valuef t1) && (valuef t2)) (Some t2)
+      | _, _ => None 
+      end
+  (* lists (the tm_lcase is given for free) *)
+    | <{ nil _ }> => None
+    | <{ x :: xs }> => 
+      match stepf x, stepf xs, x, xs with
+      | Some x', _, _, _ => assert (valuef x') (Some <{ x' :: xs }>)
+      | None, Some xs', _, _ => assert ((valuef x) && (valuef xs')) (Some <{ x :: xs' }>)
+      | _, _, _, _ => None
+      end
+    | <{ case t0 of | nil => t1 | x21 :: x22 => t2 }> =>
+    match stepf t0, t0 with
+    | Some t0', _ => Some <{ case t0' of | nil => t1 | x21 :: x22 => t2 }>
+    (* otherwise t0 is a normal form *)
+    | None, <{ nil _ }> => Some t1
+    | None, <{ vh :: vt }> =>
+      assert (valuef vh) (assert (valuef vt)
+        (Some <{ [x22:=vt]([x21:=vh]t2) }> ))
+    | None, _ => None
+    end
+  (* unit *)
+    | <{ unit }> => None
+  (* pairs *)
+  (* FILL IN HERE *)
+  (* let *)
+  (* FILL IN HERE *)
+  (* fix *)
+  (* FILL IN HERE *)
+   | _ => None (* ... and delete this line when you complete the exercise. *)
+  end.
+(* Do not modify the following line: *)
+Definition manual_grade_for_stepf_defn : option (nat*string) := None.
+☐
+(* To prove that stepf is equivalent to step, we start with
+   a couple of intermediate lemmas. *)
+(* We show that valuef is sound and complete with respect to value. *)
 
 End STLCTypes.
