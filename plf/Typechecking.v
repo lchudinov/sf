@@ -531,24 +531,23 @@ Fixpoint stepf (t : tm) : option tm :=
     end
   (* Complete the following cases. *)
   (* sums *)
-    | <{ (t1, t2) }> => 
-      match stepf t1, stepf t2, t1, t2 with
-      | Some t1', _, _, _ => Some <{ (t1', t2) }>
-      | None, Some t2', _, _ => assert (valuef t1) (Some <{ (t1, t2') }>)
-      | _, _, _, _ => None 
-      end
-    | <{ t.fst }> => 
-      match stepf t, t with
-      | Some t', _ => Some <{ t'.fst }>
-      | None, <{ (t1, t2) }> => assert ((valuef t1) && (valuef t2)) (Some t1)
-      | _, _ => None 
-      end
-    | <{ t.snd }> => 
-      match stepf t, t with
-      | Some t', _ => Some <{ t'.snd }>
-      | None, <{ (t1, t2) }> => assert ((valuef t1) && (valuef t2)) (Some t2)
-      | _, _ => None 
-      end
+  | <{inl T2 t}> => match stepf t with
+    | Some t' => assert (valuef t') (Some <{inl T2 t'}>)
+    | _ => None
+    end
+  | <{inr T1 t}> => match stepf t with
+    | Some t' => assert (valuef t') (Some <{inr T1 t'}>)
+    | _ => None
+    end
+  | <{ case t of | inl x1 => t1 | inr x2 => t2 }> =>
+    match stepf t with
+    | Some t' => assert (valuef t') (Some <{ case t' of | inl x1 => t1 | inr x2 => t2 }>)
+    | None => match t with
+              | <{inl T2 t' }> => assert (valuef t') (Some <{ [x1:=t']t1 }>)
+              | <{inr T1 t' }> => assert (valuef t') (Some <{ [x2:=t']t2 }>)
+              | _ => None
+              end
+    end
   (* lists (the tm_lcase is given for free) *)
     | <{ nil _ }> => None
     | <{ x :: xs }> => 
@@ -570,9 +569,29 @@ Fixpoint stepf (t : tm) : option tm :=
   (* unit *)
     | <{ unit }> => None
   (* pairs *)
-  (* FILL IN HERE *)
+    | <{ (t1, t2) }> => 
+    match stepf t1, stepf t2, t1, t2 with
+    | Some t1', _, _, _ => Some <{ (t1', t2) }>
+    | None, Some t2', _, _ => assert (valuef t1) (Some <{ (t1, t2') }>)
+    | _, _, _, _ => None 
+    end
+    | <{ t.fst }> => 
+    match stepf t, t with
+    | Some t', _ => Some <{ t'.fst }>
+    | None, <{ (t1, t2) }> => assert ((valuef t1) && (valuef t2)) (Some t1)
+    | _, _ => None 
+    end
+    | <{ t.snd }> => 
+    match stepf t, t with
+    | Some t', _ => Some <{ t'.snd }>
+    | None, <{ (t1, t2) }> => assert ((valuef t1) && (valuef t2)) (Some t2)
+    | _, _ => None 
+    end
   (* let *)
-  (* FILL IN HERE *)
+    | <{ let x = v in t }> => match stepf v with
+      | Some v' => assert (valuef v') (Some <{ let x = v' in t }>)
+      | None => assert (valuef v) (Some <{ [x:=v]t }>) 
+      end
   (* fix *)
   (* FILL IN HERE *)
    | _ => None (* ... and delete this line when you complete the exercise. *)
