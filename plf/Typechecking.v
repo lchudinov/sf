@@ -593,14 +593,19 @@ Fixpoint stepf (t : tm) : option tm :=
       | None => assert (valuef v) (Some <{ [x:=v]t }>) 
       end
   (* fix *)
-  (* FILL IN HERE *)
-   | _ => None (* ... and delete this line when you complete the exercise. *)
+    | <{ fix t }> => match t with
+      | <{ \xf:T, t }> => Some (<{ [xf:= fix (\xf:T, t)]t }>)
+      | _ => match stepf t with
+        | Some t' => (Some <{ fix t' }>)
+        | _ => None
+        end
+      end
   end.
 (* Do not modify the following line: *)
 Definition manual_grade_for_stepf_defn : option (nat*string) := None.
-☐
 (* To prove that stepf is equivalent to step, we start with
    a couple of intermediate lemmas. *)
 (* We show that valuef is sound and complete with respect to value. *)
+
 
 End STLCTypes.
