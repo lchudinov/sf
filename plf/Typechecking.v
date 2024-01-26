@@ -607,5 +607,78 @@ Definition manual_grade_for_stepf_defn : option (nat*string) := None.
    a couple of intermediate lemmas. *)
 (* We show that valuef is sound and complete with respect to value. *)
 
+Lemma sound_valuef : forall t,
+    valuef t = true -> value t.
+Proof.
+  (* FILL IN HERE *) Admitted.
+  
+  
+(* valuef is complete with respect to value.
+   This proof by induction is quite easily done by simplification. *)
+   Lemma complete_valuef : forall t,
+   value t -> valuef t = true.
+Proof.
+ (* FILL IN HERE *) Admitted.
+(* Soundness of stepf:
 
-End STLCTypes.
+  Theorem sound_stepf : forall t t',
+      stepf t = Some t'  ->  t --> t'.
+
+  By induction on t. We automate the handling of each case with
+  the following tactic auto_stepf. *)
+Tactic Notation "auto_stepf" ident(H) :=
+ (* Step 1: In every case, the left hand side of the hypothesis
+    H : stepf t = Some t' simplifies to some combination of
+    match u with ... end, assert u (...) (for some u).
+    The tactic auto_stepf then destructs u as required.
+    We repeat this step as long as it is possible. *)
+ repeat
+   match type of H with
+   | (match ?u with _ => _ end = _) =>
+     let e := fresh "e" in
+     destruct u eqn:e
+   | (assert ?u _ = _) =>
+     (* In this case, u is always of the form valuef t0
+        for some term t0. If valuef t0 = true, we immediately
+        deduce value t0 via sound_valuef. If valuef t0 = false,
+        then that equation simplifies to None = Some t', which is
+        contradictory and can be eliminated with discriminate. *)
+     let e := fresh "e" in
+     destruct u eqn:e;
+     simpl in H; (* assert true (...) must be simplified
+                    explicitly. *)
+     [apply sound_valuef in e | discriminate]
+   end;
+ (* Step 2: We are now left with either H : None = Some t' or
+    Some (...) = Some t', and the rest of the proof is a
+    straightforward combination of the induction hypotheses. *)
+ (discriminate + (inversion H; subst; auto)).
+ 
+(* Soundness of stepf. *)
+Theorem sound_stepf : forall t t',
+    stepf t = Some t' -> t --> t'.
+Proof.
+  intros t.
+  induction t; simpl; intros t' H;
+    auto_stepf H.
+ (* The above proof script suffices for the reference solution. *)
+ (* FILL IN HERE *) Admitted.
+ 
+(* Now for completeness, another lemma will be useful:
+   every value is a normal form for stepf. *)
+Lemma value_stepf_nf : forall t,
+  value t -> stepf t = None.
+Proof.
+ (* FILL IN HERE *) Admitted.
+ 
+(* Completeness of stepf. *)
+Theorem complete_stepf : forall t t',
+   t --> t' -> stepf t = Some t'.
+Proof.
+ (* FILL IN HERE *) Admitted.
+End StepFunction.
+Module StlcImpl.
+Import StepFunction.
+(* FILL IN HERE *)
+End StlcImpl.
+
