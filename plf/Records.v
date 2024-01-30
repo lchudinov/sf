@@ -162,3 +162,45 @@ where "t '-->' t'" := (step t t').
 Notation multistep := (multi step).
 Notation "t1 '-->*' t2" := (multistep t1 t2) (at level 40).
 Hint Constructors step : core.
+
+Fixpoint Tlookup (i:string) (Tr:ty) : option ty :=
+  match Tr with
+  | <{{ i' : T :: Tr' }}> =>
+      if String.eqb i i' then Some T else Tlookup i Tr'
+  | _ => None
+  end.
+Definition context := partial_map ty.
+
+Reserved Notation "Gamma '|--' t '\in' T" (at level 40, t custom stlc, T custom stlc_ty at level 0).
+
+Inductive has_type (Gamma : context) : tm -> ty -> Prop :=
+  | T_Var : forall x T,
+      Gamma x = Some T ->
+      well_formed_ty T ->
+      Gamma |-- x \in T
+  | T_Abs : forall x T11 T12 t12,
+      well_formed_ty T11 ->
+      (x |-> T11; Gamma) |-- t12 \in T12 ->
+      Gamma |-- \x : T11, t12 \in (T11 -> T12)
+  | T_App : forall T1 T2 t1 t2,
+      Gamma |-- t1 \in (T1 -> T2) ->
+      Gamma |-- t2 \in T1 ->
+      Gamma |-- ( t1 t2) \in T2
+  (* records: *)
+  | T_Proj : forall i t Ti Tr,
+      Gamma |-- t \in Tr ->
+      Tlookup i Tr = Some Ti ->
+      Gamma |-- (t --> i) \in Ti
+  | T_RNil :
+      Gamma |-- nil \in nil
+  | T_RCons : forall i t T tr Tr,
+      Gamma |-- t \in T ->
+      Gamma |-- tr \in Tr ->
+      record_ty Tr ->
+      record_tm tr ->
+      Gamma |-- ( i := t :: tr) \in ( i : T :: Tr)
+
+where "Gamma '|--' t '\in' T" := (has_type Gamma t T).
+Hint Constructors has_type : core.
+
+
