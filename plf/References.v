@@ -122,3 +122,13 @@ Fixpoint subst (x : string) (s : tm) (t : tm) : tm :=
   end
 
 where "'[' x ':=' s ']' t" := (subst x s t) (in custom stlc).
+
+Definition x : string := "x".
+Definition y : string := "y".
+Definition z : string := "z".
+Hint Unfold x : core.
+Hint Unfold y : core.
+Hint Unfold z : core.
+Definition tseq t1 t2 :=
+  <{ (\ x : Unit, t2) t1 }>.
+Notation "t1 ; t2" := (tseq t1 t2) (in custom stlc at level 3).
