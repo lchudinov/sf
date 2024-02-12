@@ -13,4 +13,5 @@ coqc -Q . PLF Sub.v
 coqc -Q . PLF Typechecking.v 
 coqc -Q . PLF Records.v 
 coqc -Q . PLF References.v
+coqc -Q . PLF RecordSub.v
 
