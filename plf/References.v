@@ -733,3 +733,85 @@ Proof with eauto.
       destruct Ht1p as [t1' [st' Hstep]].
       exists <{ t1' := t2 }>, st'...
 Qed.
+
+Module ExampleVariables.
+Open Scope string_scope.
+Definition x := "x".
+Definition y := "y".
+Definition r := "r".
+Definition s := "s".
+End ExampleVariables.
+Module RefsAndNontermination.
+Import ExampleVariables.
+Definition loop_fun :=
+  <{ \x : Unit, (!r) unit }>.
+Definition loop :=
+  <{ (\r : Ref (Unit -> Unit), (( r := loop_fun ); ( (! r) unit ) )) (ref (\x : Unit, unit)) }> .
+  
+Lemma loop_typeable : exists T, empty; nil |-- loop \in T.
+Proof with eauto.
+  eexists. unfold loop. unfold loop_fun.
+  eapply T_App...
+  eapply T_Abs...
+  eapply T_App...
+    eapply T_Abs. eapply T_App. eapply T_Deref. eapply T_Var.
+    rewrite update_neq; [|intros; discriminate].
+    rewrite update_eq. reflexivity. auto.
+  eapply T_Assign.
+    eapply T_Var. rewrite update_eq. reflexivity.
+  eapply T_Abs.
+    eapply T_App...
+      eapply T_Deref. eapply T_Var. reflexivity.
+Qed.
+
+Inductive step_closure {X:Type} (R: relation X) : X -> X -> Prop :=
+  | sc_one : forall (x y : X),
+                R x y -> step_closure R x y
+  | sc_step : forall (x y z : X),
+                R x y ->
+                step_closure R y z ->
+                step_closure R x z.
+Definition multistep1 := (step_closure step).
+Notation "t1 '/' st '-->+' t2 '/' st'" :=
+        (multistep1 (t1,st) (t2,st'))
+        (at level 40, st at level 39, t2 at level 39).
+        
+Ltac print_goal := match goal with |- ?x => idtac x end.
+Ltac reduce :=
+    repeat (print_goal; eapply multi_step ;
+            [ (eauto 10; fail) | compute];
+            try solve [apply multi_refl]).
+Lemma loop_steps_to_loop_fun :
+  loop / nil -->*
+  <{ (! (loc 0)) unit }> / cons <{ [r := loc 0] loop_fun }> nil.
+Proof.
+  unfold loop.
+  reduce.
+Qed.
+
+Lemma loop_fun_step_self :
+  <{ (! (loc 0)) unit }> / cons <{ [r := loc 0] loop_fun }> nil -->+
+  <{ (! (loc 0)) unit }> / cons <{ [r := loc 0] loop_fun }> nil.
+Proof with eauto.
+  unfold loop_fun; simpl.
+  eapply sc_step. apply ST_App1...
+  eapply sc_one. compute. apply ST_AppAbs...
+Qed.
+
+Definition factorial : tm :=
+  <{(\r : Ref (Nat -> Nat), 
+    (r := (\x : Nat, if0 x then 1 else x * ((!r) (pred x)))); !r) 
+    (ref (\x : Nat, x))}>.
+Lemma factorial_type : empty; nil |-- factorial \in (Nat -> Nat).
+Proof with eauto.
+Admitted.
+(* 
+Lemma factorial_4 : exists st,
+  <{ factorial 4 }> / nil -->* tm_const 24 / st.
+Proof.
+  eexists. unfold factorial. reduce.
+Qed.
+*)
+
+End RefsAndNontermination.
+End STLCRef.
