@@ -208,3 +208,107 @@ Proof.
     unfold TRcd_kj, TRcd_j. apply S_RcdWidth; auto.
 Qed.
 
+Example subtyping_example_1 :
+  TRcd_kj <: TRcd_j.
+(* {k:A->A,j:B->B} <: {j:B->B} *)
+Proof with eauto.
+  unfold TRcd_kj, TRcd_j.
+  eapply S_Trans.
+  apply S_RcdPerm...
+  - intros contra. inversion contra.
+  - apply S_RcdDepth...
+Qed.
+Example subtyping_example_2 :
+  <{{ Top -> TRcd_kj }}> <:
+          <{{ (C -> C) -> TRcd_j }}>.
+Proof with eauto.
+  unfold TRcd_kj, TRcd_j.
+  apply S_Arrow...
+  apply subtyping_example_1.
+Qed.
+
+Example subtyping_example_3 :
+  <{{ nil -> (j : A :: nil) }}> <:
+          <{{ (k : B :: nil) -> nil }}>.
+(* {}->{j:A} <: {k:B}->{} *)
+Proof with eauto.
+  apply S_Arrow...
+Qed.
+
+Example subtyping_example_4 :
+  <{{ x : A :: y : B :: z : C :: nil }}> <:
+  <{{ z : C :: y : B :: x : A :: nil }}>.
+Proof with eauto.
+  Admitted.
+End Examples.
+
+Lemma subtype__wf : forall S T,
+  subtype S T ->
+  well_formed_ty T /\ well_formed_ty S.
+Proof with eauto.
+  intros S T Hsub.
+  induction Hsub;
+    intros; try (destruct IHHsub1; destruct IHHsub2)...
+  - (* S_RcdPerm *)
+    split... inversion H. subst. inversion H5... Qed.
+
+Lemma wf_rcd_lookup : forall i T Ti,
+  well_formed_ty T ->
+  Tlookup i T = Some Ti ->
+  well_formed_ty Ti.
+Proof with eauto.
+  intros i T.
+  induction T; intros; try solve_by_invert.
+  - (* RCons *)
+    inversion H. subst. unfold Tlookup in H0.
+    destruct (String.eqb i s)... inversion H0; subst...
+Qed.
+
+Lemma rcd_types_match : forall S T i Ti,
+  subtype S T ->
+  Tlookup i T = Some Ti ->
+  exists Si, Tlookup i S = Some Si /\ subtype Si Ti.
+Proof with (eauto using wf_rcd_lookup).
+  intros S T i Ti Hsub Hget. generalize dependent Ti.
+  induction Hsub; intros Ti Hget;
+    try solve_by_invert.
+  - (* S_Refl *)
+    exists Ti...
+  - (* S_Trans *)
+    destruct (IHHsub2 Ti) as [Ui Hui]... destruct Hui.
+    destruct (IHHsub1 Ui) as [Si Hsi]... destruct Hsi.
+    exists Si...
+  - (* S_RcdDepth *)
+    rename i0 into k.
+    unfold Tlookup. unfold Tlookup in Hget.
+    destruct (String.eqb i k)...
+    + (* i = k -- we're looking up the first field *)
+      inversion Hget. subst. exists S1...
+  - (* S_RcdPerm *)
+    exists Ti. split.
+    + (* lookup *)
+      unfold Tlookup. unfold Tlookup in Hget.
+      destruct (eqb_spec i i1)...
+      * (* i = i1 -- we're looking up the first field *)
+        destruct (eqb_spec i i2)...
+        (* i = i2 -- contradictory *)
+        destruct H0.
+        subst...
+    + (* subtype *)
+      inversion H. subst. inversion H5. subst...
+Qed.
+
+Lemma sub_inversion_arrow : forall U V1 V2,
+     U <: <{{ V1 -> V2 }}> ->
+     exists U1 U2,
+       (U= <{{ U1 -> U2 }}> ) /\ (V1 <: U1) /\ (U2 <: V2).
+Proof with eauto.
+  intros U V1 V2 Hs.
+  remember <{{ V1 -> V2 }}> as V.
+  generalize dependent V2. generalize dependent V1.
+  induction Hs; intros; try solve_by_invert.
+  - subst. inversion H. exists V1, V2...
+  - apply IHHs2 in HeqV. destruct HeqV as [X1 [X2 [H4 [H5 H6]]]].
+    exists X1, X2...
+Admitted.
+  
