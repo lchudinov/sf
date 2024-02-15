@@ -311,4 +311,68 @@ Proof with eauto.
   - apply IHHs2 in HeqV. destruct HeqV as [X1 [X2 [H4 [H5 H6]]]].
     exists X1, X2...
 Admitted.
-  
+
+Definition context := partial_map ty.
+
+Reserved Notation "Gamma '|--' t '\in' T" (at level 40,
+                                          t custom stlc at level 99, T custom stlc_ty at level 0).
+
+Inductive has_type : context -> tm -> ty -> Prop :=
+  | T_Var : forall Gamma (x : string) T,
+      Gamma x = Some T ->
+      well_formed_ty T -> 
+      Gamma |-- x \in T
+  | T_Abs : forall Gamma x T11 T12 t12,
+      well_formed_ty T11 ->
+      (x |-> T11; Gamma) |-- t12 \in T12 ->
+      Gamma |-- (\ x : T11, t12) \in (T11 -> T12)
+  | T_App : forall T1 T2 Gamma t1 t2,
+      Gamma |-- t1 \in (T1 -> T2) ->
+      Gamma |-- t2 \in T1 ->
+      Gamma |-- t1 t2 \in T2
+  | T_Proj : forall Gamma i t T Ti,
+      Gamma |-- t \in T ->
+      Tlookup i T = Some Ti ->
+      Gamma |-- t --> i \in Ti
+  (* Subsumption *)
+  | T_Sub : forall Gamma t S T,
+      Gamma |-- t \in S ->
+      subtype S T ->
+      Gamma |-- t \in T
+  (* Rules for record terms *)
+  | T_RNil : forall Gamma,
+      Gamma |-- nil \in nil
+  | T_RCons : forall Gamma i t T tr Tr,
+      Gamma |-- t \in T ->
+      Gamma |-- tr \in Tr ->
+      record_ty Tr ->
+      record_tm tr ->
+      Gamma |-- i := t :: tr \in (i : T :: Tr)
+
+where "Gamma '|--' t '\in' T" := (has_type Gamma t T).
+Hint Constructors has_type : core.
+
+Module Examples2.
+Import Examples.
+
+Definition trcd_kj :=
+  <{ k := (\z : A, z) :: j := (\z : B, z) :: nil }>.
+Example typing_example_0 :
+  empty |-- trcd_kj \in TRcd_kj.
+(* empty |-- {k=(\z:A.z), j=(\z:B.z)} : {k:A->A,j:B->B} *)
+Proof.
+  unfold trcd_kj, TRcd_kj, TRcd_j.
+  eapply T_RCons; try auto.
+Qed.
+
+Example typing_example_1 :
+  empty |-- (\x : TRcd_j, x --> j) trcd_kj \in (B -> B).
+(* empty |-- (\x:{k:A->A,j:B->B}, x.j)
+              {k=(\z:A,z), j=(\z:B,z)}
+         : B->B *)
+Proof with eauto.
+  unfold trcd_kj, TRcd_kj, TRcd_j.
+  eapply T_App.
+  - 
+
+  (* FILL IN HERE *) Admitted.
