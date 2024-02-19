@@ -372,7 +372,223 @@ Example typing_example_1 :
          : B->B *)
 Proof with eauto.
   unfold trcd_kj, TRcd_kj, TRcd_j.
-  eapply T_App.
-  - 
+  apply T_App with (T1 := TRcd_kj).
+  - unfold TRcd_kj, TRcd_j.
+Admitted.
 
+Example typing_example_2 :
+  empty |-- (\ z : (C -> C) -> TRcd_j, (z (\ x : C, x) ) --> j )
+            ( \z : (C -> C), trcd_kj ) \in (B -> B).
+(* empty |-- (\z:(C->C)->{j:B->B}, (z (\x:C,x)).j)
+              (\z:C->C, {k=(\z:A,z), j=(\z:B,z)})
+           : B->B *)
+Proof with eauto.
   (* FILL IN HERE *) Admitted.
+
+End Examples2.
+
+Lemma has_type__wf : forall Gamma t T,
+  has_type Gamma t T -> well_formed_ty T.
+Proof with eauto.
+  intros Gamma t T Htyp.
+  induction Htyp...
+  - (* T_App *)
+    inversion IHHtyp1...
+  - (* T_Proj *)
+    eapply wf_rcd_lookup...
+  - (* T_Sub *)
+    apply subtype__wf in H.
+    destruct H...
+Qed.
+
+Lemma step_preserves_record_tm : forall tr tr',
+  record_tm tr ->
+  tr --> tr' ->
+  record_tm tr'.
+Proof.
+  intros tr tr' Hrt Hstp.
+  inversion Hrt; subst; inversion Hstp; subst; eauto.
+Qed.
+
+Lemma lookup_field_in_value : forall v T i Ti,
+  value v ->
+  empty |-- v \in T ->
+  Tlookup i T = Some Ti ->
+  exists vi, tlookup i v = Some vi /\ empty |-- vi \in Ti.
+Proof with eauto.
+  remember empty as Gamma.
+  intros t T i Ti Hval Htyp. generalize dependent Ti.
+  induction Htyp; intros; subst; try solve_by_invert.
+  - (* T_Sub *)
+    apply (rcd_types_match S) in H0...
+    destruct H0 as [Si [HgetSi Hsub]].
+    eapply IHHtyp in HgetSi...
+    destruct HgetSi as [vi [Hget Htyvi]]...
+  - (* T_RCons *)
+    simpl in H0. simpl. simpl in H1.
+    destruct (String.eqb i i0).
+    + (* i is first *)
+      injection H1 as H1. subst. exists t...
+    + (* i in tail *)
+      eapply IHHtyp2 in H1...
+      inversion Hval...
+Qed.
+
+Lemma canonical_forms_of_arrow_types : forall Gamma s T1 T2,
+     Gamma |-- s \in (T1 -> T2) ->
+     value s ->
+     exists x S1 s2,
+        s = <{ \ x : S1, s2 }>.
+Proof with eauto.
+  (* FILL IN HERE *) Admitted.
+  
+Theorem progress : forall t T,
+  empty |-- t \in T ->
+  value t \/ exists t', t --> t'.
+Proof with eauto.
+intros t T Ht.
+remember empty as Gamma.
+revert HeqGamma.
+induction Ht;
+ intros HeqGamma; subst...
+- (* T_Var *)
+ inversion H.
+- (* T_App *)
+ right.
+ destruct IHHt1; subst...
+ + (* t1 is a value *)
+   destruct IHHt2; subst...
+   * (* t2 is a value *)
+     destruct (canonical_forms_of_arrow_types empty t1 T1 T2)
+       as [x [S1 [t12 Heqt1]]]...
+     subst. exists <{ [x:=t2] t12 }>...
+   * (* t2 steps *)
+     destruct H0 as [t2' Hstp]. exists <{ t1 t2' }> ...
+ + (* t1 steps *)
+   destruct H as [t1' Hstp]. exists <{ t1' t2 }>...
+- (* T_Proj *)
+ right. destruct IHHt...
+ + (* rcd is value *)
+   destruct (lookup_field_in_value t T i Ti)
+     as [t' [Hget Ht']]...
+ + (* rcd_steps *)
+   destruct H0 as [t' Hstp]. exists <{ t' --> i }>...
+- (* T_RCons *)
+ destruct IHHt1...
+ + (* head is a value *)
+   destruct IHHt2...
+   * (* tail steps *)
+     right. destruct H2 as [tr' Hstp].
+     exists <{ i := t :: tr' }>...
+ + (* head steps *)
+   right. destruct H1 as [t' Hstp].
+   exists <{ i := t' :: tr}>...
+Qed.
+
+Lemma typing_inversion_abs : forall Gamma x S1 t2 T,
+     Gamma |-- \ x : S1, t2 \in T ->
+     (exists S2, <{{ S1 -> S2 }}> <: T
+              /\ (x |-> S1; Gamma) |-- t2 \in S2).
+Proof with eauto.
+  intros Gamma x S1 t2 T H.
+  remember <{ \ x : S1, t2 }> as t.
+  induction H;
+    inversion Heqt; subst; intros; try solve_by_invert.
+  - (* T_Abs *)
+    assert (Hwf := has_type__wf _ _ _ H0).
+    exists T12...
+  - (* T_Sub *)
+    destruct IHhas_type as [S2 [Hsub Hty]]...
+Qed.
+
+Lemma abs_arrow : forall x S1 s2 T1 T2,
+  empty |-- \x : S1, s2 \in (T1 -> T2) ->
+     T1 <: S1
+  /\ (x |-> S1) |-- s2 \in T2.
+Proof with eauto.
+  intros x S1 s2 T1 T2 Hty.
+  apply typing_inversion_abs in Hty.
+  destruct Hty as [S2 [Hsub Hty]].
+  apply sub_inversion_arrow in Hsub.
+  destruct Hsub as [U1 [U2 [Heq [Hsub1 Hsub2]]]].
+  inversion Heq; subst...
+Qed.
+
+Lemma weakening : forall Gamma Gamma' t T,
+     includedin Gamma Gamma' ->
+     Gamma |-- t \in T ->
+     Gamma' |-- t \in T.
+Proof.
+  intros Gamma Gamma' t T H Ht.
+  generalize dependent Gamma'.
+  induction Ht; eauto using includedin_update.
+Qed.
+
+Lemma weakening_empty : forall Gamma t T,
+     empty |-- t \in T ->
+     Gamma |-- t \in T.
+Proof.
+  intros Gamma t T.
+  eapply weakening.
+  discriminate.
+Qed.
+
+
+Lemma substitution_preserves_typing : forall Gamma x U t v T,
+   (x |-> U ; Gamma) |-- t \in T ->
+   empty |-- v \in U ->
+   Gamma |-- [x:=v]t \in T.
+Proof.
+  intros Gamma x U t v T Ht Hv.
+  remember (x |-> U; Gamma) as Gamma'.
+  generalize dependent Gamma.
+  induction Ht; intros Gamma' G; simpl; eauto.
+  - (* T_Var *)
+    rename x0 into y.
+    destruct (eqb_spec x y) as [Hxy|Hxy]; subst.
+    + (* x = y *)
+      rewrite update_eq in H.
+      injection H as H. subst.
+      apply weakening_empty. assumption.
+    + (* x<>y *)
+      apply T_Var; [|assumption].
+      rewrite update_neq in H; assumption.
+  - (* T_Abs *)
+    rename x0 into y. subst.
+    destruct (eqb_spec x y) as [Hxy|Hxy]; apply T_Abs; try assumption.
+    + (* x=y *)
+      subst. rewrite update_shadow in Ht. assumption.
+    + (* x <> y *)
+      subst. apply IHHt.
+      rewrite update_permute; auto.
+      - (* rcons *) (* <=== only new case compared to pure STLC *)
+      apply T_RCons; eauto.
+      inversion H0; subst; simpl; auto.
+Qed.
+
+Theorem preservation : forall t t' T,
+     empty |-- t \in T ->
+     t --> t' ->
+     empty |-- t' \in T.
+Proof with eauto.
+  intros t t' T HT. generalize dependent t'.
+  remember empty as Gamma.
+  induction HT;
+       intros t' HE; subst;
+       try solve [inversion HE; subst; eauto].
+  - (* T_App *)
+    inversion HE; subst...
+    + (* ST_AppAbs *)
+      destruct (abs_arrow _ _ _ _ _ HT1) as [HA1 HA2].
+      apply substitution_preserves_typing with T0...
+  - (* T_Proj *)
+    inversion HE; subst...
+    destruct (lookup_field_in_value _ _ _ _ H2 HT H)
+      as [vi [Hget Hty]].
+    rewrite H4 in Hget. inversion Hget. subst...
+  - (* T_RCons *)
+    inversion HE; subst...
+    eauto using step_preserves_record_tm.
+Qed.
+
+End RecordSub.
