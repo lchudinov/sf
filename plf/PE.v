@@ -233,3 +233,206 @@ Proof.
          destruct (pe_bexp pe_st b2);
          rewrite IHb1; rewrite IHb2; reflexivity).
 Qed.
+
+Fixpoint pe_remove (pe_st:pe_state) (V:string) : pe_state :=
+  match pe_st with
+  | [] => []
+  | (V', n')::pe_st => if String.eqb V V' then pe_remove pe_st V
+                      else (V',n') :: pe_remove pe_st V
+  end.
+
+Theorem pe_remove_correct: forall pe_st V V0,
+  pe_lookup (pe_remove pe_st V) V0
+  = if String.eqb V V0 then None else pe_lookup pe_st V0.
+Proof. intros pe_st V V0. induction pe_st as [| [V' n'] pe_st].
+  - (*  *) destruct (String.eqb V V0); simpl; reflexivity.
+  - (* :: *) simpl. compare V V'.
+    + (* equal *) rewrite IHpe_st.
+      destruct (String.eqb_spec V V0). reflexivity.
+      rewrite false_eqb_string; auto.
+    + (* not equal *) simpl. compare V0 V'.
+      * (* equal *) rewrite false_eqb_string; auto.
+      * (* not equal *) rewrite IHpe_st. reflexivity.
+Qed.
+
+Definition pe_add (pe_st:pe_state) (V:string) (n:nat) : pe_state :=
+  (V,n) :: pe_remove pe_st V.
+
+Theorem pe_add_correct: forall pe_st V n V0,
+  pe_lookup (pe_add pe_st V n) V0
+  = if String.eqb V V0 then Some n else pe_lookup pe_st V0.
+Proof. intros pe_st V n V0. unfold pe_add. simpl.
+  compare V V0.
+  - (* equal *) rewrite String.eqb_refl; auto.
+  - (* not equal *) rewrite pe_remove_correct.
+    repeat rewrite false_eqb_string; auto.
+Qed.
+
+Theorem pe_update_update_remove: forall st pe_st V n,
+  t_update (pe_update st pe_st) V n =
+  pe_update (t_update st V n) (pe_remove pe_st V).
+Proof. intros st pe_st V n. apply functional_extensionality.
+  intros V0. unfold t_update. rewrite !pe_update_correct.
+  rewrite pe_remove_correct. destruct (String.eqb V V0); reflexivity.
+  Qed.
+
+Theorem pe_update_update_add: forall st pe_st V n,
+  t_update (pe_update st pe_st) V n =
+  pe_update st (pe_add pe_st V n).
+Proof. intros st pe_st V n. apply functional_extensionality. intros V0.
+  unfold t_update. rewrite !pe_update_correct. rewrite pe_add_correct.
+  destruct (String.eqb V V0); reflexivity. Qed.
+
+Definition pe_disagree_at (pe_st1 pe_st2 : pe_state) (V:string) : bool :=
+  match pe_lookup pe_st1 V, pe_lookup pe_st2 V with
+  | Some x, Some y => negb (x =? y)
+  | None, None => false
+  | _, _ => true
+end.
+
+Theorem pe_disagree_domain: forall (pe_st1 pe_st2 : pe_state) (V:string),
+  true = pe_disagree_at pe_st1 pe_st2 V ->
+  In V (map (@fst _ _) pe_st1 ++ map (@fst _ _) pe_st2).
+Proof. unfold pe_disagree_at. intros pe_st1 pe_st2 V H.
+  apply in_app_iff.
+  remember (pe_lookup pe_st1 V) as lookup1.
+  destruct lookup1 as [n1|]. left. apply pe_domain with n1. auto.
+  remember (pe_lookup pe_st2 V) as lookup2.
+  destruct lookup2 as [n2|]. right. apply pe_domain with n2. auto.
+  inversion H.
+Qed.
+
+Fixpoint pe_unique (l : list string) : list string :=
+  match l with
+  | [] => []
+  | x::l =>
+      x :: filter (fun y => if String.eqb x y then false else true) (pe_unique l)
+  end.
+
+Theorem pe_unique_correct: forall l x,
+  In x l <-> In x (pe_unique l).
+Proof. intros l x. induction l as [| h t]. reflexivity.
+  simpl in *. split.
+  - (* -> *)
+    intros. inversion H; clear H.
+      left. assumption.
+      destruct (String.eqb_spec h x).
+         left. assumption.
+         right. apply filter_In. split.
+           apply IHt. assumption.
+           rewrite false_eqb_string; auto.
+  - (* <- *)
+    intros. inversion H; clear H.
+       left. assumption.
+       apply filter_In in H0. inversion H0. right. apply IHt. assumption.
+Qed.
+
+Definition pe_compare (pe_st1 pe_st2 : pe_state) : list string :=
+  pe_unique (filter (pe_disagree_at pe_st1 pe_st2)
+    (map (@fst _ _) pe_st1 ++ map (@fst _ _) pe_st2)).
+
+Theorem pe_compare_correct: forall pe_st1 pe_st2 V,
+  pe_lookup pe_st1 V = pe_lookup pe_st2 V <->
+  ~ In V (pe_compare pe_st1 pe_st2).
+Proof. intros pe_st1 pe_st2 V.
+  unfold pe_compare. rewrite <- pe_unique_correct. rewrite filter_In.
+  split; intros Heq.
+  - (* -> *)
+    intro. destruct H. unfold pe_disagree_at in H0. rewrite Heq in H0.
+    destruct (pe_lookup pe_st2 V).
+    rewrite -> eqb_refl in H0. inversion H0.
+    inversion H0.
+  - (* <- *)
+    assert (Hagree: pe_disagree_at pe_st1 pe_st2 V = false).
+    { (* Proof of assertion *)
+      remember (pe_disagree_at pe_st1 pe_st2 V) as disagree.
+      destruct disagree; [| reflexivity].
+      apply pe_disagree_domain in Heqdisagree.
+      exfalso. apply Heq. split. assumption. reflexivity. }
+    unfold pe_disagree_at in Hagree.
+    destruct (pe_lookup pe_st1 V) as [n1|];
+    destruct (pe_lookup pe_st2 V) as [n2|];
+      try reflexivity; try solve_by_invert.
+    rewrite negb_false_iff in Hagree.
+    apply eqb_eq in Hagree. subst. reflexivity. Qed.
+
+Fixpoint pe_removes (pe_st:pe_state) (ids : list string) : pe_state :=
+  match ids with
+  | [] => pe_st
+  | V::ids => pe_remove (pe_removes pe_st ids) V
+  end.
+
+Theorem pe_removes_correct: forall pe_st ids V,
+  pe_lookup (pe_removes pe_st ids) V =
+  if inb String.eqb V ids then None else pe_lookup pe_st V.
+Proof. intros pe_st ids V. induction ids as [| V' ids]. reflexivity.
+  simpl. rewrite pe_remove_correct. rewrite IHids.
+  compare V' V.
+  - rewrite String.eqb_refl. reflexivity.
+  - rewrite false_eqb_string; try congruence. reflexivity.
+Qed.
+
+Theorem pe_compare_removes: forall pe_st1 pe_st2 V,
+  pe_lookup (pe_removes pe_st1 (pe_compare pe_st1 pe_st2)) V =
+  pe_lookup (pe_removes pe_st2 (pe_compare pe_st1 pe_st2)) V.
+Proof.
+  intros pe_st1 pe_st2 V. rewrite !pe_removes_correct.
+  destruct (inbP _ _ String.eqb_spec V (pe_compare pe_st1 pe_st2)).
+  - reflexivity.
+  - apply pe_compare_correct. auto. Qed.
+
+Theorem pe_compare_update: forall pe_st1 pe_st2 st,
+  pe_update st (pe_removes pe_st1 (pe_compare pe_st1 pe_st2)) =
+  pe_update st (pe_removes pe_st2 (pe_compare pe_st1 pe_st2)).
+Proof. intros. apply functional_extensionality. intros V.
+  rewrite !pe_update_correct. rewrite pe_compare_removes. reflexivity.
+Qed.
+
+Fixpoint assign (pe_st : pe_state) (ids : list string) : com :=
+  match ids with
+  | [] => <{ skip }>
+  | V::ids => match pe_lookup pe_st V with
+              | Some n => <{ assign pe_st ids; V := n }>
+              | None => assign pe_st ids
+              end
+  end.
+  
+Definition assigned (pe_st:pe_state) (ids : list string) (st:state) : state :=
+  fun V => if inb String.eqb V ids then
+                match pe_lookup pe_st V with
+                | Some n => n
+                | None => st V
+                end
+           else st V.
+
+Theorem assign_removes: forall pe_st ids st,
+  pe_update st pe_st =
+  pe_update (assigned pe_st ids st) (pe_removes pe_st ids).
+Proof. intros pe_st ids st. apply functional_extensionality. intros V.
+  rewrite !pe_update_correct. rewrite pe_removes_correct. unfold assigned.
+  destruct (inbP _ _ String.eqb_spec V ids); destruct (pe_lookup pe_st V); reflexivity.
+Qed.
+
+Lemma ceval_extensionality: forall c st st1 st2,
+  st =[ c ]=> st1 -> (forall V, st1 V = st2 V) -> st =[ c ]=> st2.
+Proof. intros c st st1 st2 H Heq.
+  apply functional_extensionality in Heq. rewrite <- Heq. apply H. Qed.
+
+Theorem eval_assign: forall pe_st ids st,
+  st =[ assign pe_st ids ]=> assigned pe_st ids st.
+Proof. intros pe_st ids st. induction ids as [| V ids]; simpl.
+  - (*  *) eapply ceval_extensionality. apply E_Skip. reflexivity.
+  - (* V::ids *)
+    remember (pe_lookup pe_st V) as lookup. destruct lookup.
+    + (* Some *) eapply E_Seq. apply IHids. unfold assigned. simpl.
+      eapply ceval_extensionality. apply E_Asgn. simpl. reflexivity.
+      intros V0. unfold t_update. compare V V0.
+      * (* equal *) rewrite <- Heqlookup. rewrite String.eqb_refl. reflexivity.
+      * (* not equal *) rewrite false_eqb_string; simpl; congruence.
+    + (* None *) eapply ceval_extensionality. apply IHids.
+      unfold assigned. intros V0. simpl. compare V V0.
+      * (* equal *) rewrite <- Heqlookup.
+        rewrite String.eqb_refl.
+        destruct (inbP _ _ String.eqb_spec V ids); reflexivity.
+      * (* not equal *) rewrite false_eqb_string; simpl; congruence.
+Qed.
