@@ -436,3 +436,164 @@ Proof. intros pe_st ids st. induction ids as [| V ids]; simpl.
         destruct (inbP _ _ String.eqb_spec V ids); reflexivity.
       * (* not equal *) rewrite false_eqb_string; simpl; congruence.
 Qed.
+
+Reserved Notation "c1 '/' st '==>' c1' '/' st'"
+  (at level 40, st at level 39, c1' at level 39).
+
+Inductive pe_com : com -> pe_state -> com -> pe_state -> Prop :=
+  | PE_Skip : forall pe_st,
+      <{skip}> / pe_st ==> <{skip}> / pe_st
+  | PE_AsgnStatic : forall pe_st a1 (n1 : nat) l,
+      pe_aexp pe_st a1 = <{ n1 }> ->
+      <{l := a1}> / pe_st ==> <{skip}> / pe_add pe_st l n1
+  | PE_AsgnDynamic : forall pe_st a1 a1' l,
+      pe_aexp pe_st a1 = a1' ->
+      (forall n : nat , a1' <> <{ n }>) ->
+      <{l := a1}> / pe_st ==> <{l := a1'}> / pe_remove pe_st l
+  | PE_Seq : forall pe_st pe_st' pe_st'' c1 c2 c1' c2',
+      c1 / pe_st ==> c1' / pe_st' ->
+      c2 / pe_st' ==> c2' / pe_st'' ->
+      <{c1 ; c2}> / pe_st ==> <{c1' ; c2'}> / pe_st''
+  | PE_IfTrue : forall pe_st pe_st' b1 c1 c2 c1',
+      pe_bexp pe_st b1 = <{ true }> ->
+      c1 / pe_st ==> c1' / pe_st' ->
+      <{if b1 then c1 else c2 end}> / pe_st ==> c1' / pe_st'
+  | PE_IfFalse : forall pe_st pe_st' b1 c1 c2 c2',
+      pe_bexp pe_st b1 = <{ false }> ->
+      c2 / pe_st ==> c2' / pe_st' ->
+      <{if b1 then c1 else c2 end}> / pe_st ==> c2' / pe_st'
+  | PE_If : forall pe_st pe_st1 pe_st2 b1 c1 c2 c1' c2',
+      pe_bexp pe_st b1 <> <{ true }> ->
+      pe_bexp pe_st b1 <> <{ false }> ->
+      c1 / pe_st ==> c1' / pe_st1 ->
+      c2 / pe_st ==> c2' / pe_st2 ->
+      <{if b1 then c1 else c2 end}> / pe_st
+        ==> <{if pe_bexp pe_st b1
+             then c1' ; assign pe_st1 (pe_compare pe_st1 pe_st2)
+             else c2' ; assign pe_st2 (pe_compare pe_st1 pe_st2) end}>
+            / pe_removes pe_st1 (pe_compare pe_st1 pe_st2)
+
+  where "c1 '/' st '==>' c1' '/' st'" := (pe_com c1 st c1' st').
+Local Hint Constructors pe_com : core.
+
+Local Hint Constructors ceval : core.
+
+Example pe_example1:
+  <{X := 3 ; Y := Z * (X + X)}>
+  / [] ==> <{skip; Y := Z * 6}> / [(X,3)].
+Proof. eapply PE_Seq. eapply PE_AsgnStatic. simpl. reflexivity.
+  eapply PE_AsgnDynamic. simpl. reflexivity. intros n H. inversion H.
+Qed.
+
+Example pe_example2:
+  <{X := 3 ; if X <= 4 then X := 4 else skip end}>
+  / [] ==> <{skip; skip}> / [(X,4)].
+Proof. eapply PE_Seq. eapply PE_AsgnStatic. simpl. reflexivity.
+  eapply PE_IfTrue. simpl. reflexivity.
+  eapply PE_AsgnStatic. simpl. reflexivity.
+Qed.
+
+Example pe_example3:
+  <{X := 3;
+   if Y <= 4 then
+     Y := 4;
+     if X = Y then Y := 999 else skip end
+   else skip end}> / []
+  ==> <{skip;
+       if Y <= 4 then
+         (skip; skip); (skip; Y := 4)
+       else skip; skip end}>
+      / [(X,3)].
+Proof. erewrite f_equal2 with (f := fun c st => _ / _ ==> c / st).
+  eapply PE_Seq. eapply PE_AsgnStatic. reflexivity.
+  eapply PE_If; intuition eauto; try solve_by_invert.
+  econstructor. eapply PE_AsgnStatic. reflexivity.
+  eapply PE_IfFalse. reflexivity. econstructor.
+  reflexivity. reflexivity.
+Qed.
+
+
+Reserved Notation "c' '/' pe_st' '/' st '==>' st''"
+  (at level 40, pe_st' at level 39, st at level 39).
+
+Inductive pe_ceval
+  (c':com) (pe_st':pe_state) (st:state) (st'':state) : Prop :=
+  | pe_ceval_intro : forall st',
+    st =[ c' ]=> st' ->
+    pe_update st' pe_st' = st'' ->
+    c' / pe_st' / st ==> st''
+  where "c' '/' pe_st' '/' st '==>' st''" := (pe_ceval c' pe_st' st st'').
+Local Hint Constructors pe_ceval : core.
+
+Theorem pe_com_complete:
+  forall c pe_st pe_st' c', c / pe_st ==> c' / pe_st' ->
+  forall st st'',
+  (pe_update st pe_st =[ c ]=> st'') ->
+  (c' / pe_st' / st ==> st'').
+Proof. intros c pe_st pe_st' c' Hpe.
+  induction Hpe; intros st st'' Heval;
+  try (inversion Heval; subst;
+       try (rewrite -> pe_bexp_correct, -> H in *; solve_by_invert);
+       []);
+  eauto.
+  - (* PE_AsgnStatic *) econstructor. econstructor.
+    rewrite -> pe_aexp_correct. rewrite <- pe_update_update_add.
+    rewrite -> H. reflexivity.
+  - (* PE_AsgnDynamic *) econstructor. econstructor. reflexivity.
+    rewrite -> pe_aexp_correct. rewrite <- pe_update_update_remove.
+    reflexivity.
+  - (* PE_Seq *)
+    edestruct IHHpe1. eassumption. subst.
+    edestruct IHHpe2. eassumption.
+    eauto.
+  - (* PE_If *) inversion Heval; subst.
+    + (* E'IfTrue *) edestruct IHHpe1. eassumption.
+      econstructor. apply E_IfTrue. rewrite <- pe_bexp_correct. assumption.
+      eapply E_Seq. eassumption. apply eval_assign.
+      rewrite <- assign_removes. eassumption.
+    + (* E_IfFalse *) edestruct IHHpe2. eassumption.
+      econstructor. apply E_IfFalse. rewrite <- pe_bexp_correct. assumption.
+      eapply E_Seq. eassumption. apply eval_assign.
+      rewrite -> pe_compare_update.
+      rewrite <- assign_removes. eassumption.
+Qed.
+
+Theorem pe_com_sound:
+  forall c pe_st pe_st' c', c / pe_st ==> c' / pe_st' ->
+  forall st st'',
+  (c' / pe_st' / st ==> st'') ->
+  (pe_update st pe_st =[ c ]=> st'').
+Proof. intros c pe_st pe_st' c' Hpe.
+  induction Hpe;
+    intros st st'' [st' Heval Heq];
+    try (inversion Heval; []; subst); auto.
+  - (* PE_AsgnStatic *) rewrite <- pe_update_update_add. apply E_Asgn.
+    rewrite -> pe_aexp_correct. rewrite -> H. reflexivity.
+  - (* PE_AsgnDynamic *) rewrite <- pe_update_update_remove. apply E_Asgn.
+    rewrite <- pe_aexp_correct. reflexivity.
+  - (* PE_Seq *) eapply E_Seq; eauto.
+  - (* PE_IfTrue *) apply E_IfTrue.
+    rewrite -> pe_bexp_correct. rewrite -> H. reflexivity. eauto.
+  - (* PE_IfFalse *) apply E_IfFalse.
+    rewrite -> pe_bexp_correct. rewrite -> H. reflexivity. eauto.
+  - (* PE_If *)
+    inversion Heval; subst; inversion H7;
+      (eapply ceval_deterministic in H8; [| apply eval_assign]); subst.
+    + (* E_IfTrue *)
+      apply E_IfTrue. rewrite -> pe_bexp_correct. assumption.
+      rewrite <- assign_removes. eauto.
+    + (* E_IfFalse *)
+      rewrite -> pe_compare_update.
+      apply E_IfFalse. rewrite -> pe_bexp_correct. assumption.
+      rewrite <- assign_removes. eauto.
+Qed.
+
+Corollary pe_com_correct:
+  forall c pe_st pe_st' c', c / pe_st ==> c' / pe_st' ->
+  forall st st'',
+  (pe_update st pe_st =[ c ]=> st'') <->
+  (c' / pe_st' / st ==> st'').
+Proof. intros c pe_st pe_st' c' H st st''. split.
+  - (* -> *) apply pe_com_complete. apply H.
+  - (* <- *) apply pe_com_sound. apply H.
+Qed.
