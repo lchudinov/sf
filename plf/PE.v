@@ -597,3 +597,408 @@ Proof. intros c pe_st pe_st' c' H st st''. split.
   - (* -> *) apply pe_com_complete. apply H.
   - (* <- *) apply pe_com_sound. apply H.
 Qed.
+
+Module Loop.
+
+Reserved Notation "c1 '/' st '==>' c1' '/' st' '/' c''"
+  (at level 40, st at level 39, c1' at level 39, st' at level 39).
+
+Inductive pe_com : com -> pe_state -> com -> pe_state -> com -> Prop :=
+  | PE_Skip : forall pe_st,
+      <{ skip }> / pe_st ==> <{ skip }> / pe_st / <{skip}>
+  | PE_AsgnStatic : forall pe_st a1 (n1 : nat) l,
+      pe_aexp pe_st a1 = <{ n1 }> ->
+      <{ l := a1 }> / pe_st ==> <{ skip }> / pe_add pe_st l n1 / <{skip}>
+  | PE_AsgnDynamic : forall pe_st a1 a1' l,
+      pe_aexp pe_st a1 = a1' ->
+      (forall n : nat, a1' <> <{ n }> ) ->
+      <{l := a1}> / pe_st ==> <{l := a1'}> / pe_remove pe_st l / <{skip}>
+  | PE_Seq : forall pe_st pe_st' pe_st'' c1 c2 c1' c2' c'',
+      c1 / pe_st ==> c1' / pe_st' / <{skip}> ->
+      c2 / pe_st' ==> c2' / pe_st'' / c'' ->
+      <{c1 ; c2}> / pe_st ==> <{c1' ; c2'}> / pe_st'' / c''
+  | PE_IfTrue : forall pe_st pe_st' b1 c1 c2 c1' c'',
+      pe_bexp pe_st b1 = <{ true }> ->
+      c1 / pe_st ==> c1' / pe_st' / c'' ->
+      <{if b1 then c1 else c2 end}> / pe_st ==> c1' / pe_st' / c''
+  | PE_IfFalse : forall pe_st pe_st' b1 c1 c2 c2' c'',
+      pe_bexp pe_st b1 = <{ false }> ->
+      c2 / pe_st ==> c2' / pe_st' / c'' ->
+      <{if b1 then c1 else c2 end}> / pe_st ==> c2' / pe_st' / c''
+  | PE_If : forall pe_st pe_st1 pe_st2 b1 c1 c2 c1' c2' c'',
+      pe_bexp pe_st b1 <> <{ true }> ->
+      pe_bexp pe_st b1 <> <{ false }> ->
+      c1 / pe_st ==> c1' / pe_st1 / c'' ->
+      c2 / pe_st ==> c2' / pe_st2 / c'' ->
+      <{if b1 then c1 else c2 end}> / pe_st
+        ==> <{if pe_bexp pe_st b1
+             then c1' ; assign pe_st1 (pe_compare pe_st1 pe_st2)
+             else c2' ; assign pe_st2 (pe_compare pe_st1 pe_st2) end}>
+            / pe_removes pe_st1 (pe_compare pe_st1 pe_st2)
+            / c''
+  | PE_WhileFalse : forall pe_st b1 c1,
+      pe_bexp pe_st b1 = <{ false }> ->
+      <{while b1 do c1 end}> / pe_st ==> <{skip}> / pe_st / <{skip}>
+  | PE_WhileTrue : forall pe_st pe_st' pe_st'' b1 c1 c1' c2' c2'',
+      pe_bexp pe_st b1 = <{ true }> ->
+      c1 / pe_st ==> c1' / pe_st' / <{skip}> ->
+      <{while b1 do c1 end}> / pe_st' ==> c2' / pe_st'' / c2'' ->
+      pe_compare pe_st pe_st'' <> [] ->
+      <{while b1 do c1 end}> / pe_st ==> <{c1';c2'}> / pe_st'' / c2''
+  | PE_While : forall pe_st pe_st' pe_st'' b1 c1 c1' c2' c2'',
+      pe_bexp pe_st b1 <> <{ false }> ->
+      pe_bexp pe_st b1 <> <{ true }> ->
+      c1 / pe_st ==> c1' / pe_st' / <{skip}> ->
+      <{while b1 do c1 end}> / pe_st' ==> c2' / pe_st'' / c2'' ->
+      pe_compare pe_st pe_st'' <> [] ->
+      (c2'' = <{skip}> \/ c2'' = <{while b1 do c1 end}>) ->
+      <{while b1 do c1 end}> / pe_st
+        ==> <{if pe_bexp pe_st b1
+             then c1'; c2'; assign pe_st'' (pe_compare pe_st pe_st'')
+             else assign pe_st (pe_compare pe_st pe_st'') end}>
+            / pe_removes pe_st (pe_compare pe_st pe_st'')
+            / c2''
+  | PE_WhileFixedEnd : forall pe_st b1 c1,
+      pe_bexp pe_st b1 <> <{ false }> ->
+      <{while b1 do c1 end}> / pe_st ==> <{skip}> / pe_st / <{while b1 do c1 end}>
+  | PE_WhileFixedLoop : forall pe_st pe_st' pe_st'' b1 c1 c1' c2',
+      pe_bexp pe_st b1 = <{ true }> ->
+      c1 / pe_st ==> c1' / pe_st' / <{skip}> ->
+      <{while b1 do c1 end}> / pe_st'
+        ==> c2' / pe_st'' / <{while b1 do c1 end}>->
+      pe_compare pe_st pe_st'' = [] ->
+      <{while b1 do c1 end}> / pe_st
+        ==> <{while true do skip end}> / pe_st / <{skip}>
+      (* Because we have an infinite loop, we should actually
+         start to throw away the rest of the program:
+         (while b1 do c1 end) / pe_st
+         ==> skip / pe_st / (while true do skip end) *)
+  | PE_WhileFixed : forall pe_st pe_st' pe_st'' b1 c1 c1' c2',
+      pe_bexp pe_st b1 <> <{ false }> ->
+      pe_bexp pe_st b1 <> <{ true }> ->
+      c1 / pe_st ==> c1' / pe_st' / <{skip}> ->
+      <{while b1 do c1 end}> / pe_st'
+        ==> c2' / pe_st'' / <{while b1 do c1 end}> ->
+      pe_compare pe_st pe_st'' = [] ->
+      <{while b1 do c1 end}> / pe_st
+        ==> <{while pe_bexp pe_st b1 do c1'; c2' end}> / pe_st / <{skip}>
+
+  where "c1 '/' st '==>' c1' '/' st' '/' c''" := (pe_com c1 st c1' st' c'').
+Local Hint Constructors pe_com : core.
+Ltac step i :=
+  (eapply i; intuition eauto; try solve_by_invert);
+  repeat (try eapply PE_Seq;
+          try (eapply PE_AsgnStatic; simpl; reflexivity);
+          try (eapply PE_AsgnDynamic;
+               [ simpl; reflexivity
+               | intuition eauto; solve_by_invert])).
+               
+Definition square_loop: com :=
+  <{while 1 <= X do
+    Y := Y * Y;
+    X := X - 1
+  end}>.
+
+Example pe_loop_example1:
+  square_loop / []
+  ==> <{while 1 <= X do
+         (Y := Y * Y;
+          X := X - 1); skip
+       end}> / [] / <{skip}>.
+Proof. erewrite f_equal2 with (f := fun c st => _ / _ ==> c / st / <{skip}>).
+  step PE_WhileFixed. step PE_WhileFixedEnd. reflexivity.
+  reflexivity. reflexivity. Qed.
+Example pe_loop_example2:
+  <{X := 3; square_loop}> / []
+  ==> <{skip;
+       (Y := Y * Y; skip);
+       (Y := Y * Y; skip);
+       (Y := Y * Y; skip);
+       skip}> / [(X,0)] / <{skip}>.
+Proof. erewrite f_equal2 with (f := fun c st => _ / _ ==> c / st / <{skip}>).
+  eapply PE_Seq. eapply PE_AsgnStatic. reflexivity.
+  step PE_WhileTrue.
+  step PE_WhileTrue.
+  step PE_WhileTrue.
+  step PE_WhileFalse.
+  inversion H. inversion H. inversion H.
+  reflexivity. reflexivity. Qed.
+Example pe_loop_example3:
+  <{Z := 3; subtract_slowly}> / []
+  ==> <{skip;
+       if X <> 0 then
+         (skip; X := X - 1);
+         if X <> 0 then
+           (skip; X := X - 1);
+           if X <> 0 then
+             (skip; X := X - 1);
+             while X <> 0 do
+               (skip; X := X - 1); skip
+             end;
+             skip; Z := 0
+           else skip; Z := 1 end; skip
+         else skip; Z := 2 end; skip
+       else skip; Z := 3 end}> / [] / <{skip}>.
+Proof. erewrite f_equal2 with (f := fun c st => _ / _ ==> c / st / <{skip}>).
+  eapply PE_Seq. eapply PE_AsgnStatic. reflexivity.
+  step PE_While.
+  step PE_While.
+  step PE_While.
+  step PE_WhileFixed.
+  step PE_WhileFixedEnd.
+  reflexivity. inversion H. inversion H. inversion H.
+  reflexivity. reflexivity. Qed.
+Example pe_loop_example4:
+  <{X := 0;
+   while X <= 2 do
+     X := 1 - X
+   end}> / [] ==> <{skip; while true do skip end}> / [(X,0)] / <{skip}>.
+Proof. erewrite f_equal2 with (f := fun c st => _ / _ ==> c / st / <{skip}>).
+  eapply PE_Seq. eapply PE_AsgnStatic. reflexivity.
+  step PE_WhileFixedLoop.
+  step PE_WhileTrue.
+  step PE_WhileFixedEnd.
+  inversion H. reflexivity. reflexivity. reflexivity.
+Qed.
+
+Reserved Notation "c1 '/' st '==>' st' '#' n"
+  (at level 40, st at level 39, st' at level 39).
+Inductive ceval_count : com -> state -> state -> nat -> Prop :=
+  | E'Skip : forall st,
+      <{skip}> / st ==> st # 0
+  | E'Asgn : forall st a1 n l,
+      aeval st a1 = n ->
+      <{l := a1}> / st ==> (t_update st l n) # 0
+  | E'Seq : forall c1 c2 st st' st'' n1 n2,
+      c1 / st ==> st' # n1 ->
+      c2 / st' ==> st'' # n2 ->
+      <{c1 ; c2}> / st ==> st'' # (n1 + n2)
+  | E'IfTrue : forall st st' b1 c1 c2 n,
+      beval st b1 = true ->
+      c1 / st ==> st' # n ->
+      <{if b1 then c1 else c2 end}> / st ==> st' # n
+  | E'IfFalse : forall st st' b1 c1 c2 n,
+      beval st b1 = false ->
+      c2 / st ==> st' # n ->
+      <{if b1 then c1 else c2 end}> / st ==> st' # n
+  | E'WhileFalse : forall b1 st c1,
+      beval st b1 = false ->
+      <{while b1 do c1 end}> / st ==> st # 0
+  | E'WhileTrue : forall st st' st'' b1 c1 n1 n2,
+      beval st b1 = true ->
+      c1 / st ==> st' # n1 ->
+      <{while b1 do c1 end}> / st' ==> st'' # n2 ->
+      <{while b1 do c1 end}> / st ==> st'' # S (n1 + n2)
+
+  where "c1 '/' st '==>' st' # n" := (ceval_count c1 st st' n).
+Local Hint Constructors ceval_count : core.
+Theorem ceval_count_complete: forall c st st',
+  st =[ c ]=> st' -> exists n, c / st ==> st' # n.
+Proof. intros c st st' Heval.
+  induction Heval;
+    try inversion IHHeval1;
+    try inversion IHHeval2;
+    try inversion IHHeval;
+    eauto. Qed.
+Theorem ceval_count_sound: forall c st st' n,
+  c / st ==> st' # n -> st =[ c ]=> st'.
+Proof. intros c st st' n Heval. induction Heval; eauto. Qed.
+Theorem pe_compare_nil_lookup: forall pe_st1 pe_st2,
+  pe_compare pe_st1 pe_st2 = [] ->
+  forall V, pe_lookup pe_st1 V = pe_lookup pe_st2 V.
+Proof. intros pe_st1 pe_st2 H V.
+  apply (pe_compare_correct pe_st1 pe_st2 V).
+  rewrite H. intro. inversion H0. Qed.
+Theorem pe_compare_nil_update: forall pe_st1 pe_st2,
+  pe_compare pe_st1 pe_st2 = [] ->
+  forall st, pe_update st pe_st1 = pe_update st pe_st2.
+Proof. intros pe_st1 pe_st2 H st.
+  apply functional_extensionality. intros V.
+  rewrite !pe_update_correct.
+  apply pe_compare_nil_lookup with (V:=V) in H.
+  rewrite H. reflexivity. Qed.
+  
+Reserved Notation "c' '/' pe_st' '/' c'' '/' st '==>' st'' '#' n"
+  (at level 40, pe_st' at level 39, c'' at level 39,
+   st at level 39, st'' at level 39).
+
+Inductive pe_ceval_count (c':com) (pe_st':pe_state) (c'':com)
+                         (st:state) (st'':state) (n:nat) : Prop :=
+  | pe_ceval_count_intro : forall st' n',
+    st =[ c' ]=> st' ->
+    c'' / pe_update st' pe_st' ==> st'' # n' ->
+    n' <= n ->
+    c' / pe_st' / c'' / st ==> st'' # n
+  where "c' '/' pe_st' '/' c'' '/' st '==>' st'' '#' n" :=
+        (pe_ceval_count c' pe_st' c'' st st'' n).
+Local Hint Constructors pe_ceval_count : core.
+Lemma pe_ceval_count_le: forall c' pe_st' c'' st st'' n n',
+  n' <= n ->
+  c' / pe_st' / c'' / st ==> st'' # n' ->
+  c' / pe_st' / c'' / st ==> st'' # n.
+Proof. intros c' pe_st' c'' st st'' n n' Hle H. inversion H.
+  econstructor; try eassumption. lia. Qed.
+Theorem pe_com_complete:
+  forall c pe_st pe_st' c' c'', c / pe_st ==> c' / pe_st' / c'' ->
+  forall st st'' n,
+  (c / pe_update st pe_st ==> st'' # n) ->
+  (c' / pe_st' / c'' / st ==> st'' # n).
+Proof. intros c pe_st pe_st' c' c'' Hpe.
+  induction Hpe; intros st st'' n Heval;
+  try (inversion Heval; subst;
+       try (rewrite -> pe_bexp_correct, -> H in *; solve_by_invert);
+       []);
+  eauto.
+  - (* PE_AsgnStatic *) econstructor. econstructor.
+    rewrite -> pe_aexp_correct. rewrite <- pe_update_update_add.
+    rewrite -> H. apply E'Skip. auto.
+  - (* PE_AsgnDynamic *) econstructor. econstructor. reflexivity.
+    rewrite -> pe_aexp_correct. rewrite <- pe_update_update_remove.
+    apply E'Skip. auto.
+  - (* PE_Seq *)
+    edestruct IHHpe1 as [? ? ? Hskip ?]. eassumption.
+    inversion Hskip. subst.
+    edestruct IHHpe2. eassumption.
+    econstructor; eauto. lia.
+  - (* PE_If *) inversion Heval; subst.
+    + (* E'IfTrue *) edestruct IHHpe1. eassumption.
+      econstructor. apply E_IfTrue. rewrite <- pe_bexp_correct. assumption.
+      eapply E_Seq. eassumption. apply eval_assign.
+      rewrite <- assign_removes. eassumption. eassumption.
+    + (* E_IfFalse *) edestruct IHHpe2. eassumption.
+      econstructor. apply E_IfFalse. rewrite <- pe_bexp_correct. assumption.
+      eapply E_Seq. eassumption. apply eval_assign.
+      rewrite -> pe_compare_update.
+      rewrite <- assign_removes. eassumption. eassumption.
+  - (* PE_WhileTrue *)
+    edestruct IHHpe1 as [? ? ? Hskip ?]. eassumption.
+    inversion Hskip. subst.
+    edestruct IHHpe2. eassumption.
+    econstructor; eauto. lia.
+  - (* PE_While *) inversion Heval; subst.
+    + (* E_WhileFalse *) econstructor. apply E_IfFalse.
+      rewrite <- pe_bexp_correct. assumption.
+      apply eval_assign.
+      rewrite <- assign_removes. inversion H2; subst; auto.
+      auto.
+    + (* E_WhileTrue *)
+      edestruct IHHpe1 as [? ? ? Hskip ?]. eassumption.
+      inversion Hskip. subst.
+      edestruct IHHpe2. eassumption.
+      econstructor. apply E_IfTrue.
+      rewrite <- pe_bexp_correct. assumption.
+      repeat eapply E_Seq; eauto. apply eval_assign.
+      rewrite -> pe_compare_update, <- assign_removes. eassumption.
+      lia.
+  - (* PE_WhileFixedLoop *) exfalso.
+    generalize dependent (S (n1 + n2)). intros n.
+    clear - H H0 IHHpe1 IHHpe2. generalize dependent st.
+    induction n using lt_wf_ind; intros st Heval. inversion Heval; subst.
+    + (* E'WhileFalse *) rewrite pe_bexp_correct, H in H7. inversion H7.
+    + (* E'WhileTrue *)
+      edestruct IHHpe1 as [? ? ? Hskip ?]. eassumption.
+      inversion Hskip. subst.
+      edestruct IHHpe2. eassumption.
+      rewrite <- (pe_compare_nil_update _ _ H0) in H7.
+      apply H1 in H7; [| lia]. inversion H7.
+  - (* PE_WhileFixed *) generalize dependent st.
+    induction n using lt_wf_ind; intros st Heval. inversion Heval; subst.
+    + (* E'WhileFalse *) rewrite pe_bexp_correct in H8. eauto.
+    + (* E'WhileTrue *) rewrite pe_bexp_correct in H5.
+      edestruct IHHpe1 as [? ? ? Hskip ?]. eassumption.
+      inversion Hskip. subst.
+      edestruct IHHpe2. eassumption.
+      rewrite <- (pe_compare_nil_update _ _ H1) in H8.
+      apply H2 in H8; [| lia]. inversion H8.
+      econstructor; [ eapply E_WhileTrue; eauto | eassumption | lia].
+Qed.
+Theorem pe_com_sound:
+  forall c pe_st pe_st' c' c'', c / pe_st ==> c' / pe_st' / c'' ->
+  forall st st'' n,
+  (c' / pe_st' / c'' / st ==> st'' # n) ->
+  (pe_update st pe_st =[ c ]=> st'').
+Proof. intros c pe_st pe_st' c' c'' Hpe.
+  induction Hpe;
+    intros st st'' n [st' n' Heval Heval' Hle];
+    try (inversion Heval; []; subst);
+    try (inversion Heval'; []; subst); eauto.
+  - (* PE_AsgnStatic *) rewrite <- pe_update_update_add. apply E_Asgn.
+    rewrite -> pe_aexp_correct. rewrite -> H. reflexivity.
+  - (* PE_AsgnDynamic *) rewrite <- pe_update_update_remove. apply E_Asgn.
+    rewrite <- pe_aexp_correct. reflexivity.
+  - (* PE_Seq *) eapply E_Seq; eauto.
+  - (* PE_IfTrue *) apply E_IfTrue.
+    rewrite -> pe_bexp_correct. rewrite -> H. reflexivity.
+    eapply IHHpe. eauto.
+  - (* PE_IfFalse *) apply E_IfFalse.
+    rewrite -> pe_bexp_correct. rewrite -> H. reflexivity.
+    eapply IHHpe. eauto.
+  - (* PE_If *) inversion Heval; subst; inversion H7; subst; clear H7.
+    + (* E_IfTrue *)
+      eapply ceval_deterministic in H8; [| apply eval_assign]. subst.
+      rewrite <- assign_removes in Heval'.
+      apply E_IfTrue. rewrite -> pe_bexp_correct. assumption.
+      eapply IHHpe1. eauto.
+    + (* E_IfFalse *)
+      eapply ceval_deterministic in H8; [| apply eval_assign]. subst.
+      rewrite -> pe_compare_update in Heval'.
+      rewrite <- assign_removes in Heval'.
+      apply E_IfFalse. rewrite -> pe_bexp_correct. assumption.
+      eapply IHHpe2. eauto.
+  - (* PE_WhileFalse *) apply E_WhileFalse.
+    rewrite -> pe_bexp_correct. rewrite -> H. reflexivity.
+  - (* PE_WhileTrue *) eapply E_WhileTrue.
+    rewrite -> pe_bexp_correct. rewrite -> H. reflexivity.
+    eapply IHHpe1. eauto. eapply IHHpe2. eauto.
+  - (* PE_While *) inversion Heval; subst.
+    + (* E_IfTrue *)
+      inversion H9. subst. clear H9.
+      inversion H10. subst. clear H10.
+      eapply ceval_deterministic in H11; [| apply eval_assign]. subst.
+      rewrite -> pe_compare_update in Heval'.
+      rewrite <- assign_removes in Heval'.
+      eapply E_WhileTrue. rewrite -> pe_bexp_correct. assumption.
+      eapply IHHpe1. eauto.
+      eapply IHHpe2. eauto.
+    + (* E_IfFalse *) apply ceval_count_sound in Heval'.
+      eapply ceval_deterministic in H9; [| apply eval_assign]. subst.
+      rewrite <- assign_removes in Heval'.
+      inversion H2; subst.
+      * (* c2'' = skip *) inversion Heval'. subst. apply E_WhileFalse.
+        rewrite -> pe_bexp_correct. assumption.
+      * (* c2'' = while b1 do c1 end *) assumption.
+  - (* PE_WhileFixedEnd *) eapply ceval_count_sound. apply Heval'.
+  - (* PE_WhileFixedLoop *)
+    apply loop_never_stops in Heval. inversion Heval.
+  - (* PE_WhileFixed *)
+    clear - H1 IHHpe1 IHHpe2 Heval.
+    remember <{while pe_bexp pe_st b1 do c1'; c2' end}> as c'.
+    induction Heval;
+      inversion Heqc'; subst; clear Heqc'.
+    + (* E_WhileFalse *) apply E_WhileFalse.
+      rewrite pe_bexp_correct. assumption.
+    + (* E_WhileTrue *)
+      assert (IHHeval2' := IHHeval2 (refl_equal _)).
+      apply ceval_count_complete in IHHeval2'. inversion IHHeval2'.
+      clear IHHeval1 IHHeval2 IHHeval2'.
+      inversion Heval1. subst.
+      eapply E_WhileTrue. rewrite pe_bexp_correct. assumption. eauto.
+      eapply IHHpe2. econstructor. eassumption.
+      rewrite <- (pe_compare_nil_update _ _ H1). eassumption. apply le_n.
+Qed.
+Corollary pe_com_correct:
+  forall c pe_st pe_st' c', c / pe_st ==> c' / pe_st' / <{skip}> ->
+  forall st st'',
+  (pe_update st pe_st =[ c ]=> st'') <->
+  (exists st', st =[ c' ]=> st' /\ pe_update st' pe_st' = st'').
+Proof. intros c pe_st pe_st' c' H st st''. split.
+  - (* -> *) intros Heval.
+    apply ceval_count_complete in Heval. inversion Heval as [n Heval'].
+    apply pe_com_complete with (st:=st) (st'':=st'') (n:=n) in H.
+    inversion H as [? ? ? Hskip ?]. inversion Hskip. subst. eauto.
+    assumption.
+  - (* <- *) intros [st' [Heval Heq] ]. subst st''.
+    eapply pe_com_sound in H. apply H.
+    econstructor. apply Heval. apply E'Skip. apply le_n.
+Qed.
+End Loop.
