@@ -1002,3 +1002,156 @@ Proof. intros c pe_st pe_st' c' H st st''. split.
     econstructor. apply Heval. apply E'Skip. apply le_n.
 Qed.
 End Loop.
+
+Inductive block (Label:Type) : Type :=
+  | Goto : Label -> block Label
+  | If : bexp -> Label -> Label -> block Label
+  | Assign : string -> aexp -> block Label -> block Label.
+  
+Arguments Goto {Label} _.
+Arguments If {Label} _ _ _.
+Arguments Assign {Label} _ _ _.
+
+Inductive parity_label : Type :=
+  | entry : parity_label
+  | loop : parity_label
+  | body : parity_label
+  | done : parity_label.
+  
+Definition parity_body : block parity_label :=
+  Assign Y <{Y - 1}>
+   (Assign X <{1 - X}>
+     (Goto loop)).
+     
+Fixpoint keval {L:Type} (st:state) (k: block L) : state * L :=
+  match k with
+  | Goto l => (st, l)
+  | If b l1 l2 => (st, if beval st b then l1 else l2)
+  | Assign i a k => keval (t_update st i (aeval st a)) k
+  end.
+
+Example keval_example:
+  keval empty_st parity_body
+  = ((X !-> 1 ; Y !-> 0), loop).
+Proof. reflexivity. Qed.
+
+Definition program (L:Type) : Type := L -> option (block L).
+
+Definition parity : program parity_label := fun l =>
+  match l with 
+  | entry => Some (Assign X 0 (Goto loop))
+  | loop => Some (If <{ 1 <= Y }> body done)
+  | body => Some parity_body
+  | done => None (* Halt *)
+  end.
+  
+Inductive peval {L:Type} (p:program L)
+  : state -> L -> state -> L -> Prop :=
+  | E_None : forall st l,
+    p l = None ->
+    peval p st l st l
+  | E_Some : forall st l k st' l' st'' l'',
+    p l = Some k ->
+    keval st k = (st', l') ->
+    peval p st' l' st'' l'' ->
+    peval p st l st'' l''.
+    
+Example parity_eval: peval parity empty_st entry empty_st done.
+Proof. erewrite f_equal with (f := fun st => peval _ _ _ st _).
+  eapply E_Some. reflexivity. reflexivity.
+  eapply E_Some. reflexivity. reflexivity.
+  apply E_None. reflexivity.
+  apply functional_extensionality. intros i. rewrite t_update_same; auto.
+Qed.
+
+Fixpoint pe_block {L:Type} (pe_st:pe_state) (k : block L)
+  : block (pe_state * L) :=
+  match k with
+  | Goto l => Goto (pe_st, l)
+  | If b l1 l2 =>
+    match pe_bexp pe_st b with
+    | BTrue => Goto (pe_st, l1)
+    | BFalse => Goto (pe_st, l2)
+    | b' => If b' (pe_st, l1) (pe_st, l2)
+    end
+  | Assign i a k =>
+    match pe_aexp pe_st a with
+    | ANum n => pe_block (pe_add pe_st i n) k
+    | a' => Assign i a' (pe_block (pe_remove pe_st i) k)
+    end
+  end.
+Example pe_block_example:
+  pe_block [(X,0)] parity_body
+  = Assign Y <{Y - 1}> (Goto ([(X,1)], loop)).
+Proof. reflexivity. Qed.
+
+Theorem pe_block_correct: forall (L:Type) st pe_st k st' pe_st' (l':L),
+  keval st (pe_block pe_st k) = (st', (pe_st', l')) ->
+  keval (pe_update st pe_st) k = (pe_update st' pe_st', l').
+Proof. intros. generalize dependent pe_st. generalize dependent st.
+  induction k as [l | b l1 l2 | i a k];
+    intros st pe_st H.
+  - (* Goto *) inversion H; reflexivity.
+  - (* If *)
+    replace (keval st (pe_block pe_st (If b l1 l2)))
+       with (keval st (If (pe_bexp pe_st b) (pe_st, l1) (pe_st, l2)))
+       in H by (simpl; destruct (pe_bexp pe_st b); reflexivity).
+    simpl in *. rewrite pe_bexp_correct.
+    destruct (beval st (pe_bexp pe_st b)); inversion H; reflexivity.
+  - (* Assign *)
+    simpl in *. rewrite pe_aexp_correct.
+    destruct (pe_aexp pe_st a); simpl;
+      try solve [rewrite pe_update_update_add; apply IHk; apply H];
+      solve [rewrite pe_update_update_remove; apply IHk; apply H].
+Qed.
+Definition pe_program {L:Type} (p : program L)
+  : program (pe_state * L) :=
+  fun pe_l => match pe_l with | (pe_st, l) =>
+                option_map (pe_block pe_st) (p l)
+              end.
+Inductive pe_peval {L:Type} (p : program L)
+  (st:state) (pe_st:pe_state) (l:L) (st'o:state) (l':L) : Prop :=
+  | pe_peval_intro : forall st' pe_st',
+    peval (pe_program p) st (pe_st, l) st' (pe_st', l') ->
+    pe_update st' pe_st' = st'o ->
+    pe_peval p st pe_st l st'o l'.
+
+Theorem pe_program_correct:
+  forall (L:Type) (p : program L) st pe_st l st'o l',
+  peval p (pe_update st pe_st) l st'o l' <->
+  pe_peval p st pe_st l st'o l'.
+Proof. intros.
+  split.
+  - (* -> *) intros Heval.
+    remember (pe_update st pe_st) as sto.
+    generalize dependent pe_st. generalize dependent st.
+    induction Heval as
+      [ sto l Hlookup | sto l k st'o l' st''o l'' Hlookup Hkeval Heval ];
+      intros st pe_st Heqsto; subst sto.
+    + (* E_None *) eapply pe_peval_intro. apply E_None.
+      simpl. rewrite Hlookup. reflexivity. reflexivity.
+    + (* E_Some *)
+      remember (keval st (pe_block pe_st k)) as x.
+      destruct x as [st' [pe_st' l'_] ].
+      symmetry in Heqx. erewrite pe_block_correct in Hkeval by apply Heqx.
+      inversion Hkeval. subst st'o l'_. clear Hkeval.
+      edestruct IHHeval. reflexivity. subst st''o. clear IHHeval.
+      eapply pe_peval_intro; [| reflexivity]. eapply E_Some; eauto.
+      simpl. rewrite Hlookup. reflexivity.
+  - (* <- *) intros [st' pe_st' Heval Heqst'o].
+    remember (pe_st, l) as pe_st_l.
+    remember (pe_st', l') as pe_st'_l'.
+    generalize dependent pe_st. generalize dependent l.
+    induction Heval as
+      [ st [pe_st_ l_] Hlookup
+      | st [pe_st_ l_] pe_k st' [pe_st'_ l'_] st'' [pe_st'' l'']
+        Hlookup Hkeval Heval ];
+      intros l pe_st Heqpe_st_l;
+      inversion Heqpe_st_l; inversion Heqpe_st'_l'; repeat subst.
+    + (* E_None *) apply E_None. simpl in Hlookup.
+      destruct (p l'); [ solve [ inversion Hlookup ] | reflexivity ].
+    + (* E_Some *)
+      simpl in Hlookup. remember (p l) as k.
+      destruct k as [k|]; inversion Hlookup; subst.
+      eapply E_Some; eauto. apply pe_block_correct. apply Hkeval.
+Qed.
